@@ -1,0 +1,95 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  build:
+    desc: Build the gctx binary
+    cmds:
+      - go build -o gctx main.go
+    sources:
+      - ./**/*.go
+    generates:
+      - gctx
+
+  install:
+    desc: Install gctx to /usr/local/bin (requires sudo)
+    deps: [build]
+    cmds:
+      - sudo cp gctx /usr/local/bin/gctx
+      - echo "Installed gctx to /usr/local/bin/gctx"
+
+  uninstall:
+    desc: Remove gctx from /usr/local/bin (requires sudo)
+    cmds:
+      - sudo rm /usr/local/bin/gctx
+      - echo "Removed gctx from /usr/local/bin/gctx"
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f gctx
+      - rm -f gctx.test
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  setup:
+    desc: Initial setup for development (download deps)
+    cmds:
+      - go mod download
+
+  # Configuration Management Tasks
+  config:show:
+    desc: Show current configuration path
+    cmds:
+      - echo "Config is stored at ~/.config/gctx/config.json"
+      - cat ~/.config/gctx/config.json
+
+  config:clean:
+    desc: DANGER - Remove all configuration and ADC files
+    prompt: This will delete all your gctx configuration. Are you sure?
+    cmds:
+      - rm -rf ~/.config/gctx
+      - echo "Configuration cleared."
+
+  # Example workflows (aliases for complex commands)
+  demo:create:
+    desc: Create a demo account (interactive)
+    cmds:
+      - ./gctx create demo demo-project --auto-save
+
+  demo:switch:
+    desc: Switch to demo account
+    cmds:
+      - ./gctx switch demo
+
+  demo:login:
+    desc: Re-authenticate demo account
+    cmds:
+      - ./gctx login demo
+
+  demo:delete:
+    desc: Delete demo account and config
+    cmds:
+      - ./gctx delete demo --gcloud-config
+
+  completion:bash:
+    desc: Generate bash completion
+    cmds:
+      - ./gctx completion bash > ~/.bash_completion.d/gctx
+    status:
+      - test -d ~/.bash_completion.d
+
+  completion:zsh:
+    desc: Generate zsh completion
+    cmds:
+      - ./gctx completion zsh > ~/.zsh_completion.d/_gctx
+    status:
+      - test -d ~/.zsh_completion.d

@@ -1,0 +1,17 @@
+# Binaries
+gctx
+goctx
+
+# Config
+config.json
+
+# Build artifacts
+*.test
+*.out
+
+# Mac
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
