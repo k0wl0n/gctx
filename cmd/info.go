@@ -8,6 +8,8 @@ import (
 var infoCmd = &cobra.Command{
 	Use:   "info <account-name>",
 	Short: "Show detailed account information",
+	Example: `  # Show details for 'my-account'
+  gctx info my-account`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		m, err := manager.New()

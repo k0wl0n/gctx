@@ -6,6 +6,16 @@ Delete an account
 gctx delete <account-name> [flags]
 ```
 
+### Examples
+
+```
+  # Delete an account (keeps gcloud config)
+  gctx delete my-account
+
+  # Delete an account AND its gcloud configuration
+  gctx delete my-account --gcloud-config
+```
+
 ### Options
 
 ```

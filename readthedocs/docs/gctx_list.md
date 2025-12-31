@@ -6,6 +6,13 @@ List all configured accounts
 gctx list [flags]
 ```
 
+### Examples
+
+```
+  # List all accounts
+  gctx list
+```
+
 ### Options
 
 ```

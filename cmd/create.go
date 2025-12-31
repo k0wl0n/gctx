@@ -10,6 +10,11 @@ var autoSave bool
 var createCmd = &cobra.Command{
 	Use:   "create <account-name> <project-id>",
 	Short: "Create a new account configuration",
+	Example: `  # Create a new account and manually authenticate later
+  gctx create my-account my-project-id
+
+  # Create a new account and auto-start authentication
+  gctx create my-account my-project-id --auto-save`,
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		m, err := manager.New()

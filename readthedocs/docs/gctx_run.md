@@ -6,6 +6,16 @@ Run a gcloud command with specific account
 gctx run <account-name> <gcloud-args>... [flags]
 ```
 
+### Examples
+
+```
+  # Run 'gcloud storage ls' as 'my-account'
+  gctx run my-account storage ls
+
+  # Run 'gcloud compute instances list' as 'dev-account'
+  gctx run dev-account compute instances list
+```
+
 ### Options
 
 ```

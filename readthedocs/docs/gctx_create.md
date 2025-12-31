@@ -6,6 +6,16 @@ Create a new account configuration
 gctx create <account-name> <project-id> [flags]
 ```
 
+### Examples
+
+```
+  # Create a new account and manually authenticate later
+  gctx create my-account my-project-id
+
+  # Create a new account and auto-start authentication
+  gctx create my-account my-project-id --auto-save
+```
+
 ### Options
 
 ```

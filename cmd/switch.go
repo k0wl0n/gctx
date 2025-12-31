@@ -8,6 +8,8 @@ import (
 var switchCmd = &cobra.Command{
 	Use:   "switch <account-name>",
 	Short: "Switch to a different account",
+	Example: `  # Switch to 'my-account'
+  gctx switch my-account`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		m, err := manager.New()

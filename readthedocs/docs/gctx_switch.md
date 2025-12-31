@@ -6,6 +6,13 @@ Switch to a different account
 gctx switch <account-name> [flags]
 ```
 
+### Examples
+
+```
+  # Switch to 'my-account'
+  gctx switch my-account
+```
+
 ### Options
 
 ```

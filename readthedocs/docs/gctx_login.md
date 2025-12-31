@@ -11,6 +11,13 @@ for an existing account and update the saved credentials.
 gctx login <account-name> [flags]
 ```
 
+### Examples
+
+```
+  # Re-authenticate 'my-account'
+  gctx login my-account
+```
+
 ### Options
 
 ```

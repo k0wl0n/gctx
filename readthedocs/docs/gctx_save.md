@@ -6,6 +6,14 @@ Save current ADC credentials for an account
 gctx save <account-name> [flags]
 ```
 
+### Examples
+
+```
+  # Save the current ADC file for 'my-account'
+  # Useful if you ran 'gcloud auth application-default login' manually
+  gctx save my-account
+```
+
 ### Options
 
 ```

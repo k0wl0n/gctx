@@ -9,6 +9,8 @@ import (
 var activeCmd = &cobra.Command{
 	Use:   "active",
 	Short: "Show currently active account",
+	Example: `  # Show the currently active account
+  gctx active`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		m, err := manager.New()
 		if err != nil {

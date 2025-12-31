@@ -6,6 +6,13 @@ Show detailed account information
 gctx info <account-name> [flags]
 ```
 
+### Examples
+
+```
+  # Show details for 'my-account'
+  gctx info my-account
+```
+
 ### Options
 
 ```

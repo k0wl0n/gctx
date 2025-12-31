@@ -6,6 +6,13 @@ Show currently active account
 gctx active [flags]
 ```
 
+### Examples
+
+```
+  # Show the currently active account
+  gctx active
+```
+
 ### Options
 
 ```
