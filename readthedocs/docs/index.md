@@ -10,6 +10,8 @@ Full documentation is available at [gctx.readthedocs.io](https://gctx.readthedoc
 
 ## Project Overview
 
+**Source Code**: [https://github.com/k0wl0n/gctx](https://github.com/k0wl0n/gctx)
+
 **Problem**: Managing multiple GCP accounts requires constant re-authentication when switching between accounts, especially for ADC credentials which are stored in a single file.
 
 **Solution**: `gctx` saves separate ADC credentials for each account and swaps them automatically when switching, eliminating the need for repeated `gcloud auth application-default login`.

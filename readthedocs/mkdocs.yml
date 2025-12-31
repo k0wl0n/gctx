@@ -1,9 +1,12 @@
 site_name: gctx Documentation
+repo_url: https://github.com/k0wl0n/gctx
+repo_name: k0wl0n/gctx
 theme:
   name: readthedocs
 
 nav:
   - Home: index.md
+  - Architecture: architecture.md
   - CLI Reference:
     - gctx: gctx.md
     - active: gctx_active.md
