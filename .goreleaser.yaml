@@ -21,7 +21,6 @@ builds:
 archives:
   - formats: 
       - tar.gz
-    # this name template makes the tarballs compatible with cargo-dist
     name_template: >-
       {{ .ProjectName }}-
       {{- .Version }}-
@@ -48,3 +47,26 @@ changelog:
       - '^test:'
 
 project_name: gctx
+
+brews:
+  - repository:
+      owner: k0wl0n
+      name: homebrew-tap
+    commit_author:
+      name: k0wl0n
+      email: wahyuanggana1@gmail.com
+    homepage: "https://github.com/k0wl0n/gctx"
+    description: "GCloud Multi-Account Manager (Go + Cobra)"
+    license: "MIT"
+    folder: Formula
+
+scoops:
+  - repository:
+      owner: k0wl0n
+      name: scoop-bucket
+    commit_author:
+      name: k0wl0n
+      email: wahyuanggana1@gmail.com
+    homepage: "https://github.com/k0wl0n/gctx"
+    description: "GCloud Multi-Account Manager (Go + Cobra)"
+    license: "MIT"

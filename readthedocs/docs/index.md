@@ -16,15 +16,24 @@ Full documentation is available at [gctx.readthedocs.io](https://gctx.readthedoc
 
 ## Installation
 
+### Homebrew (macOS/Linux)
 ```bash
-# Using Task (Recommended)
-task install
+brew tap k0wl0n/tap
+brew install gctx
+```
 
-# Manual
-go install
-# or
-go build -o gctx
-sudo cp gctx /usr/local/bin/
+### Scoop (Windows)
+```bash
+scoop bucket add k0wl0n https://github.com/k0wl0n/scoop-bucket
+scoop install gctx
+```
+
+### Manual
+Download the latest binary from the [Releases](https://github.com/k0wl0n/gctx/releases) page and add it to your PATH.
+
+### From Source
+```bash
+go install github.com/k0wl0n/gctx@latest
 ```
 
 ## Development
