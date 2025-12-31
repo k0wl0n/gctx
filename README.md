@@ -25,7 +25,7 @@ sudo cp gctx /usr/local/bin/
 
 ### Prerequisites
 
-This project uses [mise](https://mise.jdx.dev/) to manage dependencies (Go, Task, gcloud).
+This project uses [mise](https://mise.jdx.dev/) to manage dependencies (Go, Task, gcloud, GoReleaser).
 
 ```bash
 # Install mise (if not installed)
