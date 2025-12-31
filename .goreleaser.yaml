@@ -48,7 +48,7 @@ changelog:
 
 project_name: gctx
 
-homebrew_casks:
+brews:
   - repository:
       owner: k0wl0n
       name: homebrew-tap
