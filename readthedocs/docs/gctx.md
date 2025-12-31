@@ -15,7 +15,7 @@ automatic switching of both gcloud configurations and ADC credentials.
 
 ### SEE ALSO
 
-* [gctx active](gctx_active.md)	 - Show currently active account
+* [gctx active](gctx_active.md)	 - Show or set currently active account
 * [gctx completion](gctx_completion.md)	 - Generate completion script
 * [gctx create](gctx_create.md)	 - Create a new account configuration
 * [gctx delete](gctx_delete.md)	 - Delete an account

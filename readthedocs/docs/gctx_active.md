@@ -1,9 +1,9 @@
 ## gctx active
 
-Show currently active account
+Show or set currently active account
 
 ```
-gctx active [flags]
+gctx active [account-name] [flags]
 ```
 
 ### Examples
@@ -11,6 +11,9 @@ gctx active [flags]
 ```
   # Show the currently active account
   gctx active
+
+  # Switch to 'my-account' (same as gctx switch)
+  gctx active my-account
 ```
 
 ### Options
