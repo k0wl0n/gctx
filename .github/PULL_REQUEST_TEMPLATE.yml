@@ -1,0 +1,27 @@
+name: Pull Request
+description: Submit a pull request to gctx
+title: "[PR] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for submitting a pull request! Please fill out the details below.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe your changes in detail.
+      placeholder: This PR adds...
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have run `task test` and all tests pass.
+          required: true
+        - label: I have updated the documentation if necessary.
+          required: false
+        - label: I have added tests for my changes.
+          required: false
