@@ -52,6 +52,7 @@ brews:
   - repository:
       owner: k0wl0n
       name: homebrew-tap
+      token: "{{ .Env.GH_PAT }}"
     commit_author:
       name: k0wl0n
       email: wahyuanggana1@gmail.com
@@ -64,6 +65,7 @@ scoops:
   - repository:
       owner: k0wl0n
       name: scoop-bucket
+      token: "{{ .Env.GH_PAT }}"
     commit_author:
       name: k0wl0n
       email: wahyuanggana1@gmail.com

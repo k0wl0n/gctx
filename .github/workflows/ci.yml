@@ -117,4 +117,7 @@ jobs:
           version: "~> v2"
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          # GITHUB_TOKEN is required for creating the release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GH_PAT is passed as a separate env var for brew/scoop publishing
+          GH_PAT: ${{ secrets.GH_PAT }}
