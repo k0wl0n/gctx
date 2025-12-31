@@ -58,7 +58,7 @@ brews:
     homepage: "https://github.com/k0wl0n/gctx"
     description: "GCloud Multi-Account Manager (Go + Cobra)"
     license: "MIT"
-    folder: Formula
+    directory: Formula
 
 scoops:
   - repository:
