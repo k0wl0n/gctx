@@ -29,6 +29,41 @@ jobs:
       - name: Run Tests
         run: task test
 
+  docs:
+    name: Generate Docs
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Documentation
+        run: task docs
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add readthedocs/docs
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "docs: update CLI reference documentation [skip ci]"
+            git push
+          fi
+
   build:
     name: Build
     runs-on: ubuntu-latest
