@@ -1,0 +1,18 @@
+site_name: gctx Documentation
+theme:
+  name: readthedocs
+
+nav:
+  - Home: index.md
+  - CLI Reference:
+    - gctx: gctx.md
+    - active: gctx_active.md
+    - completion: gctx_completion.md
+    - create: gctx_create.md
+    - delete: gctx_delete.md
+    - info: gctx_info.md
+    - list: gctx_list.md
+    - login: gctx_login.md
+    - run: gctx_run.md
+    - save: gctx_save.md
+    - switch: gctx_switch.md

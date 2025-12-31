@@ -34,6 +34,7 @@ tasks:
     cmds:
       - rm -f gctx
       - rm -f gctx.test
+      - rm -rf readthedocs/docs/*.md
 
   test:
     desc: Run all tests
@@ -44,6 +45,13 @@ tasks:
     desc: Initial setup for development (download deps)
     cmds:
       - go mod download
+
+  docs:
+    desc: Generate documentation
+    cmds:
+      - go run main.go docs
+      - cp README.md readthedocs/docs/index.md
+      - echo "Documentation generated in readthedocs/docs"
 
   # Configuration Management Tasks
   config:show:
