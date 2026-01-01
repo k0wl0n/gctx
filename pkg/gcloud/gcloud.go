@@ -33,7 +33,11 @@ func ActivateConfig(configName string) error {
 // SetProject sets the project for current configuration
 func SetProject(projectID string) error {
 	cmd := exec.Command("gcloud", "config", "set", "project", projectID)
-	return cmd.Run()
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%w\n%s", err, string(output))
+	}
+	return nil
 }
 
 // AuthLogin runs gcloud auth login interactively

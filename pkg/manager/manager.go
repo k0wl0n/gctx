@@ -214,7 +214,12 @@ func (m *Manager) SwitchAccount(name string) error {
 
 	// Ensure project ID is set correctly (in case it was changed manually)
 	if err := gcloud.SetProject(account.ProjectID); err != nil {
-		fmt.Printf("Warning: failed to set project ID: %v\n", err)
+		if strings.Contains(err.Error(), "Reauthentication required") {
+			fmt.Printf("\nWarning: Failed to set project ID because re-authentication is required.\n")
+			fmt.Printf("Please run: gctx login %s\n\n", name)
+		} else {
+			fmt.Printf("Warning: failed to set project ID: %v\n", err)
+		}
 	}
 
 	// Update active account
