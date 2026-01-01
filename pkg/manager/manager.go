@@ -11,6 +11,7 @@ import (
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/watcher"
+	"github.com/ktr0731/go-fuzzyfinder"
 )
 
 type Manager struct {
@@ -23,6 +24,44 @@ func New() (*Manager, error) {
 		return nil, err
 	}
 	return &Manager{config: cfg}, nil
+}
+
+// SelectAccountInteractive launches an interactive UI to select an account
+func (m *Manager) SelectAccountInteractive() (string, error) {
+	accounts := m.config.ListAccounts()
+	if len(accounts) == 0 {
+		return "", fmt.Errorf("no accounts configured")
+	}
+
+	idx, err := fuzzyfinder.Find(
+		accounts,
+		func(i int) string {
+			acc := accounts[i]
+			active := ""
+			if acc.Name == m.config.ActiveAccount {
+				active = " (active)"
+			}
+			return fmt.Sprintf("%s [%s]%s", acc.Name, acc.ProjectID, active)
+		},
+		fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
+			if i == -1 {
+				return ""
+			}
+			acc := accounts[i]
+			return fmt.Sprintf("Name: %s\nProject: %s\nEmail: %s\nCreated: %s",
+				acc.Name,
+				acc.ProjectID,
+				acc.Email,
+				acc.CreatedAt.Format("2006-01-02 15:04:05"),
+			)
+		}),
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	return accounts[idx].Name, nil
 }
 
 // CreateAccount creates a new account with optional auto-save
