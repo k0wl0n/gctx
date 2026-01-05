@@ -75,10 +75,18 @@ func AuthADCLogin() ([]string, error) {
 
 // RunCommand runs arbitrary gcloud command
 func RunCommand(args ...string) error {
+	return RunCommandWithEnv(nil, args...)
+}
+
+// RunCommandWithEnv runs arbitrary gcloud command with custom environment variables
+func RunCommandWithEnv(env []string, args ...string) error {
 	cmd := exec.Command("gcloud", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
 	return cmd.Run()
 }
 

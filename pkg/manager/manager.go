@@ -331,15 +331,52 @@ func (m *Manager) DeleteAccount(name string, deleteGcloudConfig bool) error {
 	return nil
 }
 
-// RunWithAccount runs command with specific account
+// RunWithAccount runs command with specific account in an isolated environment
 func (m *Manager) RunWithAccount(name string, args []string) error {
-	// Switch to account
-	if err := m.SwitchAccount(name); err != nil {
+	account, err := m.config.GetAccount(name)
+	if err != nil {
 		return err
 	}
 
+	// Prepare environment variables for isolation
+	// We use the stored ADC path directly, avoiding global state change
+	env := []string{
+		fmt.Sprintf("CLOUDSDK_ACTIVE_CONFIG_NAME=%s", account.ConfigName),
+		fmt.Sprintf("GOOGLE_APPLICATION_CREDENTIALS=%s", account.ADCPath),
+	}
+
 	// Run command
-	return gcloud.RunCommand(args...)
+	return gcloud.RunCommandWithEnv(env, args...)
+}
+
+// StartShell starts a new shell session for the account
+func (m *Manager) StartShell(name string) error {
+	account, err := m.config.GetAccount(name)
+	if err != nil {
+		return err
+	}
+
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+
+	fmt.Printf("Starting shell for account '%s'...\n", name)
+	fmt.Println("Type 'exit' to return to the previous context.")
+
+	cmd := exec.Command(shell)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Set environment variables
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("CLOUDSDK_ACTIVE_CONFIG_NAME=%s", account.ConfigName),
+		fmt.Sprintf("GOOGLE_APPLICATION_CREDENTIALS=%s", account.ADCPath),
+		fmt.Sprintf("GCTX_ACCOUNT=%s", name), // Marker for prompt customization
+	)
+
+	return cmd.Run()
 }
 
 // ShowAccountInfo displays detailed account info
