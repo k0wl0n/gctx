@@ -80,9 +80,17 @@ func (m *Manager) CreateAccount(name, projectID string, autoSave bool) error {
 	}
 
 	if err := gcloud.SetProject(projectID); err != nil {
-		return err
+		// If SetProject fails during creation, it's likely due to auth.
+		// If we are in autoSave mode, we can ignore this error for now
+		// because we are about to authenticate anyway.
+		if autoSave {
+			fmt.Printf("Warning: Failed to set project ID (%v). Proceeding to authentication...\n", err)
+		} else {
+			return err
+		}
+	} else {
+		fmt.Printf("Set project: %s\n", projectID)
 	}
-	fmt.Printf("Set project: %s\n", projectID)
 
 	// Add to config
 	account := &config.Account{
@@ -156,12 +164,18 @@ func (m *Manager) autoSaveFlow(accountName string) error {
 		return fmt.Errorf("ADC auth failed: %w", err)
 	}
 
+	// Try to set project ID again if it wasn't set earlier
+	// Try to set project ID again if it wasn't set earlier
+	// We need to re-fetch the account to get the latest state
+	accountCheck, _ := m.config.GetAccount(accountName)
+	if accountCheck != nil && accountCheck.ProjectID != "" {
+		if err := gcloud.SetProject(accountCheck.ProjectID); err != nil {
+			fmt.Printf("Warning: failed to set project ID after login: %v\n", err)
+		}
+	}
+
 	// Watch for ADC file (verification)
-	// Since the command finished, we just check if it's there and valid.
-	// But let's use the watcher as requested, maybe with a short timeout since it should be immediate.
 	if err := watcher.WatchADC(5 * time.Second); err != nil {
-		// If watcher fails, it might mean the file wasn't updated or created.
-		// But let's try to proceed anyway if the file exists.
 		fmt.Printf("Watcher warning: %v\n", err)
 	}
 
