@@ -24,6 +24,7 @@ automatic switching of both gcloud configurations and ADC credentials.
 * [gctx login](gctx_login.md)	 - Re-authenticate an existing account
 * [gctx run](gctx_run.md)	 - Run a gcloud command with specific account
 * [gctx save](gctx_save.md)	 - Save current ADC credentials for an account
+* [gctx shell](gctx_shell.md)	 - Start a new shell with specific account context
 * [gctx switch](gctx_switch.md)	 - Switch to a different account
 * [gctx version](gctx_version.md)	 - Print the version number of gctx
 
