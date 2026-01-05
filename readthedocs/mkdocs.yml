@@ -18,4 +18,6 @@ nav:
     - login: gctx_login.md
     - run: gctx_run.md
     - save: gctx_save.md
+    - shell: gctx_shell.md
     - switch: gctx_switch.md
+    - version: gctx_version.md
