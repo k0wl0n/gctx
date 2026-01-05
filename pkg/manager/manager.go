@@ -297,6 +297,11 @@ func (m *Manager) ListAccounts() error {
 
 // GetActiveAccount returns the active account
 func (m *Manager) GetActiveAccount() (string, error) {
+	// Check if running inside gctx shell
+	if envAccount := os.Getenv("GCTX_ACCOUNT"); envAccount != "" {
+		return envAccount, nil
+	}
+
 	if m.config.ActiveAccount != "" {
 		return m.config.ActiveAccount, nil
 	}
