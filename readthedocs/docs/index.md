@@ -135,8 +135,14 @@ gctx list
 #   personal (my-personal-project) [user@gmail.com]
 #   client (client-project) [user@client.com]
 
-# Run command with specific account
+# Run command with specific account (Isolated!)
+# This runs the command without changing your global active account
 gctx run personal compute instances list
+
+# Start an isolated shell session
+# All gcloud commands in this shell will use 'personal' account
+gctx shell personal
+# (Type 'exit' to return to normal)
 
 # Show account details
 gctx info work
@@ -144,6 +150,27 @@ gctx info work
 # Delete account
 gctx delete old-account --gcloud-config
 ```
+
+### Isolated Sessions
+
+`gctx` provides two ways to use an account without switching your global configuration:
+
+1.  **Single Command (`gctx run`)**:
+    Runs a single `gcloud` command with the specified account.
+    ```bash
+    gctx run my-account storage buckets list
+    ```
+
+2.  **Shell Session (`gctx shell`)**:
+    Starts a new shell where the specified account is active. This does **not** affect other terminals or your global configuration.
+    ```bash
+    gctx shell my-account
+    
+    # Now you are in an isolated session
+    gcloud auth list  # shows my-account
+    
+    exit # Return to previous context
+    ```
 
 ## Shell Completion
 
