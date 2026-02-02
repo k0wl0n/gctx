@@ -1,15 +1,16 @@
-# GCloud Multi-Account Manager (Go + Cobra)
+# GCloud Multi-Account Manager
 
 [![Documentation Status](https://readthedocs.org/projects/gctx/badge/?version=latest)](https://gctx.readthedocs.io/en/latest/?badge=latest)
 [![CI](https://github.com/k0wl0n/gctx/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/k0wl0n/gctx/actions/workflows/ci.yml)
 
-
+<img width="495" height="425" alt="image" src="https://github.com/user-attachments/assets/1a5d2c96-ab55-4a32-ae6d-dbdd1bf1434d" />
 
 
 A Go-based CLI tool using Cobra to manage multiple GCP accounts with seamless switching of both gcloud configurations and ADC (Application Default Credentials).
 
 
-<img width="495" height="425" alt="image" src="https://github.com/user-attachments/assets/1a5d2c96-ab55-4a32-ae6d-dbdd1bf1434d" />
+![01091-1-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/f7f23e3f-e33a-49c1-bad4-3db753e1cfc8)
+
 
 ## Documentation
 
