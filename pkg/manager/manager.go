@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -121,14 +122,15 @@ func (m *Manager) CreateAccount(name, projectID string, autoSave bool) error {
 // Login runs authentication flow for an existing account
 func (m *Manager) Login(name string) error {
 	// Check if account exists
-	_, err := m.config.GetAccount(name)
+	account, err := m.config.GetAccount(name)
 	if err != nil {
 		return err
 	}
 
-	// Switch to the account first to ensure we are updating the right gcloud config
-	if err := m.SwitchAccount(name); err != nil {
-		return fmt.Errorf("failed to switch to account before login: %w", err)
+	// Only activate gcloud config (don't restore ADC since it might not exist yet)
+	// This ensures we are updating the right gcloud config without requiring saved ADC
+	if err := gcloud.ActivateConfig(account.ConfigName); err != nil {
+		return fmt.Errorf("failed to activate gcloud config: %w", err)
 	}
 
 	return m.autoSaveFlow(name)
@@ -363,7 +365,20 @@ func (m *Manager) StartShell(name string) error {
 
 	shell := os.Getenv("SHELL")
 	if shell == "" {
-		shell = "/bin/sh"
+		if runtime.GOOS == "windows" {
+			// Prefer PowerShell Core, fall back to Windows PowerShell, then COMSPEC (cmd.exe)
+			if pwsh, err := exec.LookPath("pwsh.exe"); err == nil {
+				shell = pwsh
+			} else if ps, err := exec.LookPath("powershell.exe"); err == nil {
+				shell = ps
+			} else if comspec := os.Getenv("COMSPEC"); comspec != "" {
+				shell = comspec
+			} else {
+				shell = "cmd.exe"
+			}
+		} else {
+			shell = "/bin/sh"
+		}
 	}
 
 	fmt.Printf("Starting shell for account '%s'...\n", name)
