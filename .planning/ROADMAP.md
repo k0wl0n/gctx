@@ -25,12 +25,13 @@ Plans:
 ### Phase 1.1: Fix gctx Login, Switch, and Shell Command Bugs (INSERTED)
 
 **Goal:** Resolve critical Windows-blocking bugs in shell command, account switching, and login flow so gctx is fully functional cross-platform.
+**Status:** COMPLETE
 **Depends on:** Phase 1
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01.1-01-PLAN.md — Apply cross-platform shell fix and non-fatal ADC switch fix to manager.go
-- [ ] 01.1-02-PLAN.md — Rebuild binary and verify all three fixes are active
+- [x] 01.1-01-PLAN.md — Apply cross-platform shell fix and non-fatal ADC switch fix to manager.go
+- [x] 01.1-02-PLAN.md — Rebuild binary and verify all three fixes are active
 
 **Details:**
 Five bugs identified in `pkg/manager/manager.go`:
