@@ -101,26 +101,20 @@ task demo:delete
 
 ## Usage
 
-### Initial Setup (Auto-save)
+### Initial Setup
 ```bash
-# Account 1
-gctx create work my-work-project --auto-save
+# Account 1 - automatically authenticates and saves credentials
+gctx create work my-work-project
 # Opens browser for auth + ADC, auto-saves
 
 # Account 2
-gctx create personal my-personal-project --auto-save
+gctx create personal my-personal-project
 
 # Account 3
-gctx create client client-project --auto-save
+gctx create client client-project
 ```
 
-### Initial Setup (Manual)
-```bash
-gctx create work my-work-project
-gcloud auth login
-gcloud auth application-default login
-gctx save work
-```
+> **Note**: As of v0.5.0, `gctx create` always auto-authenticates. The `--auto-save` flag has been removed for simplicity.
 
 ### Daily Usage
 ```bash
@@ -171,6 +165,11 @@ gctx delete old-account --gcloud-config
 
 2.  **Shell Session (`gctx shell`)**:
     Starts a new shell where the specified account is active. This does **not** affect other terminals or your global configuration.
+    
+    **Cross-platform support**: Automatically detects and uses the appropriate shell:
+    - **Windows**: PowerShell Core → Windows PowerShell → cmd.exe
+    - **Unix/Linux/Mac**: Uses `$SHELL` environment variable or `/bin/sh`
+    
     ```bash
     gctx shell my-account
     
@@ -210,3 +209,47 @@ gctx_prompt() {
 
 PS1='$(gctx_prompt)$ '
 ```
+
+## Updating gctx
+
+### Homebrew (macOS/Linux)
+```bash
+brew update
+brew upgrade gctx
+```
+
+### Scoop (Windows)
+```bash
+scoop update
+scoop update gctx
+```
+
+### Manual Update
+1. Download the latest binary from [Releases](https://github.com/k0wl0n/gctx/releases)
+2. Replace your existing `gctx` binary
+3. Verify the update:
+   ```bash
+   gctx version
+   ```
+
+### From Source
+```bash
+go install github.com/k0wl0n/gctx@latest
+```
+
+## What's New in v0.5.0
+
+### 🎉 Major Features
+- **Auto-authentication by default**: `gctx create` now always authenticates automatically (no `--auto-save` flag needed)
+- **Full Windows support**: Shell command now works on Windows with PowerShell/cmd.exe detection
+
+### 🐛 Bug Fixes
+- **Login without ADC**: `gctx login` now works even if no ADC credentials are saved
+- **Switch with warnings**: `gctx switch` handles missing ADC gracefully with helpful warnings instead of failing
+- **Active account display**: `gctx active` now correctly shows the active account (no more "unknown")
+
+### 📝 Improvements
+- Cross-platform shell detection (PowerShell Core, Windows PowerShell, cmd.exe, bash, zsh, sh)
+- Better error messages and user guidance
+- Cleaner codebase with simplified function signatures
+- Removed dead code paths
