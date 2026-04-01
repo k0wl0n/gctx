@@ -3,13 +3,13 @@
 ## Current Position
 
 **Milestone:** 1 — Stable Cross-Platform CLI
-**Active Phase:** 1.1 — Fix gctx Login, Switch, and Shell Command Bugs
-**Plan:** 01 of 01 in phase 1.1
-**Status:** Phase 1.1 complete
+**Active Phase:** 1.2 — Remove Auto-Save Flag - Always Auto-Authenticate on Create
+**Plan:** 01 of 01 in phase 1.1 (phase 1.1 fully complete)
+**Status:** Phase 1.1 complete, Phase 1.2 pending
 
-Last activity: 2026-04-01 — Completed 01.1-01-PLAN.md
+Last activity: 2026-04-01 — Completed 01.1-02-PLAN.md (binary rebuild)
 
-Progress: █░░ (Phase 1 done, Phase 1.1 done, Phase 1.2 pending)
+Progress: ██░ (Phase 1 done, Phase 1.1 done, Phase 1.2 pending)
 
 ## Accumulated Context
 
@@ -26,21 +26,22 @@ Progress: █░░ (Phase 1 done, Phase 1.1 done, Phase 1.2 pending)
 |----------|-----------|-------|
 | Windows shell preference: pwsh.exe > powershell.exe > COMSPEC > cmd.exe | Prioritizes modern cross-platform PowerShell Core; gracefully degrades | 01.1-01 |
 | ADC missing is a warning, not a fatal error in SwitchAccount() | Account config and gcloud config are still valid; only ADC consumers affected | 01.1-01 |
+| Binary is gitignored; rebuild verified via timestamp and smoke test | Binary artifacts should not be committed to source control | 01.1-02 |
 
 ### Known Issues
 
 - All 5 accounts have empty `adc_path` fields in config.json (users must run `gctx login <account>`)
-- Binary needs rebuild to pick up fixes from 01.1-01
 
 ### Technical Notes
 
-- Binary was last built 2026-01-05T06:34:30Z and is stale vs current source
-- Login fix already exists in source (manager.go:129-133)
-- StartShell() Windows fix: runtime.GOOS gate in pkg/manager/manager.go
+- Binary rebuilt 2026-04-01T08:25Z with all three bug fixes compiled in
+- Login fix: manager.go:129-133 (was already in source)
+- StartShell() Windows fix: runtime.GOOS gate in pkg/manager/manager.go line 369+
 - SwitchAccount() non-fatal ADC fix: pkg/manager/manager.go lines 221-225
+- Smoke test confirmed: `gctx switch sandbox` with empty adc_path shows warning and exits 0
 
 ## Session Continuity
 
-Last session: 2026-04-01T08:23:13Z
-Stopped at: Completed 01.1-01-PLAN.md
+Last session: 2026-04-01T08:26:15Z
+Stopped at: Completed 01.1-02-PLAN.md
 Resume file: None
