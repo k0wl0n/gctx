@@ -49,10 +49,10 @@ Five bugs identified in `pkg/manager/manager.go`:
 
 **Goal:** Simplify the `gctx create` UX by removing the `--auto-save` flag and always running authentication + ADC save automatically on account creation.
 **Depends on:** Phase 1.1
-**Plans:** 0 plans
+**Plans:** 1 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 1.2 to break down)
+- [ ] 01.2-01-PLAN.md — Remove --auto-save flag and autoSave parameter, make auto-authenticate the default
 
 **Details:**
 Remove `--auto-save` flag from `cmd/create.go` and always pass `true` to `CreateAccount()`.
