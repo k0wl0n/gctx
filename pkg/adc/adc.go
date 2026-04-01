@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -20,9 +21,19 @@ type ADCCredential struct {
 
 // GetDefaultADCPath returns the default ADC location
 func GetDefaultADCPath() string {
+	if runtime.GOOS == "windows" {
+		// On Windows, gcloud uses %APPDATA%\gcloud
+		appData := os.Getenv("APPDATA")
+		if appData != "" {
+			return filepath.Join(appData, "gcloud", "application_default_credentials.json")
+		}
+		// Fallback if APPDATA is not set
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, "AppData", "Roaming", "gcloud", "application_default_credentials.json")
+	}
+	// Unix-like systems use ~/.config/gcloud
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "gcloud",
-		"application_default_credentials.json")
+	return filepath.Join(home, ".config", "gcloud", "application_default_credentials.json")
 }
 
 // GetStoragePath returns the storage path for an account's ADC
