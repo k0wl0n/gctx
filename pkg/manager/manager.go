@@ -146,12 +146,17 @@ func (m *Manager) autoSaveFlow(accountName string) error {
 	// In the provided architecture `watcher.WatchADC` is called *after* `AuthADCLogin`.
 	// This implies we are just verifying the file was created/updated.
 
-	warnings, err := gcloud.AuthADCLogin()
+	_, err := gcloud.AuthADCLogin()
 	if err != nil {
+		fmt.Printf("\n⚠️  ADC authentication failed or was interrupted.\n")
+		fmt.Printf("This is usually because:\n")
+		fmt.Printf("  - You cancelled the authentication (Ctrl+C)\n")
+		fmt.Printf("  - The browser authentication was not completed\n")
+		fmt.Printf("  - Network connectivity issues\n\n")
+		fmt.Printf("To complete setup, run: gctx login %s\n", accountName)
 		return fmt.Errorf("ADC auth failed: %w", err)
 	}
 
-	// Try to set project ID again if it wasn't set earlier
 	// Try to set project ID again if it wasn't set earlier
 	// We need to re-fetch the account to get the latest state
 	accountCheck, _ := m.config.GetAccount(accountName)
@@ -180,15 +185,6 @@ func (m *Manager) autoSaveFlow(accountName string) error {
 
 	fmt.Printf("ADC credentials auto-saved for: %s\n", accountName)
 	fmt.Printf("Saved to: %s\n\n", adcPath)
-
-	// Show warnings
-	if len(warnings) > 0 {
-		fmt.Println("Warnings:")
-		for _, w := range warnings {
-			fmt.Printf("   %s\n", w)
-		}
-		fmt.Println()
-	}
 
 	fmt.Printf("Account '%s' is ready to use!\n", accountName)
 	fmt.Printf("Run: gctx switch %s\n", accountName)

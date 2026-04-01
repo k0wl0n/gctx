@@ -3,7 +3,6 @@ package gcloud
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -54,23 +53,10 @@ func AuthADCLogin() ([]string, error) {
 	cmd := exec.Command("gcloud", "auth", "application-default", "login")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	// Capture stderr for warnings
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	// Read stderr
-	stderr, _ := io.ReadAll(stderrPipe)
-	warnings := parseWarnings(string(stderr))
-
-	err = cmd.Wait()
-	return warnings, err
+	err := cmd.Run()
+	return nil, err
 }
 
 // RunCommand runs arbitrary gcloud command
