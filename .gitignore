@@ -1,6 +1,7 @@
 # Binaries
 gctx
 goctx
+gctx.exe
 
 # Config
 config.json
@@ -15,3 +16,4 @@ config.json
 # IDE
 .vscode/
 .idea/
+.planning

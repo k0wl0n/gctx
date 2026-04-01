@@ -65,8 +65,8 @@ func (m *Manager) SelectAccountInteractive() (string, error) {
 	return accounts[idx].Name, nil
 }
 
-// CreateAccount creates a new account with optional auto-save
-func (m *Manager) CreateAccount(name, projectID string, autoSave bool) error {
+// CreateAccount creates a new account and runs authentication
+func (m *Manager) CreateAccount(name, projectID string) error {
 	configName := fmt.Sprintf("%s-config", name)
 
 	// Create gcloud config
@@ -82,13 +82,8 @@ func (m *Manager) CreateAccount(name, projectID string, autoSave bool) error {
 
 	if err := gcloud.SetProject(projectID); err != nil {
 		// If SetProject fails during creation, it's likely due to auth.
-		// If we are in autoSave mode, we can ignore this error for now
-		// because we are about to authenticate anyway.
-		if autoSave {
-			fmt.Printf("Warning: Failed to set project ID (%v). Proceeding to authentication...\n", err)
-		} else {
-			return err
-		}
+		// We can ignore this error for now because we are about to authenticate anyway.
+		fmt.Printf("Warning: Failed to set project ID (%v). Proceeding to authentication...\n", err)
 	} else {
 		fmt.Printf("Set project: %s\n", projectID)
 	}
@@ -106,17 +101,7 @@ func (m *Manager) CreateAccount(name, projectID string, autoSave bool) error {
 	}
 	fmt.Printf("Account '%s' added to configuration.\n\n", name)
 
-	if autoSave {
-		return m.autoSaveFlow(name)
-	}
-
-	// Manual flow
-	fmt.Println("Now run the following commands:")
-	fmt.Println("  1. gcloud auth login")
-	fmt.Println("  2. gcloud auth application-default login")
-	fmt.Printf("  3. gctx save %s\n", name)
-
-	return nil
+	return m.autoSaveFlow(name)
 }
 
 // Login runs authentication flow for an existing account
