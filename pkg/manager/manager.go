@@ -218,9 +218,10 @@ func (m *Manager) SwitchAccount(name string) error {
 		return err
 	}
 
-	// Restore ADC
+	// Restore ADC — non-fatal: warn if no saved ADC and continue
 	if err := adc.RestoreADC(name); err != nil {
-		return err
+		fmt.Printf("\nWarning: No saved ADC credentials for account '%s'.\n", name)
+		fmt.Printf("Run 'gctx login %s' to authenticate and save credentials.\n\n", name)
 	}
 
 	// Activate gcloud config
