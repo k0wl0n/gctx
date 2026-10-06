@@ -29,7 +29,7 @@ var deleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		present.Delete(os.Stdout, result)
+		present.Delete(os.Stdout, os.Stderr, result)
 		return nil
 	},
 }

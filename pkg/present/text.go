@@ -157,8 +157,11 @@ func Save(w io.Writer, result manager.SaveResult) {
 }
 
 // Delete prints the outcome of `gctx delete`.
-func Delete(w io.Writer, result manager.DeleteResult) {
+func Delete(w, errw io.Writer, result manager.DeleteResult) {
 	fmt.Fprintf(w, "Deleted account: %s\n", result.Account)
+	for _, warning := range result.Warnings {
+		fmt.Fprintf(errw, "Warning: %s\n", warning.Message)
+	}
 }
 
 // ShellBanner prints the text shown before a shell starts.
