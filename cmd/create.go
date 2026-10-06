@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/present"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +20,11 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		return m.CreateAccount(args[0], args[1])
+		result, err := m.Create(cmd.Context(), args[0], args[1])
+		if err != nil {
+			return err
+		}
+		present.Create(os.Stdout, os.Stderr, result)
+		return runLogin(cmd.Context(), m, args[0])
 	},
 }

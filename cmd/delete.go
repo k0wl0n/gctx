@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/present"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +25,12 @@ var deleteCmd = &cobra.Command{
 			return err
 		}
 
-		return m.DeleteAccount(args[0], deleteGcloudConfig)
+		result, err := m.Delete(cmd.Context(), args[0], manager.DeleteOptions{GcloudConfig: deleteGcloudConfig})
+		if err != nil {
+			return err
+		}
+		present.Delete(os.Stdout, result)
+		return nil
 	},
 }
 

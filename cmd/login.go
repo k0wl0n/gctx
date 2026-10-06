@@ -1,8 +1,12 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"context"
+	"os"
+
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/present"
+	"github.com/spf13/cobra"
 )
 
 var loginCmd = &cobra.Command{
@@ -19,6 +23,12 @@ for an existing account and update the saved credentials.`,
 			return err
 		}
 
-		return m.Login(args[0])
+		return runLogin(cmd.Context(), m, args[0])
 	},
+}
+
+func runLogin(ctx context.Context, m *manager.Manager, name string) error {
+	result, err := m.Login(ctx, name, present.LoginIO(os.Stdin, os.Stdout, os.Stderr))
+	present.LoginDone(os.Stdout, os.Stderr, result, err)
+	return err
 }

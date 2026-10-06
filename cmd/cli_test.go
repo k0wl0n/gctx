@@ -440,14 +440,7 @@ func TestVersion(t *testing.T) {
 	}
 }
 
-func skipSlow(t *testing.T) {
-	if testing.Short() {
-		t.Skip("slow: login flow")
-	}
-}
-
 func TestCreate(t *testing.T) {
-	skipSlow(t)
 	env := testutil.NewEnv(t)
 
 	r := runGctx(t, "create", "demo", "demo-project")
@@ -503,7 +496,6 @@ func TestCreateADCLoginFails(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	skipSlow(t)
 	env := testutil.NewEnv(t)
 	env.SeedAccount("work", "p1", testutil.SeedOptions{NoADC: true})
 

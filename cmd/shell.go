@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/present"
 	"github.com/spf13/cobra"
 )
 
@@ -35,6 +38,12 @@ If no account is specified, an interactive selection menu is shown.`,
 			targetAccount = selected
 		}
 
-		return m.StartShell(targetAccount)
+		child, err := m.ShellCommand(targetAccount)
+		if err != nil {
+			return err
+		}
+		present.ShellBanner(os.Stdout, targetAccount)
+		child.Stdin, child.Stdout, child.Stderr = os.Stdin, os.Stdout, os.Stderr
+		return child.Run()
 	},
 }

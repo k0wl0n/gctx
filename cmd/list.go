@@ -1,8 +1,11 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"os"
+
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/present"
+	"github.com/spf13/cobra"
 )
 
 var listCmd = &cobra.Command{
@@ -16,6 +19,11 @@ var listCmd = &cobra.Command{
 			return err
 		}
 
-		return m.ListAccounts()
+		overview, err := m.Overview()
+		if err != nil {
+			return err
+		}
+		present.List(os.Stdout, overview)
+		return nil
 	},
 }

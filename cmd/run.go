@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/k0wl0n/gctx/pkg/manager"
 	"github.com/spf13/cobra"
 )
@@ -29,6 +31,11 @@ var runCmd = &cobra.Command{
 			return err
 		}
 
-		return m.RunWithAccount(args[0], args[1:])
+		child, err := m.RunCommand(args[0], args[1:])
+		if err != nil {
+			return err
+		}
+		child.Stdin, child.Stdout, child.Stderr = os.Stdin, os.Stdout, os.Stderr
+		return child.Run()
 	},
 }

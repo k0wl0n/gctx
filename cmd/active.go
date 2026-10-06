@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/present"
 	"github.com/spf13/cobra"
 )
 
@@ -24,16 +25,11 @@ var activeCmd = &cobra.Command{
 
 		// If an argument is provided, behave like switch
 		if len(args) > 0 {
-			return m.SwitchAccount(args[0])
+			return runSwitch(cmd.Context(), m, args[0])
 		}
 
 		// Otherwise, show active account
-		active, err := m.GetActiveAccount()
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("Active account: %s\n", active)
+		present.Active(os.Stdout, m.ActiveAccount())
 		return nil
 	},
 }

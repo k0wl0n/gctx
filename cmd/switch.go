@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"context"
+	"os"
+
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/present"
 	"github.com/spf13/cobra"
 )
 
@@ -32,6 +36,15 @@ var switchCmd = &cobra.Command{
 			targetAccount = selected
 		}
 
-		return m.SwitchAccount(targetAccount)
+		return runSwitch(cmd.Context(), m, targetAccount)
 	},
+}
+
+func runSwitch(ctx context.Context, m *manager.Manager, name string) error {
+	result, err := m.Switch(ctx, name)
+	if err != nil {
+		return err
+	}
+	present.Switch(os.Stdout, os.Stderr, result)
+	return nil
 }

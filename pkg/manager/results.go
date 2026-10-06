@@ -131,6 +131,8 @@ type AccountStatus struct {
 	ADCExists     bool
 	ADCModTime    time.Time
 
+	RecordedADCModTime time.Time // mtime of the file at ADCPath; zero when it cannot be read
+
 	GcloudConfigExists bool
 	GcloudAccount      string // [core] account of the account's gcloud configuration
 	GcloudProject      string // [core] project of the account's gcloud configuration
