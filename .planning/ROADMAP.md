@@ -49,11 +49,12 @@ Five bugs identified in `pkg/manager/manager.go`:
 ### Phase 1.2: Remove Auto-Save Flag - Always Auto-Authenticate on Create (INSERTED)
 
 **Goal:** Simplify the `gctx create` UX by removing the `--auto-save` flag and always running authentication + ADC save automatically on account creation.
+**Status:** COMPLETE (shipped in v0.5.0, commit 2933985)
 **Depends on:** Phase 1.1
 **Plans:** 1 plans
 
 Plans:
-- [ ] 01.2-01-PLAN.md — Remove --auto-save flag and autoSave parameter, make auto-authenticate the default
+- [x] 01.2-01-PLAN.md — Remove --auto-save flag and autoSave parameter, make auto-authenticate the default
 
 **Details:**
 Remove `--auto-save` flag from `cmd/create.go` and always pass `true` to `CreateAccount()`.
@@ -66,3 +67,9 @@ After fix: `gctx create <account> <project>` always auto-authenticates, no flag 
 
 ---
 
+
+---
+
+## Milestone 2: Interactive TUI
+
+Planned and tracked with OpenSpec, not GSD phases. See `openspec/changes/add-interactive-tui/` (proposal, design, specs, tasks, test plan).

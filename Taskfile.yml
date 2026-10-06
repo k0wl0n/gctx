@@ -71,7 +71,7 @@ tasks:
   demo:create:
     desc: Create a demo account (interactive)
     cmds:
-      - ./gctx create demo demo-project --auto-save
+      - ./gctx create demo demo-project
 
   demo:switch:
     desc: Switch to demo account

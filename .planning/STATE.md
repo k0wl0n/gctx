@@ -3,13 +3,13 @@
 ## Current Position
 
 **Milestone:** 1 — Stable Cross-Platform CLI
-**Active Phase:** 1.2 — Remove Auto-Save Flag - Always Auto-Authenticate on Create
+**Active Phase:** none — Milestone 1 complete
 **Plan:** 01 of 01 in phase 1.1 (phase 1.1 fully complete)
-**Status:** Phase 1.1 complete, Phase 1.2 pending
+**Status:** Phases 1, 1.1, 1.2 complete. Next work is tracked in openspec/changes/add-interactive-tui.
 
 Last activity: 2026-04-01 — Completed 01.1-02-PLAN.md (binary rebuild)
 
-Progress: ██░ (Phase 1 done, Phase 1.1 done, Phase 1.2 pending)
+Progress: ███ (Milestone 1 complete)
 
 ## Accumulated Context
 
