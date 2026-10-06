@@ -67,25 +67,49 @@ type Stdio struct {
 // Output runs a non-interactive gcloud command with stdin on the null device,
 // prompts disabled, and a timeout. It returns the combined output.
 func (c *Client) Output(ctx context.Context, timeout time.Duration, env []string, args ...string) (string, error) {
+	var output bytes.Buffer
+	err := c.run(ctx, timeout, env, args, &output, &output)
+	return output.String(), err
+}
+
+// Query is like Output but returns only trimmed stdout, so stderr chatter
+// (for example "(unset)") never becomes part of a value.
+func (c *Client) Query(ctx context.Context, timeout time.Duration, env []string, args ...string) (string, error) {
+	var stdout, stderr bytes.Buffer
+	err := c.run(ctx, timeout, env, args, &stdout, &stderr)
+	if err != nil {
+		var stepErr *StepError
+		if errors.As(err, &stepErr) {
+			stepErr.Output = stdout.String() + stderr.String()
+		}
+		return "", err
+	}
+	return strings.TrimSpace(stdout.String()), nil
+}
+
+func (c *Client) run(ctx context.Context, timeout time.Duration, env []string, args []string, stdout, stderr io.Writer) error {
 	if !c.Available() {
-		return "", ErrNotFound
+		return ErrNotFound
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.Bin, args...)
 	cmd.Env = append(os.Environ(), append([]string{"CLOUDSDK_CORE_DISABLE_PROMPTS=1"}, env...)...)
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	cmd.Stderr = &output
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	err := cmd.Run()
 	if ctx.Err() == context.DeadlineExceeded {
 		err = fmt.Errorf("gcloud %s timed out after %s", strings.Join(args, " "), timeout)
 	}
 	if err != nil {
-		return output.String(), &StepError{Step: strings.Join(args, " "), Err: err, Output: output.String()}
+		stepErr := &StepError{Step: strings.Join(args, " "), Err: err}
+		if buf, ok := stdout.(*bytes.Buffer); ok && stdout == stderr {
+			stepErr.Output = buf.String()
+		}
+		return stepErr
 	}
-	return output.String(), nil
+	return nil
 }
 
 // Interactive runs gcloud attached to the given terminal, without a timeout.
