@@ -1,0 +1,11 @@
+
+Account: work
+==================================================
+Project ID:       p1
+Config Name:      work-config
+Email:            w@x.com
+ADC Path:         <ROOT>/home/.config/gctx/adc/work_adc.json
+ADC Last Modified: 2026-05-02 03:04:05
+Created:          2026-04-01 10:00:00
+
+This is the active account.

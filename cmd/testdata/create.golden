@@ -1,0 +1,13 @@
+Created gcloud configuration: demo-config
+Set project: demo-project
+Account 'demo' added to configuration.
+
+Running authentication...
+Logged in successfully.
+Running ADC authentication...
+Watching for ADC file changes...
+ADC credentials auto-saved for: demo
+Saved to: <ROOT>/home/.config/gctx/adc/demo_adc.json
+
+Account 'demo' is ready to use!
+Run: gctx switch demo

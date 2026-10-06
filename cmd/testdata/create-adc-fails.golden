@@ -1,0 +1,15 @@
+Created gcloud configuration: demo-config
+Set project: demo-project
+Account 'demo' added to configuration.
+
+Running authentication...
+Logged in successfully.
+Running ADC authentication...
+
+⚠️  ADC authentication failed or was interrupted.
+This is usually because:
+  - You cancelled the authentication (Ctrl+C)
+  - The browser authentication was not completed
+  - Network connectivity issues
+
+To complete setup, run: gctx login demo

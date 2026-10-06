@@ -1,0 +1,9 @@
+Running authentication...
+Logged in successfully.
+Running ADC authentication...
+Watching for ADC file changes...
+ADC credentials auto-saved for: work
+Saved to: <ROOT>/home/.config/gctx/adc/work_adc.json
+
+Account 'work' is ready to use!
+Run: gctx switch work

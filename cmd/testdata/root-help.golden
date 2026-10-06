@@ -1,0 +1,25 @@
+gctx is a CLI tool to manage multiple GCP accounts with
+automatic switching of both gcloud configurations and ADC credentials.
+
+Usage:
+  gctx [command]
+
+Available Commands:
+  active      Show or set currently active account
+  completion  Generate completion script
+  create      Create a new account configuration
+  delete      Delete an account
+  help        Help about any command
+  info        Show detailed account information
+  list        List all configured accounts
+  login       Re-authenticate an existing account
+  run         Run a gcloud command with specific account
+  save        Save current ADC credentials for an account
+  shell       Start a new shell with specific account context
+  switch      Switch to a different account
+  version     Print the version number of gctx
+
+Flags:
+  -h, --help   help for gctx
+
+Use "gctx [command] --help" for more information about a command.
