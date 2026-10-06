@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
 type Config struct {
 	Accounts      map[string]*Account `json:"accounts"`
 	ActiveAccount string              `json:"active_account,omitempty"`
+
+	// path is the file this config was loaded from and is saved to.
+	path string
 }
 
 type Account struct {
@@ -38,47 +42,57 @@ func GetConfigPath() (string, error) {
 	return filepath.Join(dir, "config.json"), nil
 }
 
+// Load reads the config from the default location.
 func Load() (*Config, error) {
 	path, err := GetConfigPath()
 	if err != nil {
 		return nil, err
 	}
+	return LoadFrom(path)
+}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return &Config{
-			Accounts: make(map[string]*Account),
-		}, nil
-	}
+// LoadFrom reads the config at path. A missing file yields an empty config
+// that will be saved to path.
+func LoadFrom(path string) (*Config, error) {
+	config := &Config{path: path}
 
 	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		config.Accounts = make(map[string]*Account)
+		return config, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
+	if err := json.Unmarshal(data, config); err != nil {
 		return nil, err
 	}
-
 	if config.Accounts == nil {
 		config.Accounts = make(map[string]*Account)
 	}
-
-	return &config, nil
+	return config, nil
 }
 
+// Path returns the file the config is saved to.
+func (c *Config) Path() string {
+	return c.path
+}
+
+// Save writes the config atomically: readers see either the previous or the
+// new document, never a partial one.
 func (c *Config) Save() error {
-	dir, err := GetConfigDir()
-	if err != nil {
-		return err
+	path := c.path
+	if path == "" {
+		var err error
+		if path, err = GetConfigPath(); err != nil {
+			return err
+		}
+		c.path = path
 	}
 
+	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	path, err := GetConfigPath()
-	if err != nil {
 		return err
 	}
 
@@ -87,7 +101,28 @@ func (c *Config) Save() error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	tmp, err := os.CreateTemp(dir, ".config-*.json.tmp")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath) // no-op after a successful rename
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmpPath, 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
 }
 
 func (c *Config) AddAccount(account *Account) error {
@@ -117,11 +152,13 @@ func (c *Config) DeleteAccount(name string) error {
 	return c.Save()
 }
 
+// ListAccounts returns all accounts sorted by name.
 func (c *Config) ListAccounts() []*Account {
 	accounts := make([]*Account, 0, len(c.Accounts))
 	for _, acc := range c.Accounts {
 		accounts = append(accounts, acc)
 	}
+	sort.Slice(accounts, func(i, j int) bool { return accounts[i].Name < accounts[j].Name })
 	return accounts
 }
 

@@ -1,5 +1,8 @@
 package gcloud
 
+// Deprecated package-level helpers used by the pre-refactor manager; removed
+// once the manager uses Client.
+
 import (
 	"encoding/json"
 	"fmt"
@@ -99,15 +102,4 @@ func ListConfigs() ([]string, error) {
 	}
 
 	return names, nil
-}
-
-func parseWarnings(stderr string) []string {
-	var warnings []string
-	for _, line := range strings.Split(stderr, "\n") {
-		if strings.Contains(line, "WARNING") ||
-			strings.Contains(line, "quota") {
-			warnings = append(warnings, strings.TrimSpace(line))
-		}
-	}
-	return warnings
 }

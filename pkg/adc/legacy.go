@@ -1,5 +1,8 @@
 package adc
 
+// Deprecated package-level helpers used by the pre-refactor manager; removed
+// once the manager uses Store.
+
 import (
 	"encoding/json"
 	"fmt"
