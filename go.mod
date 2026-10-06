@@ -1,10 +1,13 @@
 module github.com/k0wl0n/gctx
 
-go 1.24
+go 1.26.0
 
-toolchain go1.24.11
+toolchain go1.26.8
 
-require github.com/spf13/cobra v1.10.2
+require (
+	github.com/ktr0731/go-fuzzyfinder v0.9.0
+	github.com/spf13/cobra v1.10.2
+)
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
@@ -12,7 +15,6 @@ require (
 	github.com/gdamore/tcell/v2 v2.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ktr0731/go-ansisgr v0.1.0 // indirect
-	github.com/ktr0731/go-fuzzyfinder v0.9.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/nsf/termbox-go v1.1.1 // indirect

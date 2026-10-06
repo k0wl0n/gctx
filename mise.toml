@@ -1,5 +1,5 @@
 [tools]
-go = "1.23.12"
-task = "latest"
-gcloud = "latest"
-goreleaser = "latest"
+go = "1.26.8"
+task = "3.53.1"
+gcloud = "572.0.0"
+goreleaser = "2.18.2"
