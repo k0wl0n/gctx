@@ -6,6 +6,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Interactive TUI: tui.md
   - Architecture: architecture.md
   - CLI Reference:
     - gctx: gctx.md
@@ -20,4 +21,5 @@ nav:
     - save: gctx_save.md
     - shell: gctx_shell.md
     - switch: gctx_switch.md
+    - tui: gctx_tui.md
     - version: gctx_version.md
