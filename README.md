@@ -40,6 +40,7 @@ scoop install gctx
 Download the latest binary from the [Releases](https://github.com/k0wl0n/gctx/releases) page and add it to your PATH.
 
 ### From Source
+Requires Go 1.26 or newer.
 ```bash
 go install github.com/k0wl0n/gctx@latest
 ```
@@ -100,6 +101,52 @@ task demo:delete
 ```
 
 ## Usage
+
+### Interactive TUI
+
+Run `gctx` with no arguments in a terminal to open a full-screen account manager. It lists every account with its health status, and lets you switch, log in, open an isolated shell, run a gcloud command, create, delete and save without remembering command names.
+
+<!-- TODO: add TUI screenshot -->
+
+`gctx` with no arguments opens the TUI only when all of these hold:
+
+- stdin and stdout are terminals
+- `TERM` is not `dumb`
+- `CI` is unset, empty, `false` or `0`
+- `GCTX_NO_TUI` is unset or empty
+
+Otherwise it prints the usual help. Any argument (including `--help`) skips the TUI.
+
+```bash
+gctx            # open the TUI (when the conditions above hold)
+gctx tui        # always open the TUI in a terminal, ignoring CI and GCTX_NO_TUI
+GCTX_NO_TUI=1 gctx   # print help instead
+gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
+```
+
+| Key | Action |
+|---|---|
+| `j` / `↓`, `k` / `↑` | next / previous row |
+| `g` / `home`, `G` / `end` | first / last row |
+| `ctrl+f` / `pgdown`, `ctrl+b` / `pgup` | page down / up |
+| `enter` | switch to the selected account |
+| `/` | filter (`esc` clears) |
+| `d` / `i` | details |
+| `l` | log in (suspends the TUI for the browser flows) |
+| `s` | isolated shell |
+| `r` | run a gcloud command as the selected account |
+| `c` | create an account |
+| `ctrl+d` | delete (confirmation defaults to Cancel) |
+| `a` | save the current ADC to the selected account |
+| `R` | reload |
+| `?` | help |
+| `q` / `ctrl+c` | quit |
+
+See the [TUI guide](https://gctx.readthedocs.io/en/latest/tui/) for health statuses and troubleshooting.
+
+#### Windows notes
+
+The TUI works in Windows Terminal and in conhost (PowerShell, Windows PowerShell, cmd.exe). Git Bash running in MinTTY does not provide a real terminal to native programs: bare `gctx` prints help and `gctx tui` fails with a hint. Run `winpty gctx tui`, or use Windows Terminal.
 
 ### Initial Setup
 ```bash
@@ -237,19 +284,14 @@ scoop update gctx
 go install github.com/k0wl0n/gctx@latest
 ```
 
-## What's New in v0.5.0
+## Upcoming Release
 
-### 🎉 Major Features
-- **Auto-authentication by default**: `gctx create` now always authenticates automatically (no `--auto-save` flag needed)
-- **Full Windows support**: Shell command now works on Windows with PowerShell/cmd.exe detection
+### Behavior change
+- **Bare `gctx` opens the interactive TUI** when run in a terminal. Previously it printed help. Scripts, pipes, `CI` environments and `GCTX_NO_TUI=1` still get the help text, and any argument behaves as before.
 
-### 🐛 Bug Fixes
-- **Login without ADC**: `gctx login` now works even if no ADC credentials are saved
-- **Switch with warnings**: `gctx switch` handles missing ADC gracefully with helpful warnings instead of failing
-- **Active account display**: `gctx active` now correctly shows the active account (no more "unknown")
+### Features
+- `gctx tui` command and full-screen account manager with health statuses, filtering, details, switch, login, shell, run, create, delete and save.
+- Accounts are checked locally for missing ADC, missing gcloud configuration, required re-authentication and project mismatch.
 
-### 📝 Improvements
-- Cross-platform shell detection (PowerShell Core, Windows PowerShell, cmd.exe, bash, zsh, sh)
-- Better error messages and user guidance
-- Cleaner codebase with simplified function signatures
-- Removed dead code paths
+### Requirements
+- Building from source requires Go 1.26 or newer.
