@@ -158,14 +158,7 @@ func TestList(t *testing.T) {
 
 	r = runGctx(t, "list")
 	assertCode(t, r, 0)
-	// Pre-refactor list order follows Go map iteration, so compare as a set.
-	lines := strings.Split(r.stdout, "\n")
-	sort.Strings(lines)
-	want := strings.Split("\nConfigured Accounts:\n===================\n  alpha (p2)\n  mid (p3) [mid@example.com]\n  work (p1) [w@x.com] ← active\n", "\n")
-	sort.Strings(want)
-	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
-		t.Errorf("list output %q", r.stdout)
-	}
+	assertStdout(t, r, "\nConfigured Accounts:\n===================\n  alpha (p2)\n  mid (p3) [mid@example.com]\n  work (p1) [w@x.com] ← active\n")
 }
 
 func TestActive(t *testing.T) {
