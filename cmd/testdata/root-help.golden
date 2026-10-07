@@ -17,6 +17,7 @@ Available Commands:
   save        Save current ADC credentials for an account
   shell       Start a new shell with specific account context
   switch      Switch to a different account
+  tui         Interactive terminal UI (experimental)
   version     Print the version number of gctx
 
 Flags:

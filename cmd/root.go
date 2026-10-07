@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
@@ -13,7 +14,16 @@ var rootCmd = &cobra.Command{
 automatic switching of both gcloud configurations and ADC credentials.`,
 }
 
+// tuiDefaultEnabled gates bare `gctx` opening the TUI. It stays false until
+// the TUI phases are complete.
+const tuiDefaultEnabled = false
+
 func Execute() error {
+	if len(os.Args) == 1 && tuiDefaultEnabled {
+		if stdinTTY, stdoutTTY := stdioIsTerminal(); shouldLaunchTUI(os.Getenv, stdinTTY, stdoutTTY) {
+			return runTUI(context.Background(), os.Getenv("GCTX_DEBUG") == "1")
+		}
+	}
 	return rootCmd.Execute()
 }
 
