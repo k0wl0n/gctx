@@ -94,15 +94,15 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
 
 ## 4. Read-only TUI (Phase 2 — ships `gctx tui`, labelled experimental)
 
-- [ ] 4.1 Add dependencies.
+- [x] 4.1 Add dependencies.
   - Files: `go.mod`, `go.sum`.
   - Pin `charm.land/bubbletea/v2`, `charm.land/bubbles/v2`, `charm.land/lipgloss/v2`, and `golang.org/x/term` per design D9 after re-checking release dates with the proxy (`.info` `Time` ≥ 7 days ago).
   - Verify: `go mod tidy -diff` empty; `go mod verify` passes; dates recorded in the PR.
-- [ ] 4.2 Add TTY detection and the `tui` command, without default routing.
+- [x] 4.2 Add TTY detection and the `tui` command, without default routing.
   - Files: `cmd/tty.go`, `cmd/tui.go`, `cmd/root.go`.
   - `shouldLaunchTUI` is pure. Add `const tuiDefaultEnabled = false`. `gctx tui [--debug]` (short help: `Interactive terminal UI (experimental)`) uses `SilenceUsage`/`SilenceErrors`, with the non-TTY error and MinTTY hint.
   - Verify: routing table test; CLI tests for `gctx tui </dev/null` and `gctx tui x`; root-help golden updated with the `tui` line (spec change 3).
-- [ ] 4.3 Add the TUI skeleton.
+- [x] 4.3 Add the TUI skeleton.
   - Files: `pkg/tui/run.go`, `pkg/tui/model.go`, `pkg/tui/keys.go`, `pkg/tui/styles.go`.
   - Add the `Service` interface, the `Model` with the fields from design, `Init` (sync `Overview`, then the credential check cmd), quit handling, alt screen, focus reporting, and error mapping in `Run`.
   - Verify: a model test shows quitting returns `tea.Quit`; a PTY smoke test (test-plan 6.1) exits 0 with the restore sequences.
