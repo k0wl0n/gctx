@@ -97,8 +97,8 @@ func TestModalAndExecEntryPoints(t *testing.T) {
 		t.Error("openRun did not set a modal")
 	}
 	m.modal = nil
-	if _, cmd := m.startLogin("work"); cmd != nil {
-		t.Error("stub login returned a command")
+	if _, cmd := m.startLogin("work"); cmd == nil {
+		t.Error("beginLogin should return a non-nil command")
 	}
 }
 
