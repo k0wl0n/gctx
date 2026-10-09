@@ -106,34 +106,34 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
   - Files: `pkg/tui/run.go`, `pkg/tui/model.go`, `pkg/tui/keys.go`, `pkg/tui/styles.go`.
   - Add the `Service` interface, the `Model` with the fields from design, `Init` (sync `Overview`, then the credential check cmd), quit handling, alt screen, focus reporting, and error mapping in `Run`.
   - Verify: a model test shows quitting returns `tea.Quit`; a PTY smoke test (test-plan 6.1) exits 0 with the restore sequences.
-- [ ] 4.4 Add the account table and header.
+- [x] 4.4 Add the account table and header.
   - Files: `pkg/tui/view.go`.
   - Implement columns, marker, sorting, truncation, the `NO_COLOR`/`GCTX_ASCII` glyph sets, all header states, and scrolling.
   - Verify: model tests for the active-highlight, no-active, and drift-header scenarios; `G` with 40 rows.
-- [ ] 4.5 Add the responsive layout.
+- [x] 4.5 Add the responsive layout.
   - Files: `pkg/tui/view.go`.
   - Implement the breakpoints, too-small screen, and details pane at ≥ 120.
   - Verify: width/height boundary tests (59/60/89/90/119/120 × 11/12), 3 stripped goldens, and a random-resize no-panic test.
-- [ ] 4.6 Add navigation bindings.
+- [x] 4.6 Add navigation bindings.
   - Files: `pkg/tui/keys.go`, `pkg/tui/model.go`.
   - Implement `j/k/↑/↓/g/G/home/end/pgup/pgdn/ctrl+f/ctrl+b`, the `:` reserved message, and `No account selected`.
   - Verify: binding tests including `"G"` as text and no wrap.
-- [ ] 4.7 Add filtering.
+- [x] 4.7 Add filtering.
   - Files: `pkg/tui/model.go`, `pkg/tui/view.go`.
   - Verify: all filter scenarios in the interactive-tui spec plus E2E-09 (A).
-- [ ] 4.8 Add the details view and help screen.
+- [x] 4.8 Add the details view and help screen.
   - Files: `pkg/tui/view.go`, `pkg/tui/keys.go`.
   - Show findings with remedies. Generate help from the binding table. `q` closes overlays.
   - Verify: details scenario test; help lists every binding (test iterates the key table).
-- [ ] 4.9 Add credential check, reload, empty state, and error state.
+- [x] 4.9 Add credential check, reload, empty state, and error state.
   - Files: `pkg/tui/model.go`.
   - Implement `R`, the focus reload, seq-guarded `credsCheckedMsg`, `gcloud: not found`, empty and corrupt-config states, and status-message expiry.
   - Verify: tests for input responsiveness during a blocked fake check, stale-result drop, empty state, corrupt config unchanged, and the info expiry/error persistence clock tests.
-- [ ] 4.10 Add the performance guard.
+- [x] 4.10 Add the performance guard.
   - Files: `pkg/manager/status_bench_test.go`, `pkg/tui/model_test.go`.
   - Add `BenchmarkOverview50`; a < 100 ms single-run assertion; and a check that no gcloud invocation is recorded before the first `View()` (E2E harness).
   - Verify: tests pass in CI.
-- [ ] 4.11 Security assertions for the read-only TUI.
+- [x] 4.11 Security assertions for the read-only TUI.
   - Files: `pkg/tui/security_test.go`.
   - Assert seeded ADC marker strings never appear in any rendered screen. Assert `go list -deps ./pkg/tui` excludes clipboard packages.
   - Verify: tests pass.
@@ -182,7 +182,7 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
   - Files: `pkg/tui/exec.go`.
   - `shellExec` prints the banner and runs `svc.ShellCommand`. It resumes immediately and shows the exit message with status. It works without gcloud.
   - Verify: E2E-06 (A) with the fake shell; PTY smoke test 6.3.
-- [ ] 7.4 Gate actions when gcloud is unavailable.
+- [x] 7.4 Gate actions when gcloud is unavailable.
   - Files: `pkg/tui/model.go`.
   - Verify: every gated key shows the message; `s`, `a`, `d` work (spec "gcloud unavailable").
 
