@@ -140,19 +140,19 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
 
 ## 5. Mutating actions (Phase 3)
 
-- [ ] 5.1 Add switch on `enter`.
+- [x] 5.1 Add switch on `enter`.
   - Files: `pkg/tui/model.go`.
   - Run the background op with a spinner, warning-to-message mapping, re-apply on the active account, and the busy guard.
   - Verify: switch scenarios plus E2E-02 and E2E-03 (A with real Manager + fake gcloud).
-- [ ] 5.2 Add operation concurrency.
+- [x] 5.2 Add operation concurrency.
   - Files: `pkg/tui/model.go`.
   - Implement the single op, `Busy:` message, `q` while busy, double `ctrl+c` within 3 s (fake clock), and the stale-seq drop.
   - Verify: concurrency scenario tests.
-- [ ] 5.3 Add the save-ADC dialog.
+- [x] 5.3 Add the save-ADC dialog.
   - Files: `pkg/tui/modals.go`.
   - Initial focus on `[Cancel]`. Show the default ADC path, mtime, and email. Show the missing-default-ADC message instead when the file is absent.
   - Verify: save scenarios and credential-safety "Cancel save".
-- [ ] 5.4 Add the delete dialog.
+- [x] 5.4 Add the delete dialog.
   - Files: `pkg/tui/modals.go`.
   - Show the fixed ADC notice, the checkbox (disabled for gcloud's active config), and focus handling. Select the nearest row after delete.
   - Verify: delete scenarios incl. `ctrl+d`→`enter` no-op; E2E-08 (A).
@@ -163,7 +163,7 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
   - Files: `pkg/tui/exec.go`, `pkg/tui/model.go`.
   - `loginExec` implements `tea.ExecCommand`: banner, `svc.Login` with the presenter progress, Enter wait on failure. Add the `Model.exec` seam; `execDoneMsg` handling reloads, clears session auth, re-checks creds, and sets messages.
   - Verify: E2E-04 and E2E-04b (A with `execSync`); interactive-tui login scenarios.
-- [ ] 6.2 Add the create form.
+- [x] 6.2 Add the create form.
   - Files: `pkg/tui/modals.go`.
   - Two `textinput`s with field navigation, validation messages, and duplicate and reused-config confirmation. Submit runs a background `Create`, then chains to `loginExec`. Select the new account and show the outcome message (incl. auth not completed).
   - Verify: create scenarios; E2E-07 both variants (A).
