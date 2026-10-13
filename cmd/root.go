@@ -14,9 +14,8 @@ var rootCmd = &cobra.Command{
 automatic switching of both gcloud configurations and ADC credentials.`,
 }
 
-// tuiDefaultEnabled gates bare `gctx` opening the TUI. It stays false until
-// the TUI phases are complete.
-const tuiDefaultEnabled = false
+// tuiDefaultEnabled gates bare `gctx` opening the TUI.
+const tuiDefaultEnabled = true
 
 func Execute() error {
 	if len(os.Args) == 1 && tuiDefaultEnabled {

@@ -16,7 +16,7 @@ var tuiDebug bool
 
 var tuiCmd = &cobra.Command{
 	Use:   "tui",
-	Short: "Interactive terminal UI (experimental)",
+	Short: "Interactive terminal UI",
 	Long: `Open the full-screen terminal UI to browse accounts, switch, log in,
 create, delete, run gcloud commands and open isolated shells.`,
 	Example: `  # Open the interactive UI

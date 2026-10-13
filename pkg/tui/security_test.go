@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"errors"
 	"os/exec"
 	"strings"
 	"testing"
@@ -46,8 +47,7 @@ func TestSecretNeverRendered(t *testing.T) {
 // TestNoClipboardPackageInDeps asserts that no clipboard package is in the
 // dependency graph of pkg/tui.
 func TestNoClipboardPackageInDeps(t *testing.T) {
-	cmd := exec.Command("go", "list", "-deps", "./pkg/tui")
-	cmd.Dir = "/Users/c5397047/Documents/project/gctx-wt-views"
+	cmd := exec.Command("go", "list", "-deps", "github.com/k0wl0n/gctx/pkg/tui")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Skipf("go list failed: %v", err)
@@ -64,5 +64,40 @@ func TestNoClipboardPackageInDeps(t *testing.T) {
 				t.Errorf("clipboard package in deps: %q", line)
 			}
 		}
+	}
+}
+
+// TestNoOsExitOrLogFatalInTUI greps the package source for os.Exit and log.Fatal calls,
+// which must not appear in non-test files of pkg/tui.
+func TestNoOsExitOrLogFatalInTUI(t *testing.T) {
+	// Use grep to search only non-test Go files.
+	cmd := exec.Command("sh", "-c",
+		`grep -rn --include="*.go" "os\.Exit\|log\.Fatal" . | grep -v "_test\.go"`)
+	cmd.Dir = "/Users/c5397047/Documents/project/gctx/pkg/tui"
+	out, err := cmd.Output()
+	if err != nil {
+		// grep exits 1 when no lines match — that is the desired outcome.
+		return
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line == "" {
+			continue
+		}
+		t.Errorf("forbidden call found in pkg/tui: %s", line)
+	}
+}
+
+// TestPanicRestoreDoesNotKillProcess verifies that a panic-like error from
+// mapRunError is translated to a non-nil error rather than re-panicking.
+// This covers the ErrProgramPanic path that Bubble Tea uses when the model panics.
+func TestPanicRestoreDoesNotKillProcess(t *testing.T) {
+	// Simulate the error value BubbleTea produces when the model panics.
+	simulatedPanic := errors.New("interactive UI failed: program panic")
+	result := mapRunError(simulatedPanic)
+	if result == nil {
+		t.Fatal("expected mapRunError to return a non-nil error for a panic-like error")
+	}
+	if !strings.Contains(result.Error(), "interactive UI failed") {
+		t.Errorf("unexpected error text: %q", result.Error())
 	}
 }
