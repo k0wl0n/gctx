@@ -159,7 +159,7 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
 
 ## 6. Login and create (Phase 4)
 
-- [ ] 6.1 Add the exec seam and login.
+- [x] 6.1 Add the exec seam and login.
   - Files: `pkg/tui/exec.go`, `pkg/tui/model.go`.
   - `loginExec` implements `tea.ExecCommand`: banner, `svc.Login` with the presenter progress, Enter wait on failure. Add the `Model.exec` seam; `execDoneMsg` handling reloads, clears session auth, re-checks creds, and sets messages.
   - Verify: E2E-04 and E2E-04b (A with `execSync`); interactive-tui login scenarios.
@@ -170,15 +170,15 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
 
 ## 7. Run and shell (Phase 4)
 
-- [ ] 7.1 Add the run-prompt tokenizer.
+- [x] 7.1 Add the run-prompt tokenizer.
   - Files: `pkg/tui/tokenize.go`.
   - Implement the quoting rules, leading-`gcloud` strip, metacharacter rejection, and the Windows `.cmd`/`.bat` rejection list.
   - Verify: `tokenize_test.go` table incl. the three credential-safety scenarios.
-- [ ] 7.2 Add the run flow.
+- [x] 7.2 Add the run flow.
   - Files: `pkg/tui/modals.go`, `pkg/tui/exec.go`.
   - The prompt has the ADC-missing hint and in-memory history (50). `runExec` prints the banner, runs `svc.RunCommand` cmd, prints the exit line, and waits for Enter. Map the exit code to a message. Reload after.
   - Verify: E2E-05 (A) incl. active account and default ADC unchanged; history and empty-input tests.
-- [ ] 7.3 Add the shell flow.
+- [x] 7.3 Add the shell flow.
   - Files: `pkg/tui/exec.go`.
   - `shellExec` prints the banner and runs `svc.ShellCommand`. It resumes immediately and shows the exit message with status. It works without gcloud.
   - Verify: E2E-06 (A) with the fake shell; PTY smoke test 6.3.
@@ -188,7 +188,7 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
 
 ## 8. Hardening (Phase 5)
 
-- [ ] 8.1 Add debug logging.
+- [x] 8.1 Add debug logging.
   - Files: `pkg/tui/run.go`, `cmd/tui.go`.
   - `GCTX_DEBUG`/`--debug`, `os.UserCacheDir()/gctx/tui-debug.log`, `0600`, 1 MiB truncate. Log only at the op boundary; record the verb only for run.
   - Verify: test with a run of `secrets versions access latest --secret=db-pass` asserts the log contains `secrets` and not `db-pass`; mode check on POSIX.
