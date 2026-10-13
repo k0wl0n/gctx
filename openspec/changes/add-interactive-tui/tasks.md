@@ -214,15 +214,15 @@ Phases map to task groups as in design.md D13. Each group ends in a releasable `
 
 ## 10. Documentation and release (Phase 5)
 
-- [ ] 10.1 Update the README.
+- [x] 10.1 Update the README.
   - Files: `README.md`.
   - Add an "Interactive TUI" section near the top of Usage (launch rules, `gctx tui`, `GCTX_NO_TUI`, keybinding table, screenshot placeholder). Add a Windows notes subsection (Windows Terminal/conhost, MinTTY → `winpty`). Note Go ≥ 1.26 under From Source. Replace "What's New in v0.5.0" with the new release's notes, including the bare-`gctx` behavior change.
   - Verify: review checklist.
-- [ ] 10.2 Update ReadTheDocs.
+- [x] 10.2 Update ReadTheDocs.
   - Files: `readthedocs/docs/tui.md` (new: usage, keybindings, health statuses with meanings and remedies, run tokenizer rules, troubleshooting: terminal too small, `TERM=dumb`, MinTTY, `NO_COLOR`/`GCTX_ASCII`, debug log location, restoring a broken terminal), `readthedocs/docs/architecture.md` (new package layout and diagram from design.md, removing `watcher`), `readthedocs/mkdocs.yml` (nav).
   - Run `task docs` to regenerate the CLI reference including `gctx_tui.md`.
   - Verify: `mkdocs build --strict` passes locally; `task docs` leaves no diff.
-- [ ] 10.3 Update contributor docs.
+- [x] 10.3 Update contributor docs.
   - Files: `CONTRIBUTING.md`.
   - Explain how to run tests (fake gcloud, `-short`), the golden update flag, and the manual matrix for TUI changes.
   - Verify: review.

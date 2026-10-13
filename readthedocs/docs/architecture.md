@@ -4,37 +4,78 @@ This document describes the internal architecture of `gctx`.
 
 ## Directory Structure
 
+```text
+cmd/
+  root.go          # Execute(): no-argument routing; registers tui
+  tui.go           # gctx tui [--debug]
+  tty.go           # terminal detection and launch rules
+  ...              # existing command files (call manager + present)
+pkg/
+  manager/
+    manager.go     # Manager, Options, Paths
+    status.go      # account health and overview
+    operations.go  # create, login, save, switch, delete, info, active
+    isolate.go     # run and shell commands, shell resolution
+    validate.go    # account name and project validation
+    results.go     # warnings, result structs, StepError
+  present/
+    text.go        # CLI text output and login progress
+  config/          # config.json (atomic save, sorted listing)
+  adc/             # stored and default ADC files, snapshot/compare
+  gcloud/          # gcloud subprocess client
+  gcloudconfig/    # read-only view of local gcloud configuration
+  tui/
+    run.go         # program setup, debug log, error mapping
+    model.go       # model, Init, Update
+    keys.go        # keybinding table (drives help and hints)
+    view.go        # layout, table, details, header, status line
+    modals.go      # create, delete, save and run dialogs
+    exec.go        # login/run/shell subprocess hand-off
+    tokenize.go    # run-prompt tokenizer and safety checks
+    styles.go      # styles
+internal/testutil/
+  fakegcloud/      # fake gcloud binary for tests
+  harness.go       # isolated HOME and gcloud config for tests
+main.go
 ```
-gctx/
-├── cmd/
-│   ├── root.go              # Root command setup
-│   ├── create.go            # Create account command
-│   ├── save.go              # Save ADC command
-│   ├── switch.go            # Switch account command
-│   ├── list.go              # List accounts command
-│   ├── active.go            # Show active account
-│   ├── delete.go            # Delete account command
-│   ├── run.go               # Run with account command
-│   └── info.go              # Show account info
-├── pkg/
-│   ├── manager/
-│   │   └── manager.go       # Core account management
-│   ├── config/
-│   │   └── config.go        # Configuration handling
-│   ├── adc/
-│   │   └── adc.go           # ADC operations
-│   ├── gcloud/
-│   │   └── gcloud.go        # gcloud CLI wrapper
-│   └── watcher/
-│       └── watcher.go       # File watching for auto-save
-├── main.go                  # Entry point
-├── go.mod
-└── README.md
+
+## Overview
+
+```mermaid
+flowchart TB
+  subgraph entry[Entry]
+    main[main.go] --> exec["cmd.Execute()<br/>no-arg routing"]
+  end
+  exec -->|args present or non-TTY| cobra[Cobra commands<br/>cmd/*.go]
+  exec -->|bare gctx in TTY| tuiRun
+  cobra -->|gctx tui| tuiRun["pkg/tui.Run()"]
+
+  subgraph presenters[Presenters]
+    cobra --> present["pkg/present<br/>text output"]
+    tuiRun --> model["pkg/tui<br/>Bubble Tea model/view"]
+    model -. suspended login .-> present
+  end
+
+  cobra --> mgr
+  model -->|"tui.Service (interface)"| mgr
+
+  subgraph domain[Domain]
+    mgr["pkg/manager<br/>operations, health, validation"]
+  end
+
+  mgr --> cfg["pkg/config<br/>config.json (atomic)"]
+  mgr --> adcp["pkg/adc<br/>stored/default ADC files"]
+  mgr --> gcc["pkg/gcloudconfig<br/>local gcloud config view"]
+  mgr --> gcl["pkg/gcloud<br/>gcloud subprocesses"]
+  gcl --> gcloudbin[(gcloud CLI)]
+  model -->|tea.Exec| child[(login / gcloud run / shell<br/>owns the terminal)]
 ```
+
+`pkg/tui` and `cmd` depend on `pkg/manager` and `pkg/present`. `pkg/manager` depends on `config`, `adc`, `gcloud` and `gcloudconfig`, and never on the TUI, presenters, Cobra or Bubble Tea. See the [TUI guide](tui.md) for behavior.
 
 ## Core Components
 
-### 1. Configuration Management (`pkg/config/config.go`)
+### 1. Configuration Management (`pkg/config`)
 
 **Purpose**: Store and manage account metadata
 
@@ -57,7 +98,7 @@ type Account struct {
 }
 ```
 
-### 2. ADC Management (`pkg/adc/adc.go`)
+### 2. ADC Management (`pkg/adc`)
 
 **Purpose**: Handle Application Default Credentials file operations
 
@@ -68,7 +109,7 @@ type Account struct {
 *   `RestoreADC(accountName)`: Restores the saved ADC file to the default location.
 *   `ValidateADC(path)`: Ensures the ADC file is valid JSON before saving/restoring.
 
-### 3. GCloud Integration (`pkg/gcloud/gcloud.go`)
+### 3. GCloud Integration (`pkg/gcloud`)
 
 **Purpose**: Wrapper around `gcloud` CLI commands
 
@@ -79,18 +120,14 @@ type Account struct {
 *   `AuthLogin()`: Runs `gcloud auth login`.
 *   `AuthADCLogin()`: Runs `gcloud auth application-default login`.
 
-### 4. File Watcher (`pkg/watcher/watcher.go`)
-
-**Purpose**: Watch ADC file for changes during auto-save flow. It detects when the authentication process updates the credentials file.
-
-### 5. Manager (`pkg/manager/manager.go`)
+### 4. Manager (`pkg/manager`)
 
 **Purpose**: High-level orchestration that ties everything together.
 
 **Key Workflows**:
 *   **CreateAccount**: Creates gcloud config, sets project, and optionally triggers auto-save.
 *   **SwitchAccount**: Restores the account's ADC file and activates its gcloud config.
-*   **AutoSaveFlow**: Runs auth commands, watches for file changes, and saves the new credentials.
+*   **Login**: Runs auth commands, compares the default ADC before and after, and saves the new credentials.
 
 ## Security Considerations
 
