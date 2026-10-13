@@ -2,6 +2,8 @@ package tui
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -112,11 +114,13 @@ type (
 
 // Model is the single Bubble Tea model.
 type Model struct {
-	svc     Service
-	exec    func(tea.ExecCommand, tea.ExecCallback) tea.Cmd // tea.Exec; replaced in tests
-	now     func() time.Time
-	version string
-	debug   bool
+	svc      Service
+	exec     func(tea.ExecCommand, tea.ExecCallback) tea.Cmd // tea.Exec; replaced in tests
+	now      func() time.Time
+	version  string
+	debug    bool
+	debugLog *slog.Logger
+	goos     string
 
 	overview manager.Overview
 	loadErr  error
@@ -143,14 +147,22 @@ type Model struct {
 // New builds the model and loads the local overview synchronously: it is a few
 // file reads and never starts a subprocess.
 func New(svc Service, opts Options) Model {
+	return NewWithGOOS(svc, opts, "")
+}
+
+// NewWithGOOS is like New but lets callers inject the runtime OS string.
+// An empty goos defaults to runtime.GOOS via the tokenize call site.
+func NewWithGOOS(svc Service, opts Options, goos string) Model {
 	m := Model{
-		svc:     svc,
-		exec:    tea.Exec,
-		now:     time.Now,
-		version: opts.Version,
-		debug:   opts.Debug,
-		spin:    spinner.New(spinner.WithSpinner(spinner.Dot)),
-		filter:  filterState{input: newLineInput("/")},
+		svc:      svc,
+		exec:     tea.Exec,
+		now:      time.Now,
+		version:  opts.Version,
+		debug:    opts.Debug,
+		debugLog: slog.New(slog.NewTextHandler(io.Discard, nil)), // replaced in run.go
+		goos:     goos,
+		spin:     spinner.New(spinner.WithSpinner(spinner.Dot)),
+		filter:   filterState{input: newLineInput("/")},
 	}
 	m.reload()
 	return m

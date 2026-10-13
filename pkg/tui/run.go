@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"runtime"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -17,8 +19,18 @@ type Options struct {
 // Run starts the TUI and returns after the terminal has been restored. A
 // quit, interrupt or cancelled context is a clean exit.
 func Run(ctx context.Context, svc Service, opts Options) error {
-	model := New(svc, opts)
-	_, err := tea.NewProgram(model, tea.WithContext(ctx)).Run()
+	debugEnabled := opts.Debug || os.Getenv("GCTX_DEBUG") == "1"
+	logger, closer, err := newDebugLogger(debugEnabled)
+	if err != nil {
+		// Non-fatal: fall back to discarding logger.
+		logger, closer, _ = newDebugLogger(false)
+	}
+	defer closer.Close()
+
+	model := NewWithGOOS(svc, opts, runtime.GOOS)
+	model.debugLog = logger
+
+	_, err = tea.NewProgram(model, tea.WithContext(ctx)).Run()
 	return mapRunError(err)
 }
 

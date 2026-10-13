@@ -2,6 +2,7 @@ package tui
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -29,6 +30,7 @@ type (
 		svc            Service
 		name           string
 		configName     string
+		ctx            context.Context
 	}
 	runExec struct {
 		stdin          io.Reader
@@ -53,7 +55,11 @@ func (e *loginExec) SetStderr(w io.Writer) { e.stderr = w }
 func (e *loginExec) Run() error {
 	fmt.Fprintf(e.stdout, "Logging in to %s (%s)…\n", e.name, e.configName)
 	lio := present.LoginIO(e.stdin, e.stdout, e.stderr)
-	result, err := e.svc.Login(nil, e.name, lio) //nolint:staticcheck
+	ctx := e.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	result, err := e.svc.Login(ctx, e.name, lio)
 	present.LoginDone(e.stdout, e.stderr, result, err)
 	if err != nil {
 		fmt.Fprintf(e.stdout, "\nPress Enter to return to gctx")
@@ -185,6 +191,9 @@ func (m Model) handleLoginDone(msg execDoneMsg) (Model, tea.Cmd) {
 func (m Model) handleRunDone(msg execDoneMsg) (Model, tea.Cmd) {
 	var re *runError
 	if errors.As(msg.err, &re) {
+		if m.debugLog != nil {
+			m.debugLog.Info("run", "account", msg.account, "exit", re.exitCode)
+		}
 		if re.exitCode == 0 {
 			return m, m.setStatus("gcloud exited with status 0", levelInfo)
 		}
@@ -215,7 +224,7 @@ func (m Model) beginLogin(name string) (Model, tea.Cmd) {
 	if ok {
 		configName = account.ConfigName
 	}
-	exec := &loginExec{svc: m.svc, name: name, configName: configName}
+	exec := &loginExec{svc: m.svc, name: name, configName: configName, ctx: context.Background()}
 	cmd := m.exec(exec, func(err error) tea.Msg {
 		return execDoneMsg{kind: execLogin, account: name, err: err}
 	})
@@ -258,7 +267,11 @@ func (p *runPrompt) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
 		if trimmed == "" {
 			return m, nil
 		}
-		args, err := tokenize(trimmed, m.svc.GcloudBin(), "linux") // GOOS injected by run.go; tests use linux
+		goos := m.goos
+		if goos == "" {
+			goos = "linux"
+		}
+		args, err := tokenize(trimmed, m.svc.GcloudBin(), goos)
 		if err != nil {
 			p.errMsg = err.Error()
 			return m, nil

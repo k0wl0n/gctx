@@ -41,6 +41,9 @@ func (m Model) startSwitch(name string) (Model, tea.Cmd) {
 	m.seq++
 	seq := m.seq
 	m.op = &operation{kind: opSwitch, account: name, desc: "switching", seq: seq, started: m.now()}
+	if m.debugLog != nil {
+		m.debugLog.Info("op", "kind", opSwitch, "account", name)
+	}
 	cmd := func() tea.Msg {
 		result, err := m.svc.Switch(context.Background(), name)
 		return opDoneMsg{seq: seq, kind: opSwitch, account: name, result: result, err: err}
@@ -97,7 +100,10 @@ func (m Model) handleOpDone(msg opDoneMsg) (Model, tea.Cmd) {
 		if m.isVisible(res.Account) {
 			m.selected = res.Account
 		}
-		return m, m.setStatus("created "+res.Account, levelInfo)
+		cmd := m.setStatus("created "+res.Account, levelInfo)
+		loginM, loginCmd := m.startLogin(res.Account)
+		m = loginM
+		return m, tea.Batch(cmd, loginCmd)
 	}
 
 	return m, nil
