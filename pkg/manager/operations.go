@@ -20,6 +20,8 @@ type LoginIO struct {
 	Stdin          io.Reader
 	Stdout, Stderr io.Writer
 	Progress       func(LoginEvent)
+	// NoBrowser skips the automatic browser launch and prints a URL instead.
+	NoBrowser bool
 }
 
 func (l LoginIO) progress(kind LoginEventKind, message string) {
@@ -166,8 +168,15 @@ func (m *Manager) Login(ctx context.Context, name string, lio LoginIO) (LoginRes
 		return result, fmt.Errorf("failed to activate gcloud config: %w", err)
 	}
 
+	authArgs := []string{"auth", "login"}
+	adcArgs := []string{"auth", "application-default", "login"}
+	if lio.NoBrowser {
+		authArgs = append(authArgs, "--no-browser")
+		adcArgs = append(adcArgs, "--no-browser")
+	}
+
 	lio.progress(LoginAuthStarted, "")
-	if err := client.Interactive(ctx, stdio, env, "auth", "login"); err != nil {
+	if err := client.Interactive(ctx, stdio, env, authArgs...); err != nil {
 		return result, fmt.Errorf("auth login failed: %w", err)
 	}
 	result.GcloudLoggedIn = true
@@ -175,7 +184,7 @@ func (m *Manager) Login(ctx context.Context, name string, lio LoginIO) (LoginRes
 
 	lio.progress(LoginADCStarted, "")
 	before := adc.Snapshot(m.paths.DefaultADC)
-	if err := client.Interactive(ctx, stdio, env, "auth", "application-default", "login"); err != nil {
+	if err := client.Interactive(ctx, stdio, env, adcArgs...); err != nil {
 		return result, fmt.Errorf("ADC auth failed: %w", err)
 	}
 	refreshed := before.Changed(adc.Snapshot(m.paths.DefaultADC))

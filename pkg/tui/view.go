@@ -19,19 +19,24 @@ type columnSet struct {
 
 func layoutColumns(width int) columnSet {
 	switch {
+	case width >= 160:
+		return columnSet{
+			marker: 2, name: 36, project: 36, email: 32, adc: 5, status: 15,
+			showEmail: true, showADC: true, showDetails: true,
+		}
 	case width >= 120:
 		return columnSet{
-			marker: 2, name: 20, project: 20, email: 24, adc: 5, status: 15,
+			marker: 2, name: 30, project: 30, email: 26, adc: 5, status: 15,
 			showEmail: true, showADC: true, showDetails: true,
 		}
 	case width >= 90:
 		return columnSet{
-			marker: 2, name: 22, project: 22, email: 24, status: 16,
+			marker: 2, name: 28, project: 28, email: 20, status: 16,
 			showEmail: true,
 		}
 	default: // 60–89
 		return columnSet{
-			marker: 2, name: 24, project: 24, status: 12,
+			marker: 2, name: 30, project: 26, status: 12,
 		}
 	}
 }
