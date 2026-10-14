@@ -85,8 +85,8 @@ func TestNoActiveAccount(t *testing.T) {
 	svc := newFakeService(sampleOverview("", "alpha", "beta"))
 	m := newTestModel(t, svc, 100, 24)
 	out := screen(m)
-	if !strings.Contains(out, "Active: none") {
-		t.Errorf("want 'Active: none', got: %q", out)
+	if !strings.Contains(out, "no active account") {
+		t.Errorf("want 'no active account', got: %q", out)
 	}
 	// selection should be on first row
 	if m.selected != "alpha" {
@@ -329,7 +329,7 @@ func TestRandomResizeNoPanic(t *testing.T) {
 
 // TestHintLineNarrow verifies shortened hints at narrow width.
 func TestHintLineNarrow(t *testing.T) {
-	hints := renderHints(Model{}, layoutColumns(70))
+	hints := renderHints(Model{}, layoutColumns(70), newStyles())
 	if strings.Contains(hints, "filter") {
 		t.Errorf("narrow hints should not mention filter: %q", hints)
 	}
@@ -337,7 +337,7 @@ func TestHintLineNarrow(t *testing.T) {
 
 // TestHintLineWide verifies full hints at wide width.
 func TestHintLineWide(t *testing.T) {
-	hints := renderHints(Model{}, layoutColumns(100))
+	hints := renderHints(Model{}, layoutColumns(100), newStyles())
 	if !strings.Contains(hints, "filter") {
 		t.Errorf("wide hints should mention filter: %q", hints)
 	}

@@ -62,6 +62,14 @@ func pad(s string, n int) string {
 
 func runeLen(s string) int { return utf8.RuneCountInString(s) }
 
+// hRule returns a horizontal rule of width w using the glyph character.
+func hRule(g glyphs, st styles, w int) string {
+	if w <= 0 {
+		return ""
+	}
+	return st.Sep.Render(strings.Repeat(g.HRule, w))
+}
+
 // viewMain draws the main screen, including the too-small replacement.
 func (m Model) viewMain() string {
 	g := newGlyphs(asciiRequested())
@@ -78,8 +86,10 @@ func (m Model) viewMain() string {
 	// Header line
 	out.WriteString(renderHeader(m, g, st))
 	out.WriteByte('\n')
+	out.WriteString(hRule(g, st, m.width))
+	out.WriteByte('\n')
 
-	// Table title line
+	// Table title line (filter or account count)
 	out.WriteString(renderTableTitle(m, cols, g, st))
 	out.WriteByte('\n')
 
@@ -87,8 +97,8 @@ func (m Model) viewMain() string {
 	out.WriteString(renderColumnHeaders(cols, st))
 	out.WriteByte('\n')
 
-	// Body rows
-	bodyLines := m.height - 5 // header, title, colheaders, status, hints
+	// Body rows — subtract 2 extra for the two separator lines
+	bodyLines := m.height - 7 // header, sep, title, colheaders, sep, status, hints
 	if bodyLines < 1 {
 		bodyLines = 1
 	}
@@ -99,9 +109,9 @@ func (m Model) viewMain() string {
 		out.WriteByte('\n')
 	} else if len(m.visible) == 0 {
 		if m.filter.query != "" {
-			out.WriteString(fmt.Sprintf("No accounts match %q", m.filter.query))
+			out.WriteString(st.Dim.Render(fmt.Sprintf("No accounts match %q", m.filter.query)))
 		} else {
-			out.WriteString("No accounts configured. Press c to create one.")
+			out.WriteString(st.Dim.Render("No accounts configured. Press c to create one."))
 		}
 		out.WriteByte('\n')
 	} else {
@@ -130,22 +140,32 @@ func (m Model) viewMain() string {
 		}
 	}
 
+	// Separator before status
+	out.WriteString(hRule(g, st, m.width))
+	out.WriteByte('\n')
+
 	// Status line
 	out.WriteString(renderStatus(m, st, g))
 	out.WriteByte('\n')
 
 	// Key-hint line
-	out.WriteString(renderHints(m, cols))
+	out.WriteString(renderHints(m, cols, st))
 
 	return out.String()
 }
 
 func renderHeader(m Model, g glyphs, st styles) string {
 	var parts []string
-	parts = append(parts, st.Title.Render("gctx "+m.version))
+	parts = append(parts, st.Title.Render("gctx"))
+	if m.version != "" {
+		parts = append(parts, st.Dim.Render("v"+m.version))
+	}
+
+	// Spacer
+	parts = append(parts, " ")
 
 	if m.overview.ShellAccount != "" {
-		parts = append(parts, "Shell: "+m.overview.ShellAccount)
+		parts = append(parts, st.Warn.Render("shell: "+m.overview.ShellAccount))
 	}
 
 	if active, ok := m.overview.Active(); ok {
@@ -153,9 +173,9 @@ func renderHeader(m Model, g glyphs, st styles) string {
 		if proj == "" {
 			proj = "-"
 		}
-		parts = append(parts, "Active: "+active.Name+" ("+proj+")")
+		parts = append(parts, st.OK.Render(g.Active)+" "+active.Name+" ("+proj+")")
 	} else {
-		parts = append(parts, "Active: none")
+		parts = append(parts, st.Dim.Render("no active account"))
 	}
 
 	gcfg := m.overview.GcloudActiveConfig
@@ -164,28 +184,28 @@ func renderHeader(m Model, g glyphs, st styles) string {
 	}
 	active, hasActive := m.overview.Active()
 	drifted := hasActive && active.ConfigName != gcfg
-	gcfgText := "gcloud: " + gcfg
+	gcfgText := st.Dim.Render("cfg:") + " " + gcfg
 	if drifted {
-		gcfgText += " " + g.Warn
+		gcfgText += " " + st.Warn.Render(g.Warn+" drift")
 	}
 	parts = append(parts, gcfgText)
 
-	adcText := renderADCIndicator(m.overview.DefaultADC, g)
+	adcText := renderADCIndicator(m.overview.DefaultADC, g, st)
 	parts = append(parts, adcText)
 
 	return strings.Join(parts, "  ")
 }
 
-func renderADCIndicator(ind manager.ADCIndicator, g glyphs) string {
+func renderADCIndicator(ind manager.ADCIndicator, g glyphs, st styles) string {
 	switch ind {
 	case manager.ADCActive:
-		return "ADC: " + g.Yes + " active"
+		return st.Dim.Render("adc:") + " " + st.OK.Render(g.Yes)
 	case manager.ADCDiffers:
-		return "ADC: " + g.Warn + " differs"
+		return st.Dim.Render("adc:") + " " + st.Warn.Render(g.Warn+" differs")
 	case manager.ADCNone:
-		return "ADC: " + g.No + " none"
+		return st.Dim.Render("adc:") + " " + st.Error.Render(g.No+" none")
 	default:
-		return "ADC: ? unknown"
+		return st.Dim.Render("adc: ?")
 	}
 }
 
@@ -218,39 +238,52 @@ func renderColumnHeaders(cols columnSet, st styles) string {
 }
 
 func renderRow(acct manager.AccountStatus, cols columnSet, g glyphs, st styles, selected bool) string {
+	// Active marker — colored green
 	marker := " "
 	if acct.Active {
-		marker = g.Active
+		marker = st.OK.Render(g.Active)
 	}
 
+	// Name — bold+green for active account
 	name := truncate(acct.Name, cols.name)
+	if acct.Active {
+		name = st.ActiveName.Render(pad(name, cols.name))
+	} else {
+		name = pad(name, cols.name)
+	}
+
 	proj := acct.ProjectID
 	if proj == "" {
-		proj = "-"
+		proj = st.Dim.Render("-")
+	} else {
+		proj = truncate(proj, cols.project)
 	}
-	proj = truncate(proj, cols.project)
 
 	statusText := string(acct.Status)
 	statusStyle := healthStyle(acct.Status, st)
 
 	var b strings.Builder
 	b.WriteString(pad(marker, cols.marker))
-	b.WriteString(pad(name, cols.name))
+	b.WriteString(name)
 	b.WriteString(" ")
 	b.WriteString(pad(proj, cols.project))
 
 	if cols.showEmail {
 		email := acct.Email
 		if email == "" {
-			email = "-"
+			email = st.Dim.Render("-")
+		} else {
+			email = truncate(email, cols.email)
 		}
 		b.WriteString(" ")
-		b.WriteString(pad(truncate(email, cols.email), cols.email))
+		b.WriteString(pad(email, cols.email))
 	}
 	if cols.showADC {
-		adcGlyph := g.No
+		var adcGlyph string
 		if acct.ADCExists {
-			adcGlyph = g.Yes
+			adcGlyph = st.OK.Render(g.Yes)
+		} else {
+			adcGlyph = st.Error.Render(g.No)
 		}
 		b.WriteString(" ")
 		b.WriteString(pad(adcGlyph, cols.adc))
@@ -298,11 +331,11 @@ func renderStatus(m Model, st styles, g glyphs) string {
 	}
 }
 
-func renderHints(m Model, cols columnSet) string {
+func renderHints(m Model, cols columnSet, st styles) string {
 	if !cols.showEmail {
-		return "enter switch · ? help · q quit"
+		return st.Dim.Render("↵ switch  ? help  q quit")
 	}
-	return "j/k move · enter switch · / filter · d details · ? help · q quit"
+	return st.Dim.Render("j/k move  ↵ switch  / filter  d details  l login  s shell  r run  ? help  q quit")
 }
 
 // viewOverlay draws the help or details screen.
