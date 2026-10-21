@@ -193,10 +193,10 @@ func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error
 	credentialed := map[string]bool{}
 	for _, entry := range entries {
 		report.Accounts = append(report.Accounts, entry.Account)
-		// Only ACTIVE accounts have a valid, usable token.
-		// CREDENTIALED means gcloud has stored credentials but they may be
-		// expired or require re-authentication.
-		if strings.EqualFold(entry.Status, "ACTIVE") {
+		// ACTIVE = currently active account with a usable token.
+		// CREDENTIALED = has stored credentials (gcloud auth list still includes it).
+		// Both mean gcloud has credentials on file; exclude anything else (e.g. empty).
+		if strings.EqualFold(entry.Status, "ACTIVE") || strings.EqualFold(entry.Status, "CREDENTIALED") {
 			credentialed[strings.ToLower(entry.Account)] = true
 		}
 	}

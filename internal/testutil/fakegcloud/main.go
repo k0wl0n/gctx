@@ -394,7 +394,7 @@ func (g *gcloud) authList() int {
 	active := g.property(g.currentConfig(), "account")
 	items := []item{}
 	for _, account := range g.credentialed() {
-		status := ""
+		status := "CREDENTIALED"
 		if account == active {
 			status = "ACTIVE"
 		}
