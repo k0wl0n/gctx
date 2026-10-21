@@ -184,6 +184,7 @@ func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error
 	}
 	var entries []struct {
 		Account string `json:"account"`
+		Status  string `json:"status"`
 	}
 	if err := json.Unmarshal([]byte(out), &entries); err != nil {
 		return CredentialReport{Warnings: []Warning{{Code: WarnCredentialCheck, Message: fmt.Sprintf("unexpected gcloud auth list output: %v", err)}}}, nil
@@ -192,7 +193,12 @@ func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error
 	credentialed := map[string]bool{}
 	for _, entry := range entries {
 		report.Accounts = append(report.Accounts, entry.Account)
-		credentialed[strings.ToLower(entry.Account)] = true
+		// Only ACTIVE accounts have a valid, usable token.
+		// CREDENTIALED means gcloud has stored credentials but they may be
+		// expired or require re-authentication.
+		if strings.EqualFold(entry.Status, "ACTIVE") {
+			credentialed[strings.ToLower(entry.Account)] = true
+		}
 	}
 	m.stateMu.Lock()
 	m.credentialed, m.credChecked = credentialed, true
