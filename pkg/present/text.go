@@ -157,6 +157,9 @@ func LoginDone(w, errw io.Writer, result manager.LoginResult, err error) {
 		return
 	}
 	for _, warning := range result.Warnings {
+		if warning.Code == provider.WarnSetProjectFailed {
+			continue // already shown while logging in
+		}
 		fmt.Fprintf(errw, "Warning: %s\n", warning.Message)
 	}
 	if result.ADCSaved || result.ADCPath != "" {

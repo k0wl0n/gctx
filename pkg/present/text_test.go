@@ -98,3 +98,15 @@ func TestLoginDoneOmitsADCLinesWithoutADC(t *testing.T) {
 		t.Errorf("stdout %q", stdout.String())
 	}
 }
+
+func TestLoginDoneDoesNotRepeatSetProjectFailed(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	result := manager.LoginResult{
+		Account:  "work",
+		Warnings: []provider.Warning{{Code: provider.WarnSetProjectFailed, Account: "work", Message: "could not set project"}},
+	}
+	present.LoginDone(&stdout, &stderr, result, nil)
+	if stderr.Len() != 0 {
+		t.Errorf("stderr %q repeats the set-project warning", stderr.String())
+	}
+}
