@@ -241,8 +241,8 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 func incompleteProfileWarning(account, profile string, keys map[string]string) (provider.Warning, bool) {
 	var missing, commands []string
 	for _, row := range []struct{ key, placeholder string }{
-		{"sso_account_id", "<id>"},
-		{"sso_role_name", "<role>"},
+		{"sso_account_id", "ACCOUNT_ID"},
+		{"sso_role_name", "ROLE_NAME"},
 	} {
 		if keys[row.key] == "" {
 			missing = append(missing, row.key)

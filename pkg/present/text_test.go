@@ -63,3 +63,38 @@ func TestInfoShowsProviderForNonGCPOnly(t *testing.T) {
 		t.Errorf("aws: %q", awsOut.String())
 	}
 }
+
+func TestLoginDonePrintsProfileIncompleteWarning(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	result := manager.LoginResult{
+		Account: "work",
+		Warnings: []provider.Warning{{
+			Code: provider.WarnProfileIncomplete, Account: "work",
+			Message: "profile work lacks sso_account_id and sso_role_name; credential checks fail until set:\n" +
+				"aws configure set profile.work.sso_account_id ACCOUNT_ID\naws configure set profile.work.sso_role_name ROLE_NAME",
+		}},
+	}
+	present.LoginDone(&stdout, &stderr, result, nil)
+	for _, want := range []string{"sso_account_id", "sso_role_name", "aws configure set profile.work.sso_account_id ACCOUNT_ID"} {
+		if !strings.Contains(stderr.String(), want) {
+			t.Errorf("stderr %q lacks %q", stderr.String(), want)
+		}
+	}
+}
+
+func TestLoginDoneOmitsADCLinesWithoutADC(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	present.LoginDone(&stdout, &stderr, manager.LoginResult{Account: "work"}, nil)
+	if strings.Contains(stdout.String(), "ADC") || strings.Contains(stdout.String(), "Saved to") {
+		t.Errorf("stdout %q mentions ADC", stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Account 'work' is ready to use!") {
+		t.Errorf("stdout %q", stdout.String())
+	}
+
+	stdout.Reset()
+	present.LoginDone(&stdout, &stderr, manager.LoginResult{Account: "g", ADCSaved: true, ADCPath: "/p/adc.json"}, nil)
+	if !strings.Contains(stdout.String(), "ADC credentials auto-saved for: g\nSaved to: /p/adc.json\n") {
+		t.Errorf("stdout %q", stdout.String())
+	}
+}

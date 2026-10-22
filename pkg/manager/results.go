@@ -29,6 +29,7 @@ const (
 	WarnADCNotRefreshed     = provider.WarnADCNotRefreshed
 	WarnGcloudNotFound      = provider.WarnGcloudNotFound
 	WarnCredentialCheck     = provider.WarnCredentialCheck
+	WarnProfileIncomplete   = provider.WarnProfileIncomplete
 )
 
 const (

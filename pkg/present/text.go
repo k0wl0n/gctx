@@ -157,12 +157,13 @@ func LoginDone(w, errw io.Writer, result manager.LoginResult, err error) {
 		return
 	}
 	for _, warning := range result.Warnings {
-		if warning.Code == manager.WarnADCNotRefreshed {
-			fmt.Fprintf(errw, "Warning: %s\n", warning.Message)
-		}
+		fmt.Fprintf(errw, "Warning: %s\n", warning.Message)
 	}
-	fmt.Fprintf(w, "ADC credentials auto-saved for: %s\n", result.Account)
-	fmt.Fprintf(w, "Saved to: %s\n\n", result.ADCPath)
+	if result.ADCSaved || result.ADCPath != "" {
+		fmt.Fprintf(w, "ADC credentials auto-saved for: %s\n", result.Account)
+		fmt.Fprintf(w, "Saved to: %s\n", result.ADCPath)
+	}
+	fmt.Fprintln(w)
 	fmt.Fprintf(w, "Account '%s' is ready to use!\n", result.Account)
 	fmt.Fprintf(w, "Run: gctx switch %s\n", result.Account)
 }

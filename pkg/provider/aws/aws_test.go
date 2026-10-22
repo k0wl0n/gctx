@@ -379,8 +379,8 @@ func TestAWSLoginWarnsWhenAccountOrRoleMissing(t *testing.T) {
 	message := result.Warnings[0].Message
 	for _, want := range []string{
 		"sso_account_id", "sso_role_name",
-		"aws configure set profile.work.sso_account_id <id>",
-		"aws configure set profile.work.sso_role_name <role>",
+		"aws configure set profile.work.sso_account_id ACCOUNT_ID",
+		"aws configure set profile.work.sso_role_name ROLE_NAME",
 	} {
 		if !strings.Contains(message, want) {
 			t.Errorf("warning %q lacks %q", message, want)
