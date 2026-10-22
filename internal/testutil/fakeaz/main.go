@@ -7,6 +7,7 @@
 //	FAKE_AZ_LOGIN_PROSE=1  login first prints a line that mentions entering a code without one
 //	FAKE_AZ_TOKEN_FAIL=1   account get-access-token exits 1 with an expiry error
 //	FAKE_AZ_TOKEN_HANG=1   account get-access-token blocks until killed
+//	FAKE_AZ_LOGOUT_FAIL=1  logout exits 1
 //	FAKE_AZ_TOKEN_NETFAIL=1 account get-access-token exits 1 with a network error
 //
 // get-access-token prints a token-looking value only when --query is absent,
@@ -30,6 +31,9 @@ type invocation struct {
 	Args         []string `json:"args"`
 	ConfigDir    string   `json:"azure_config_dir"`
 	TokenEmitted bool     `json:"token_emitted"`
+	// ConfigDirExists is whether AZURE_CONFIG_DIR existed when the call ended,
+	// so tests can order logout against directory removal.
+	ConfigDirExists bool `json:"config_dir_exists"`
 }
 
 func main() {
@@ -43,6 +47,11 @@ func run(args []string) int {
 	switch {
 	case strings.HasPrefix(joined, "login"):
 		code = login()
+	case joined == "logout":
+		if os.Getenv("FAKE_AZ_LOGOUT_FAIL") != "" {
+			fmt.Fprintln(os.Stderr, "ERROR: logout failed")
+			code = 1
+		}
 	case strings.HasPrefix(joined, "account get-access-token"):
 		code, tokenEmitted = accessToken(args)
 	default:
@@ -101,7 +110,9 @@ func logInvocation(args []string, tokenEmitted bool) {
 	if path == "" {
 		return
 	}
-	line, _ := json.Marshal(invocation{Args: args, ConfigDir: os.Getenv("AZURE_CONFIG_DIR"), TokenEmitted: tokenEmitted})
+	dir := os.Getenv("AZURE_CONFIG_DIR")
+	_, statErr := os.Stat(dir)
+	line, _ := json.Marshal(invocation{Args: args, ConfigDir: dir, TokenEmitted: tokenEmitted, ConfigDirExists: dir != "" && statErr == nil})
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return

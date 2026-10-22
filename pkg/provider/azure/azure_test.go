@@ -323,7 +323,7 @@ func TestAzureDeleteRemovesIsolatedDir(t *testing.T) {
 	h := newHarness(t)
 	acct := h.created(t, "work")
 	dir := acct.Settings["dir"]
-	result, err := h.provider.Delete(context.Background(), acct, provider.DeleteOptions{})
+	result, err := h.provider.Delete(context.Background(), acct, provider.DeleteOptions{RemoveDir: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -593,5 +593,58 @@ func TestAzureLoginStrayLineDoesNotHideTheCode(t *testing.T) {
 	}
 	if len(codes) != 1 || codes[0] != "FAKECODE" {
 		t.Errorf("codes %v, want [FAKECODE]", codes)
+	}
+}
+
+func TestDeleteAzureKeepsDirWhenUnchecked(t *testing.T) {
+	h := newHarness(t)
+	acct := h.created(t, "work")
+	dir := acct.Settings["dir"]
+	result, err := h.provider.Delete(context.Background(), acct, provider.DeleteOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dir); err != nil {
+		t.Fatalf("dir must stay: %v", err)
+	}
+	if len(result.Removed) != 0 {
+		t.Errorf("removed %v", result.Removed)
+	}
+	if len(h.calls(t)) != 0 {
+		t.Error("no az call expected without Logout")
+	}
+}
+
+func TestDeleteAzureLogoutFailureIsWarning(t *testing.T) {
+	h := newHarness(t, "FAKE_AZ_LOGOUT_FAIL=1")
+	acct := h.created(t, "work")
+	dir := acct.Settings["dir"]
+	result, err := h.provider.Delete(context.Background(), acct, provider.DeleteOptions{Logout: true, RemoveDir: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Error("dir should still be removed after a logout failure")
+	}
+	if len(result.Warnings) != 1 || result.Warnings[0].Code != provider.WarnLogoutFailed {
+		t.Errorf("warnings %+v", result.Warnings)
+	}
+}
+
+func TestAzureDeleteItems(t *testing.T) {
+	h := newHarness(t)
+	acct := h.created(t, "work")
+	if err := os.WriteFile(filepath.Join(acct.Settings["dir"], "msal_token_cache.json"), make([]byte, 2048), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	items := h.provider.DeleteItems(acct)
+	if len(items) != 2 || items[0].Key != "remove_dir" || !items[0].Default || items[1].Key != "logout" || items[1].Default {
+		t.Fatalf("items %+v", items)
+	}
+	if !strings.Contains(items[0].Label, acct.Settings["dir"]) || !strings.Contains(items[0].Detail, "2.0 KB") {
+		t.Errorf("remove_dir item %+v", items[0])
+	}
+	if !strings.Contains(h.provider.Kept(acct), "Azure subscription") {
+		t.Errorf("kept %q", h.provider.Kept(acct))
 	}
 }

@@ -108,8 +108,15 @@ type SaveResult struct {
 	Email   string
 }
 
-type DeleteOptions struct {
-	GcloudConfig bool
+// DeleteOptions selects the optional removals; see provider.DeleteItem keys.
+type DeleteOptions = provider.DeleteOptions
+
+// DeletePlan is what the delete dialog shows: the optional removals the
+// provider offers, what is kept, and the accounts that link to this one.
+type DeletePlan struct {
+	Items      []provider.DeleteItem
+	Kept       string
+	Dependants []string // sorted; deleting is refused while there are any
 }
 
 type DeleteResult struct {

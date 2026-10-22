@@ -36,7 +36,19 @@ func ValidateProjectID(projectID string) error { return gcp.ValidateProjectID(pr
 
 type notFoundError struct{ name string }
 
-func (e notFoundError) Error() string        { return fmt.Sprintf("account '%s' not found", e.name) }
+func (e notFoundError) Error() string { return fmt.Sprintf("account '%s' not found", e.name) }
+
+// ErrAccountLinked is returned by Delete when other accounts run on the
+// account (settings.via), which would be left without their cloud login.
+type ErrAccountLinked struct {
+	Account    string
+	Dependants []string
+}
+
+func (e ErrAccountLinked) Error() string {
+	return fmt.Sprintf("cannot delete %s: linked by %s; delete or relink them first", e.Account, strings.Join(e.Dependants, ", "))
+}
+
 func (e notFoundError) Is(target error) bool { return target == ErrAccountNotFound }
 
 type existsError struct{ name string }

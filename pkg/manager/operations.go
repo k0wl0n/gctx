@@ -294,9 +294,16 @@ func (m *Manager) Delete(ctx context.Context, name string, opt DeleteOptions) (D
 	if err != nil {
 		return DeleteResult{}, err
 	}
+	dependants, err := m.dependants(name)
+	if err != nil {
+		return DeleteResult{}, err
+	}
+	if len(dependants) > 0 {
+		return DeleteResult{}, ErrAccountLinked{Account: name, Dependants: dependants}
+	}
 	result := DeleteResult{Account: name}
 
-	removed, err := p.Delete(ctx, account, provider.DeleteOptions{GcloudConfig: opt.GcloudConfig})
+	removed, err := p.Delete(ctx, account, opt)
 	result.Warnings = removed.Warnings
 	result.ConfigDeleted = slices.Contains(removed.Removed, account.ConfigName)
 	if err != nil {
@@ -324,4 +331,36 @@ func mergeSettings(base, extra map[string]string) map[string]string {
 	maps.Copy(merged, base)
 	maps.Copy(merged, extra)
 	return merged
+}
+
+// dependants returns the sorted names of accounts that run on name (D12).
+func (m *Manager) dependants(name string) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cfg, err := m.loadConfig()
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for other, account := range cfg.Accounts {
+		if other != name && account.Settings["via"] == name {
+			names = append(names, other)
+		}
+	}
+	slices.Sort(names)
+	return names, nil
+}
+
+// DeletePlan describes what deleting name offers to remove and keep.
+func (m *Manager) DeletePlan(name string) (DeletePlan, error) {
+	account, p, err := m.resolve(name)
+	if err != nil {
+		return DeletePlan{}, err
+	}
+	plan := DeletePlan{}
+	if describer, ok := p.(provider.DeleteDescriber); ok {
+		plan.Items, plan.Kept = describer.DeleteItems(account), describer.Kept(account)
+	}
+	plan.Dependants, err = m.dependants(name)
+	return plan, err
 }

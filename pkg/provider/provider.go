@@ -143,6 +143,7 @@ const (
 	WarnGcloudNotFound      WarningCode = "gcloud-not-found"
 	WarnCredentialCheck     WarningCode = "credential-check-failed"
 	WarnProfileIncomplete   WarningCode = "profile-incomplete"
+	WarnLogoutFailed        WarningCode = "logout-failed"
 )
 
 // Warning is a non-fatal condition. Message holds the underlying detail and

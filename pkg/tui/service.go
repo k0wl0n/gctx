@@ -23,6 +23,7 @@ type Service interface {
 	UpdateAccount(ctx context.Context, name string, req manager.UpdateRequest) error
 	Login(ctx context.Context, name string, io manager.LoginIO) (manager.LoginResult, error)
 	SaveCredentials(ctx context.Context, name string) (manager.SaveResult, error)
+	DeletePlan(name string) (manager.DeletePlan, error)
 	Delete(ctx context.Context, name string, opt manager.DeleteOptions) (manager.DeleteResult, error)
 	RunCommand(name string, args []string) (*exec.Cmd, error)
 	ShellCommand(name string, scope manager.ShellScope) (*exec.Cmd, error)

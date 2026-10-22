@@ -107,6 +107,14 @@ func (m Model) handleOpDone(msg opDoneMsg) (Model, tea.Cmd) {
 		return m, m.setStatus("credentials saved for "+res.Account, levelInfo)
 
 	case opDelete:
+		res, _ := msg.result.(manager.DeleteResult)
+		if len(res.Warnings) > 0 {
+			msgs := make([]string, 0, len(res.Warnings))
+			for _, w := range res.Warnings {
+				msgs = append(msgs, warningMessage(w))
+			}
+			return m, m.setStatus("deleted "+account+" (warnings: "+strings.Join(msgs, "; ")+")", levelWarning)
+		}
 		return m, m.setStatus("deleted "+account, levelInfo)
 
 	case opCreate:
@@ -164,7 +172,11 @@ func (m Model) openDelete(name string) (Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
-	m.modal = newDeleteDialog(acc, m.overview)
+	plan, err := m.svc.DeletePlan(name)
+	if err != nil {
+		return m, m.setStatus("cannot delete "+name+": "+err.Error(), levelError)
+	}
+	m.modal = newDeleteDialog(acc, m.providerInfo(acc.Provider), plan)
 	return m, nil
 }
 
@@ -283,97 +295,6 @@ func (d *saveDialog) view(m Model) string {
 		cancelLabel = "[*Cancel*]"
 	} else {
 		confirmLabel = "[*Save*]"
-	}
-	sb.WriteString(cancelLabel + "  " + confirmLabel)
-	return sb.String()
-}
-
-// ─── Delete dialog ────────────────────────────────────────────────────────────
-
-type deleteDialog struct {
-	account      manager.AccountStatus
-	overview     manager.Overview
-	focus        focusTarget
-	deleteGcloud bool // checkbox: also delete gcloud config
-	gcloudActive bool // whether this is gcloud's active config (checkbox disabled)
-}
-
-func newDeleteDialog(acc manager.AccountStatus, overview manager.Overview) *deleteDialog {
-	gcloudActive := overview.GcloudActiveConfig == acc.ConfigName
-	return &deleteDialog{
-		account:      acc,
-		overview:     overview,
-		focus:        focusCancel,
-		deleteGcloud: !gcloudActive,
-		gcloudActive: gcloudActive,
-	}
-}
-
-func (d *deleteDialog) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
-	key, ok := msg.(tea.KeyPressMsg)
-	if !ok {
-		return m, nil
-	}
-	switch key.String() {
-	case "esc", "q":
-		m.modal = nil
-		return m, nil
-	case "tab", "shift+tab", "left", "right", "h", "l":
-		if d.focus == focusCancel {
-			d.focus = focusConfirm
-		} else {
-			d.focus = focusCancel
-		}
-		m.modal = d
-		return m, nil
-	case "space", "x":
-		if !d.gcloudActive {
-			d.deleteGcloud = !d.deleteGcloud
-		}
-		m.modal = d
-		return m, nil
-	case "enter":
-		m.modal = nil
-		if d.focus == focusCancel {
-			return m, nil
-		}
-		if m.busy() {
-			return m, m.setStatus("Busy: "+m.op.desc, levelWarning)
-		}
-		m.seq++
-		seq := m.seq
-		name := d.account.Name
-		delGcloud := d.deleteGcloud
-		m.op = &operation{kind: opDelete, account: name, desc: "deleting", seq: seq, started: m.now()}
-		cmd := func() tea.Msg {
-			result, err := m.svc.Delete(context.Background(), name, manager.DeleteOptions{GcloudConfig: delGcloud})
-			return opDoneMsg{seq: seq, kind: opDelete, account: name, result: result, err: err}
-		}
-		return m, tea.Batch(func() tea.Msg { return m.spin.Tick() }, cmd)
-	}
-	return m, nil
-}
-
-func (d *deleteDialog) view(m Model) string {
-	var sb strings.Builder
-	sb.WriteString("Delete account: " + d.account.Name + "\n\n")
-	if d.account.ADCExists {
-		sb.WriteString("ADC credentials will be removed.\n")
-	}
-	checkbox := "[ ] also delete gcloud config"
-	if d.deleteGcloud {
-		checkbox = "[x] also delete gcloud config"
-	}
-	if d.gcloudActive {
-		checkbox += " (disabled: gcloud's active config)"
-	}
-	sb.WriteString(checkbox + "\n\n")
-	cancelLabel := "[ Cancel ]"
-	confirmLabel := "[ Delete ]"
-	if d.focus == focusCancel {
-		cancelLabel = "[*Cancel*]"
-	} else {
-		confirmLabel = "[*Delete*]"
 	}
 	sb.WriteString(cancelLabel + "  " + confirmLabel)
 	return sb.String()

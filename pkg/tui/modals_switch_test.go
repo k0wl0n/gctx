@@ -195,51 +195,6 @@ func TestSaveDialog_CancelNoOp(t *testing.T) {
 	}
 }
 
-// TestDeleteDialog_CancelFocusDefault verifies initial focus is Cancel.
-func TestDeleteDialog_CancelFocusDefault(t *testing.T) {
-	svc := newFakeService(sampleOverview("alice", "alice"))
-	m := newTestModel(t, svc, 100, 24)
-	acc, _ := m.overview.Account("alice")
-	dlg := newDeleteDialog(acc, m.overview)
-	if dlg.focus != focusCancel {
-		t.Error("delete dialog initial focus should be Cancel")
-	}
-}
-
-// TestDeleteDialog_GcloudActiveDisablesCheckbox verifies checkbox is disabled for gcloud active config.
-func TestDeleteDialog_GcloudActiveDisablesCheckbox(t *testing.T) {
-	ov := sampleOverview("alice", "alice", "bob")
-	ov.GcloudActiveConfig = "alice-config"
-	svc := newFakeService(ov)
-	m := newTestModel(t, svc, 100, 24)
-	acc, _ := m.overview.Account("alice")
-	dlg := newDeleteDialog(acc, ov)
-	if !dlg.gcloudActive {
-		t.Error("gcloudActive should be true when config matches gcloud active config")
-	}
-}
-
-// TestDeleteDialog_ConfirmStartsDeleteOp verifies confirming delete starts op.
-func TestDeleteDialog_ConfirmDeleteOp(t *testing.T) {
-	svc := newFakeService(sampleOverview("alice", "alice", "bob"))
-	m := newTestModel(t, svc, 100, 24)
-	acc, _ := m.overview.Account("bob")
-	m.modal = newDeleteDialog(acc, m.overview)
-
-	// Tab to Confirm.
-	m2, _ := m.updateModal(keyMsg("tab"))
-	m3, cmd := m2.updateModal(keyMsg("enter"))
-	if m3.op == nil {
-		t.Error("expected delete op to start")
-	}
-	if m3.op.kind != opDelete {
-		t.Errorf("expected delete op, got %s", m3.op.kind)
-	}
-	if cmd == nil {
-		t.Error("expected cmd from delete confirm")
-	}
-}
-
 // TestWarningMessage_AllCodes verifies all known warning codes return non-empty messages.
 func TestWarningMessage_AllCodes(t *testing.T) {
 	codes := []manager.WarningCode{

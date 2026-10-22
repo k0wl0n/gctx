@@ -318,9 +318,37 @@ func (p *Provider) Env(acct config.Account) ([]string, error) {
 	return []string{"AWS_PROFILE=" + acct.Target()}, nil
 }
 
-// Delete leaves the user's AWS config untouched.
-func (p *Provider) Delete(_ context.Context, acct config.Account, _ provider.DeleteOptions) (provider.DeleteResult, error) {
-	return provider.DeleteResult{Account: acct.Name}, nil
+// Delete leaves the user's AWS config untouched. With Logout it first runs
+// `aws sso logout`; a failure is a warning.
+func (p *Provider) Delete(ctx context.Context, acct config.Account, opt provider.DeleteOptions) (provider.DeleteResult, error) {
+	result := provider.DeleteResult{Account: acct.Name}
+	if !opt.Logout {
+		return result, nil
+	}
+	runner, err := p.runner()
+	if err == nil {
+		_, err = runner.Query(ctx, p.childEnv(), "sso", "logout", "--profile", acct.Target())
+	}
+	if err != nil {
+		result.Warnings = append(result.Warnings, provider.Warning{
+			Code: provider.WarnLogoutFailed, Account: acct.Name, Message: "aws sso logout failed: " + err.Error(),
+		})
+	}
+	return result, nil
+}
+
+var _ provider.DeleteDescriber = (*Provider)(nil)
+
+func (p *Provider) DeleteItems(acct config.Account) []provider.DeleteItem {
+	return []provider.DeleteItem{{
+		Key:    provider.DeleteKeyLogout,
+		Label:  "run aws sso logout --profile " + acct.Target() + " first",
+		Detail: "ends the SSO session",
+	}}
+}
+
+func (p *Provider) Kept(config.Account) string {
+	return "your AWS profile in ~/.aws/config and the AWS account"
 }
 
 func (p *Provider) Details(acct config.Account) []provider.Field {

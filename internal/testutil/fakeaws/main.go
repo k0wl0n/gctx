@@ -8,6 +8,7 @@
 //	FAKE_AWS_STS_NETFAIL=1    sts get-caller-identity exits 255 with a network error
 //	FAKE_AWS_ARN=<arn>        ARN returned by sts (default arn:aws:iam::123456789012:user/tester)
 //	FAKE_AWS_LOGIN_FAIL=1     sso login exits 1
+//	FAKE_AWS_LOGOUT_FAIL=1    sso logout exits 1
 //
 // "configure set profile.<name>.<key> <value>" edits $AWS_CONFIG_FILE.
 package main
@@ -41,6 +42,12 @@ func run(args []string) int {
 			return 1
 		}
 		fmt.Println("fake-aws: sso login complete")
+		return 0
+	case strings.HasPrefix(joined, "sso logout"):
+		if os.Getenv("FAKE_AWS_LOGOUT_FAIL") != "" {
+			fmt.Fprintln(os.Stderr, "logout failed")
+			return 1
+		}
 		return 0
 	case strings.HasPrefix(joined, "configure set") && len(args) == 4:
 		return configureSet(args[2], args[3])

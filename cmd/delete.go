@@ -25,7 +25,7 @@ var deleteCmd = &cobra.Command{
 			return err
 		}
 
-		result, err := m.Delete(cmd.Context(), args[0], manager.DeleteOptions{GcloudConfig: deleteGcloudConfig})
+		result, err := m.Delete(cmd.Context(), args[0], manager.DeleteOptions{GcloudConfig: deleteGcloudConfig, RemoveDir: true})
 		if err != nil {
 			return err
 		}

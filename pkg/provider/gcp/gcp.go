@@ -518,6 +518,30 @@ func (p *Provider) Delete(ctx context.Context, acct config.Account, opt provider
 	return result, nil
 }
 
+var _ provider.DeleteDescriber = (*Provider)(nil)
+
+// DeleteItems lists the stored ADC (always removed) and the gcloud
+// configuration, which is kept by default while it is gcloud's active one.
+func (p *Provider) DeleteItems(acct config.Account) []provider.DeleteItem {
+	var items []provider.DeleteItem
+	if acct.ADCPath != "" {
+		items = append(items, provider.DeleteItem{Label: "stored ADC credentials", Detail: "always", Default: true, Locked: true})
+	}
+	active := gcloudconfig.ActiveConfig(p.opts.GcloudDir) == acct.ConfigName
+	configItem := provider.DeleteItem{
+		Key: provider.DeleteKeyGcloudConfig, Label: "gcloud configuration " + acct.ConfigName,
+		Default: !active, Locked: active,
+	}
+	if active {
+		configItem.Detail = "gcloud's active configuration"
+	}
+	return append(items, configItem)
+}
+
+func (p *Provider) Kept(config.Account) string {
+	return "the GCP project and its resources"
+}
+
 func (p *Provider) Details(acct config.Account) []provider.Field {
 	return []provider.Field{
 		{Label: "gcloud config", Value: acct.ConfigName},

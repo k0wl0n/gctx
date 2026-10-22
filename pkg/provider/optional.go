@@ -102,3 +102,37 @@ type LoginCapable interface {
 type StreamingLogin interface {
 	StreamsLogin() bool
 }
+
+// Delete item keys name the DeleteOptions field an item controls.
+const (
+	DeleteKeyLogout       = "logout"
+	DeleteKeyRemoveDir    = "remove_dir"
+	DeleteKeyGcloudConfig = "gcloud_config"
+)
+
+// DeleteItem is one removable thing offered by the delete dialog. Locked items
+// cannot be toggled and stay at Default.
+type DeleteItem struct {
+	Key, Label, Detail string
+	Default, Locked    bool
+}
+
+// DeleteDescriber lists what deleting an account can remove beyond the
+// account record, and what it leaves alone. DeleteItems must be cheap: it
+// runs when the dialog opens and may only read files.
+type DeleteDescriber interface {
+	DeleteItems(acct config.Account) []DeleteItem
+	Kept(acct config.Account) string
+}
+
+// Set turns the option named by a DeleteItem key on or off.
+func (o *DeleteOptions) Set(key string, on bool) {
+	switch key {
+	case DeleteKeyLogout:
+		o.Logout = on
+	case DeleteKeyRemoveDir:
+		o.RemoveDir = on
+	case DeleteKeyGcloudConfig:
+		o.GcloudConfig = on
+	}
+}

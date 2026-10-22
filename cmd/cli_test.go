@@ -641,3 +641,20 @@ func TestEnvGCPPrintsIsolationEnv(t *testing.T) {
 		t.Errorf("stderr %q", r.stderr)
 	}
 }
+
+func TestCLIDeleteBehaviorUnchanged(t *testing.T) {
+	env := testutil.NewEnv(t)
+	addAccountOfProvider(t, env, "corp", "azure", "12345678-1234-1234-1234-123456789abc")
+	dir := filepath.Join(env.GctxDir, "azure", "corp")
+	env.WriteFile(filepath.Join(dir, "azureProfile.json"), []byte("{}"), 0600)
+
+	r := runGctx(t, "delete", "corp")
+	assertCode(t, r, 0)
+	assertStdout(t, r, "Deleted account: corp\n")
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Errorf("isolated dir must still be removed by the CLI: %v", err)
+	}
+	if strings.Contains(r.stderr, "Warning") {
+		t.Errorf("stderr %q", r.stderr)
+	}
+}

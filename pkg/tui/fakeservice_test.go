@@ -34,6 +34,8 @@ type fakeService struct {
 	saveErr     error
 	deleteRes   manager.DeleteResult
 	deleteErr   error
+	deleteOpts  []manager.DeleteOptions
+	deletePlans map[string]manager.DeletePlan // DeletePlan results by account; a default plan otherwise
 	runCmd      *exec.Cmd
 	runErr      error
 	shellCmd    *exec.Cmd
@@ -152,8 +154,22 @@ func (f *fakeService) SaveCredentials(ctx context.Context, name string) (manager
 	return f.saveRes, f.saveErr
 }
 
+func (f *fakeService) DeletePlan(name string) (manager.DeletePlan, error) {
+	f.record("DeletePlan", name)
+	if plan, ok := f.deletePlans[name]; ok {
+		return plan, nil
+	}
+	return manager.DeletePlan{
+		Items: []provider.DeleteItem{{Key: provider.DeleteKeyGcloudConfig, Label: "gcloud configuration " + name + "-config", Default: true}},
+		Kept:  "the GCP project",
+	}, nil
+}
+
 func (f *fakeService) Delete(ctx context.Context, name string, opt manager.DeleteOptions) (manager.DeleteResult, error) {
 	f.record("Delete", name)
+	f.mu.Lock()
+	f.deleteOpts = append(f.deleteOpts, opt)
+	f.mu.Unlock()
 	return f.deleteRes, f.deleteErr
 }
 

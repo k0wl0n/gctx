@@ -121,3 +121,24 @@ func TestGCPEnvIsolatesAccount(t *testing.T) {
 		t.Errorf("env %q, want %q", env, want)
 	}
 }
+
+func TestGCPDeleteItemsPreserveGcloudConfigDefault(t *testing.T) {
+	gcloudDir := t.TempDir()
+	writeFile(t, filepath.Join(gcloudDir, "active_config"), "other-config\n")
+	p := gcp.New(gcp.Options{GcloudDir: gcloudDir, ADCDir: t.TempDir(), Client: &gcloud.Client{}})
+	acct := config.Account{Name: "work", ConfigName: "work-config", ProjectID: "work-project"}
+
+	items := p.DeleteItems(acct)
+	if len(items) != 1 || items[0].Key != "gcloud_config" || !items[0].Default || items[0].Locked {
+		t.Fatalf("inactive config: %+v", items)
+	}
+
+	writeFile(t, filepath.Join(gcloudDir, "active_config"), "work-config\n")
+	items = p.DeleteItems(acct)
+	if len(items) != 1 || items[0].Default || !items[0].Locked {
+		t.Fatalf("active config must be off and locked: %+v", items)
+	}
+	if !strings.Contains(p.Kept(acct), "GCP project") {
+		t.Errorf("kept %q", p.Kept(acct))
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -407,15 +408,24 @@ func (p *Provider) Env(acct config.Account) ([]string, error) {
 	return []string{envConfDir + "=" + dir}, nil
 }
 
-// Delete removes the isolated directory when it is inside the root. Logging
-// out of Azure is left to the user.
-func (p *Provider) Delete(_ context.Context, acct config.Account, _ provider.DeleteOptions) (provider.DeleteResult, error) {
+// Delete runs `az logout` in the isolated directory when asked, then removes
+// the directory when asked and it is inside the root. A failed logout is a
+// warning: the user still wants the account gone.
+func (p *Provider) Delete(ctx context.Context, acct config.Account, opt provider.DeleteOptions) (provider.DeleteResult, error) {
 	result := provider.DeleteResult{Account: acct.Name}
 	dir, err := p.accountDir(acct)
 	if err != nil {
 		return result, err
 	}
 	if _, err := os.Lstat(dir); os.IsNotExist(err) {
+		return result, nil
+	}
+	if opt.Logout {
+		if warning := p.logout(ctx, acct.Name, dir); warning != nil {
+			result.Warnings = append(result.Warnings, *warning)
+		}
+	}
+	if !opt.RemoveDir {
 		return result, nil
 	}
 	if err := os.RemoveAll(dir); err != nil {
@@ -434,4 +444,67 @@ func (p *Provider) Details(acct config.Account) []provider.Field {
 		fields = append(fields, provider.Field{Label: "Config dir", Value: dir})
 	}
 	return fields
+}
+
+func (p *Provider) logout(ctx context.Context, account, dir string) *provider.Warning {
+	runner, err := p.runner()
+	if err == nil {
+		_, err = runner.Query(ctx, []string{envConfDir + "=" + dir}, "logout")
+	}
+	if err == nil {
+		return nil
+	}
+	return &provider.Warning{Code: provider.WarnLogoutFailed, Account: account, Message: "az logout failed: " + err.Error()}
+}
+
+var _ provider.DeleteDescriber = (*Provider)(nil)
+
+// DeleteItems offers the isolated directory (on by default, with its size) and
+// a server-side logout (off by default).
+func (p *Provider) DeleteItems(acct config.Account) []provider.DeleteItem {
+	dir, err := p.accountDir(acct)
+	if err != nil {
+		return nil
+	}
+	if _, err := os.Lstat(dir); err != nil {
+		return nil
+	}
+	return []provider.DeleteItem{
+		{Key: provider.DeleteKeyRemoveDir, Label: "isolated az dir " + dir, Detail: formatSize(dirSize(dir)) + ", cached tokens", Default: true},
+		{Key: provider.DeleteKeyLogout, Label: "run az logout first", Detail: "revokes the refresh token server-side"},
+	}
+}
+
+func (p *Provider) Kept(config.Account) string {
+	return "the Azure subscription and its resources. " + config.AppName + " never touches cloud resources."
+}
+
+// dirSize adds up regular file sizes below dir without following symlinks.
+func dirSize(dir string) int64 {
+	var total int64
+	_ = filepath.WalkDir(dir, func(_ string, entry fs.DirEntry, err error) error {
+		if err != nil || !entry.Type().IsRegular() {
+			return nil
+		}
+		if info, err := entry.Info(); err == nil {
+			total += info.Size()
+		}
+		return nil
+	})
+	return total
+}
+
+func formatSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	value, suffix := float64(bytes)/unit, "KB"
+	for _, next := range []string{"MB", "GB"} {
+		if value < unit {
+			break
+		}
+		value, suffix = value/unit, next
+	}
+	return fmt.Sprintf("%.1f %s", value, suffix)
 }

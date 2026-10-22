@@ -421,3 +421,39 @@ func TestAWSIsEnvBased(t *testing.T) {
 		t.Error("aws must be env-based")
 	}
 }
+
+func TestDeleteAWSNeverEditsAWSConfig(t *testing.T) {
+	h := newHarness(t, ssoConfig)
+	acct := account("work", "work")
+	result, err := h.provider.Delete(context.Background(), acct, provider.DeleteOptions{Logout: true, RemoveDir: true, GcloudConfig: true})
+	if err != nil || len(result.Removed) != 0 {
+		t.Fatalf("delete %+v err %v", result, err)
+	}
+	if data, _ := os.ReadFile(h.configFile); string(data) != ssoConfig {
+		t.Error("Delete edited the AWS config")
+	}
+	calls := h.calls(t)
+	if len(calls) != 1 || strings.Join(calls[0], " ") != "sso logout --profile work" {
+		t.Errorf("calls %v", calls)
+	}
+
+	h = newHarness(t, ssoConfig)
+	if _, err := h.provider.Delete(context.Background(), acct, provider.DeleteOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(h.calls(t)) != 0 {
+		t.Error("no aws call expected without Logout")
+	}
+}
+
+func TestAWSDeleteItems(t *testing.T) {
+	h := newHarness(t, ssoConfig)
+	acct := account("work", "work")
+	items := h.provider.DeleteItems(acct)
+	if len(items) != 1 || items[0].Key != "logout" || items[0].Default || !strings.Contains(items[0].Label, "aws sso logout --profile work") {
+		t.Fatalf("items %+v", items)
+	}
+	if !strings.Contains(h.provider.Kept(acct), "~/.aws/config") {
+		t.Errorf("kept %q", h.provider.Kept(acct))
+	}
+}
