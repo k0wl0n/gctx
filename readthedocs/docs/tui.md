@@ -12,7 +12,16 @@ gctx tui --debug
 
 Bare `gctx` opens the TUI only when stdin and stdout are terminals, `TERM` is not `dumb`, `CI` is unset, empty, `false` or `0`, and `GCTX_NO_TUI` is unset or empty. Otherwise it prints help. `gctx tui` ignores `CI` and `GCTX_NO_TUI`, but still needs a terminal; otherwise it exits with `gctx tui requires an interactive terminal`.
 
-The screen shows a header (version, active account, gcloud configuration, default ADC state), the account table, a details pane at widths of 120 columns or more, a status line and a key-hint line. It uses the alternate screen, so your scrollback is untouched on exit.
+The screen shows, top to bottom:
+
+- **Header**: one slot per provider that has accounts (`GCP ● cloudsuite  AWS ● prod-aws  AZR ○`, where `○` means no account of that provider is active), config health and the age of the last credential check. A dim second line shows the env the active accounts would export; key references appear as `‹op://…›`, never as values.
+- **Tab row**: `All`, then one tab per provider with accounts. A provider whose CLI is missing shows `n/a`.
+- **List**: on `All`, grouped by category (clouds, AI tools, AI gateways) and provider, each group with a count summary. On a provider tab the KIND column drops and the provider's own columns (for example REGION for AWS) appear. As the terminal narrows, columns drop in this order: EXPIRES/BUDGET, IDENTITY, ADC, provider columns; TARGET then shortens with an ellipsis in the middle. NAME and STATUS always stay.
+- **Detail pane** (150 columns or more, `p` toggles it): the selected account's details, the env activation applies and its actions. Narrower terminals use `d` for the full-screen details.
+- **Status line**: credential check progress per provider and account totals.
+- **Hint line**: the keys that fit the width.
+
+Between 60 and 99 columns the badge moves into the NAME column, the tab row becomes a single chip and the header slots become coloured dots. Colours follow the terminal's colour profile; with `NO_COLOR` badges are shown in brackets (`[GCP]`), and `GCTX_ASCII=1` uses ASCII glyphs. It uses the alternate screen, so your scrollback is untouched on exit.
 
 ## Keybindings
 
@@ -24,6 +33,8 @@ The screen shows a header (version, active account, gcloud configuration, defaul
 | `G` / `end` | last row |
 | `ctrl+f` / `pgdown` | page down |
 | `ctrl+b` / `pgup` | page up |
+| `tab` / `shift+tab` | next / previous provider tab |
+| `1`-`9` | jump to tab (`1` is All) |
 | `enter` | switch to selected account |
 | `/` | filter |
 | `esc` | clear applied filter |
@@ -34,6 +45,10 @@ The screen shows a header (version, active account, gcloud configuration, defaul
 | `c` | create |
 | `ctrl+d` | delete |
 | `a` | save current ADC to selected account |
+| `p` | toggle the detail pane |
+| `z` | fold or unfold the selected provider group (shows only rows needing action) |
+| `!` | only rows needing action |
+| `o` | cycle sort: name, status, expiry |
 | `R` | reload |
 | `?` | help |
 | `q` / `ctrl+c` | quit |
@@ -41,7 +56,7 @@ The screen shows a header (version, active account, gcloud configuration, defaul
 Notes:
 
 - `d` opens details, not delete. Delete is `ctrl+d`, and its dialog starts with focus on Cancel.
-- Filtering is a case-insensitive substring match on name, project, email and gcloud configuration. While the filter input is open, letters are text, not commands.
+- Filtering is a case-insensitive substring match on name, project, email and gcloud configuration, within the current tab. While the filter input is open, letters are text, not commands.
 - `esc` cancels any dialog. `ctrl+c` quits unless a command is running.
 - `:` is reserved and currently shows `Command mode is not available yet`.
 - Only one changing operation (switch, save, delete, create, login) runs at a time.

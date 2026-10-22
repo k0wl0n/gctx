@@ -129,6 +129,7 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `j` / `↓`, `k` / `↑` | next / previous row |
 | `g` / `home`, `G` / `end` | first / last row |
 | `ctrl+f` / `pgdown`, `ctrl+b` / `pgup` | page down / up |
+| `tab` / `shift+tab`, `1`-`9` | next / previous provider tab, jump to a tab |
 | `enter` | switch to the selected account |
 | `/` | filter (`esc` clears) |
 | `d` / `i` | details |
@@ -138,6 +139,10 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `c` | create an account |
 | `ctrl+d` | delete (confirmation defaults to Cancel) |
 | `a` | save the current ADC to the selected account |
+| `p` | toggle the detail pane (150+ columns) |
+| `z` | fold or unfold a provider group |
+| `!` | only rows needing action |
+| `o` | cycle sort: name, status, expiry |
 | `R` | reload |
 | `?` | help |
 | `q` / `ctrl+c` | quit |

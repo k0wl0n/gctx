@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/colorprofile"
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
 const (
@@ -71,9 +72,21 @@ const (
 )
 
 type credState struct {
-	phase credPhase
-	seq   int
-	err   error
+	phase    credPhase
+	seq      int
+	err      error
+	progress map[provider.ID]checkProgress // one entry per provider being checked
+	finished time.Time                     // when the last check completed
+}
+
+// checkProgress is one provider's part of a credential check.
+type checkProgress struct {
+	done    bool
+	total   int // accounts of the provider
+	checked int // accounts with a verdict
+	warning string
+	failed  bool // the check itself returned an error
+	timeout time.Duration
 }
 
 type filterState struct {
@@ -92,11 +105,13 @@ type modal interface {
 type (
 	startCredsMsg   struct{}
 	credsCheckedMsg struct {
-		seq    int
-		report manager.CredentialReport
-		err    error
+		seq      int
+		provider provider.ID // "" for a check of every provider
+		report   manager.CredentialReport
+		err      error
 	}
-	opDoneMsg struct {
+	envLoadedMsg struct{ envs map[string][]string }
+	opDoneMsg    struct {
 		seq     int
 		kind    opKind
 		account string
@@ -125,9 +140,17 @@ type Model struct {
 
 	overview manager.Overview
 	loadErr  error
-	visible  []int  // indices into overview.Accounts after filtering
-	selected string // selected account name
-	offset   int    // first visible row
+	visible  []int               // indices into overview.Accounts after filtering, in display order
+	groups   []listGroup         // visible rows by provider, in display order
+	selected string              // selected account name
+	offset   int                 // first visible row
+	envs     map[string][]string // Env per account, loaded asynchronously
+
+	tab         int             // 0 is All, then one tab per listed provider
+	folded      map[string]bool // provider id -> group folded on the All tab
+	paneOpen    bool            // detail pane, drawn at tierWide only
+	needsAction bool            // only rows that need action
+	sort        sortKey
 
 	screen screenKind
 	modal  modal
@@ -163,18 +186,46 @@ func NewWithGOOS(svc Service, opts Options, goos string) Model {
 		debug:    opts.Debug,
 		debugLog: slog.New(slog.NewTextHandler(io.Discard, nil)), // replaced in run.go
 		goos:     goos,
-		spin:     spinner.New(spinner.WithSpinner(spinner.Dot)),
+		spin: spinner.New(spinner.WithSpinner(spinner.Spinner{
+			Frames: newGlyphs(asciiRequested()).Spinner, FPS: time.Second / 10,
+		})),
 		filter:   filterState{input: newLineInput("/")},
 		profile:  colorprofile.TrueColor,
+		folded:   map[string]bool{},
+		paneOpen: true,
 	}
 	m.reload()
 	return m
 }
 
-// Init starts the credential check after the first frame.
+// Init starts the credential check and loads the env lines after the first frame.
 func (m Model) Init() tea.Cmd {
-	return func() tea.Msg { return startCredsMsg{} }
+	return tea.Batch(func() tea.Msg { return startCredsMsg{} }, m.loadEnvCmd())
 }
+
+// loadEnvCmd reads every account's env lines for the header and the detail
+// pane. Env is local only; an account whose env fails is left out.
+func (m Model) loadEnvCmd() tea.Cmd {
+	svc := m.svc
+	var names []string
+	for _, account := range m.overview.Accounts {
+		names = append(names, account.Name)
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	return func() tea.Msg {
+		envs := map[string][]string{}
+		for _, name := range names {
+			if env, err := svc.Env(name); err == nil {
+				envs[name] = env
+			}
+		}
+		return envLoadedMsg{envs: envs}
+	}
+}
+
+func (m Model) spinnerFrame() string { return m.spin.View() }
 
 func (m Model) tooSmall() bool { return m.width < minWidth || m.height < minHeight }
 
@@ -213,10 +264,13 @@ func (m *Model) reload() {
 	m.loadErr = err
 	if err != nil {
 		m.overview = manager.Overview{}
-		m.visible, m.selected, m.offset = nil, "", 0
+		m.visible, m.groups, m.selected, m.offset = nil, nil, "", 0
 		return
 	}
 	m.overview = overview
+	if m.tab >= m.tabCount() {
+		m.tab = 0
+	}
 	m.rebuildVisible()
 
 	switch {
@@ -234,14 +288,26 @@ func (m *Model) reload() {
 	}
 }
 
-// rebuildVisible applies the filter query to the overview.
+// rebuildVisible applies the tab, filters, sort and folds to the overview.
 func (m *Model) rebuildVisible() {
-	query := strings.ToLower(m.filter.query)
+	m.groups = m.buildGroups()
 	m.visible = nil
-	for i, account := range m.overview.Accounts {
-		if query == "" || matchesQuery(account, query) {
-			m.visible = append(m.visible, i)
-		}
+	for _, g := range m.groups {
+		m.visible = append(m.visible, g.rows...)
+	}
+}
+
+// refilter rebuilds the rows after a view change and keeps the selection
+// when it is still shown, else selects the row nearest its old position.
+func (m *Model) refilter() {
+	previousIndex := m.selectedIndex()
+	m.rebuildVisible()
+	switch {
+	case len(m.visible) == 0:
+		m.selected = ""
+	case m.selected != "" && m.isVisible(m.selected):
+	default:
+		m.selected = m.overview.Accounts[m.visible[min(previousIndex, len(m.visible)-1)]].Name
 	}
 }
 
@@ -268,11 +334,36 @@ func (m Model) visibleIndex(name string) int {
 
 func (m Model) selectedIndex() int { return max(m.visibleIndex(m.selected), 0) }
 
-// startCredsCheck begins the asynchronous credential check.
+// startCredsCheck begins the asynchronous credential check: one command
+// per provider with accounts, each reporting as it finishes.
 func (m *Model) startCredsCheck() tea.Cmd {
 	m.seq++
-	m.creds = credState{phase: credChecking, seq: m.seq}
-	return checkCredsCmd(m.svc, m.seq)
+	m.creds = credState{phase: credChecking, seq: m.seq, progress: map[provider.ID]checkProgress{}, finished: m.creds.finished}
+	var cmds []tea.Cmd
+	for _, info := range m.listedProviders() {
+		m.creds.progress[info.ID] = checkProgress{total: info.Count, timeout: info.CheckTimeout}
+		cmds = append(cmds, checkProviderCmd(m.svc, m.seq, info.ID))
+	}
+	if len(cmds) == 0 {
+		if len(m.overview.Accounts) == 0 {
+			m.creds.phase = credDone
+			return nil
+		}
+		// No provider metadata: check everything at once.
+		cmds = append(cmds, checkCredsCmd(m.svc, m.seq))
+	}
+	if !m.busy() {
+		spin := m.spin
+		cmds = append(cmds, func() tea.Msg { return spin.Tick() })
+	}
+	return tea.Batch(cmds...)
+}
+
+func checkProviderCmd(svc Service, seq int, id provider.ID) tea.Cmd {
+	return func() tea.Msg {
+		report, err := svc.CheckProviderCredentials(context.Background(), id)
+		return credsCheckedMsg{seq: seq, provider: id, report: report, err: err}
+	}
 }
 
 func checkCredsCmd(svc Service, seq int) tea.Cmd {
@@ -300,14 +391,14 @@ func (m Model) dispatch(msg tea.Msg) (Model, tea.Cmd) {
 		return m, m.startCredsCheck()
 	case tea.FocusMsg:
 		m.reload()
-		return m, nil
+		return m, m.loadEnvCmd()
 	case statusExpiredMsg:
 		if m.status.id == msg.id && m.status.level == levelInfo {
 			m.clearStatus()
 		}
 		return m, nil
 	case spinner.TickMsg:
-		if !m.busy() {
+		if !m.busy() && m.creds.phase != credChecking {
 			return m, nil
 		}
 		var cmd tea.Cmd
@@ -315,8 +406,12 @@ func (m Model) dispatch(msg tea.Msg) (Model, tea.Cmd) {
 		return m, cmd
 	case credsCheckedMsg:
 		return m.handleCreds(msg)
+	case envLoadedMsg:
+		m.envs = msg.envs
+		return m, nil
 	case opDoneMsg:
-		return m.handleOpDone(msg)
+		next, cmd := m.handleOpDone(msg) // create and delete change the accounts
+		return next, tea.Batch(cmd, next.loadEnvCmd())
 	case execDoneMsg:
 		return m.handleExecDone(msg)
 	}

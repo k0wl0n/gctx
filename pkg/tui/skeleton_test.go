@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -34,8 +35,10 @@ func TestInitStartsCredentialCheckAfterFirstFrame(t *testing.T) {
 		t.Fatalf("calls before first frame: %v", got)
 	}
 	m = drain(t, m, m.Init())
-	if got := strings.Join(svc.Calls(), ","); got != "Overview,CheckCredentials" {
-		t.Errorf("calls %s", got)
+	// One credential check per provider with accounts, issued only by Init.
+	calls := svc.Calls()
+	if len(calls) < 2 || calls[0] != "Overview" || !slices.Contains(calls, "CheckProviderCredentials gcp") {
+		t.Errorf("calls %s", strings.Join(calls, ","))
 	}
 }
 

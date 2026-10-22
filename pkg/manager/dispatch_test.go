@@ -218,7 +218,10 @@ func TestMissingCLIAffectsOnlyThatProvider(t *testing.T) {
 		{ID: provider.GCP, Label: "GCP", CLI: gcpFake.cli, Count: 1},
 		{ID: provider.AWS, Label: "AWS", CLI: awsFake.cli, Count: 2},
 	}
-	if !slices.Equal(overview.Providers, want) {
+	sameSummary := func(a, b manager.ProviderInfo) bool {
+		return a.ID == b.ID && a.Label == b.Label && a.CLI == b.CLI && a.Count == b.Count
+	}
+	if !slices.EqualFunc(overview.Providers, want, sameSummary) {
 		t.Errorf("providers %+v, want %+v", overview.Providers, want)
 	}
 }

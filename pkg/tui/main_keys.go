@@ -1,6 +1,9 @@
 package tui
 
 import (
+	"maps"
+	"strconv"
+
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -67,10 +70,35 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		m.filter.input.Reset()
 		m.rebuildVisible()
 		return m, nil
+	case matches(msg, keys.NextTab.Keys()):
+		return m.selectTab((m.tab + 1) % m.tabCount()), nil
+	case matches(msg, keys.PrevTab.Keys()):
+		return m.selectTab((m.tab + m.tabCount() - 1) % m.tabCount()), nil
+	case matches(msg, keys.JumpTab.Keys()):
+		if n, err := strconv.Atoi(k); err == nil && n <= m.tabCount() {
+			return m.selectTab(n - 1), nil
+		}
+		return m, nil
+	case matches(msg, keys.TogglePane.Keys()):
+		m.paneOpen = !m.paneOpen
+		if tierFor(m.width) != tierWide {
+			return m, m.setStatus("The detail pane needs 150 columns; d opens details", levelInfo)
+		}
+		return m, nil
+	case matches(msg, keys.Fold.Keys()):
+		return m.toggleFold()
+	case matches(msg, keys.NeedsAction.Keys()):
+		m.needsAction = !m.needsAction
+		m.refilter()
+		return m, nil
+	case matches(msg, keys.Sort.Keys()):
+		m.sort = (m.sort + 1) % (sortExpiry + 1)
+		m.rebuildVisible() // the tab row shows the sort
+		return m, nil
 	case matches(msg, keys.Reload.Keys()):
 		m.reload()
 		cmd := m.startCredsCheck()
-		return m, cmd
+		return m, tea.Batch(cmd, m.loadEnvCmd())
 	case matches(msg, keys.Command.Keys()):
 		return m, m.setStatus("Command mode is not available yet", levelInfo)
 	}
@@ -175,20 +203,88 @@ func (m Model) updateOverlay(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleCreds merges a credential check result into the model.
+func (m Model) selectTab(tab int) Model {
+	m.tab = tab
+	m.refilter()
+	return m
+}
+
+// toggleFold folds or unfolds the selected row's provider group on the All tab.
+func (m Model) toggleFold() (Model, tea.Cmd) {
+	if _, onTab := m.tabProvider(); onTab {
+		return m, m.setStatus("Folding works on the All tab", levelInfo)
+	}
+	acct, ok := m.selectedAccount()
+	if !ok {
+		return m, nil
+	}
+	id := string(acct.Provider)
+	m.folded = cloneOrNew(m.folded)
+	m.folded[id] = !m.folded[id]
+	if !m.folded[id] {
+		delete(m.folded, id)
+	}
+	m.refilter()
+	// Stay in the folded group when it still shows rows.
+	if !m.isVisible(acct.Name) {
+		for _, g := range m.groups {
+			if string(g.info.ID) == id && len(g.rows) > 0 {
+				m.selected = m.overview.Accounts[g.rows[0]].Name
+			}
+		}
+	}
+	return m, nil
+}
+
+// handleCreds merges one provider's (or a whole) credential check result.
+// The check is done when every provider has reported.
 func (m Model) handleCreds(msg credsCheckedMsg) (Model, tea.Cmd) {
 	if msg.seq != m.creds.seq {
 		return m, nil // stale
 	}
-	if msg.err != nil {
-		m.creds.phase = credFailed
-		m.creds.err = msg.err
-		return m, nil
+	if msg.provider == "" {
+		m.creds.progress = nil
+		if msg.err != nil {
+			m.creds.phase = credFailed
+			m.creds.err = msg.err
+			return m, nil
+		}
+	} else {
+		// Models are values: copy the map so earlier models stay unchanged.
+		m.creds.progress = cloneOrNew(m.creds.progress)
+		m.creds.progress[msg.provider] = finishedProgress(m.creds.progress[msg.provider], msg)
+	}
+	for _, p := range m.creds.progress {
+		if !p.done {
+			m.reload()
+			return m, nil
+		}
 	}
 	m.creds.phase = credDone
-	// rebuild visible to reflect any auth-required updates
-	m.rebuildVisible()
+	m.creds.finished = m.now()
+	m.reload()
 	return m, nil
+}
+
+func cloneOrNew[K comparable, V any](in map[K]V) map[K]V {
+	if out := maps.Clone(in); out != nil {
+		return out
+	}
+	return map[K]V{}
+}
+
+func finishedProgress(p checkProgress, msg credsCheckedMsg) checkProgress {
+	p.done = true
+	switch {
+	case msg.err != nil:
+		p.failed, p.warning = true, msg.err.Error()
+	case len(msg.report.Warnings) > 0:
+		p.warning = msg.report.Warnings[0].Summary()
+		p.checked = len(msg.report.Accounts)
+	default:
+		p.checked = p.total
+	}
+	return p
 }
 
 // moveSelection moves by delta rows, clamping at the ends (no wrap).

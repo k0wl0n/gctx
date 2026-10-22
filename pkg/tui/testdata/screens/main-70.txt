@@ -1,0 +1,24 @@
+gctx ● ● ○ ● ● ●  5 active                                tab  All 19
+──────────────────────────────────────────────────────────────────────
+  NAME                   TARGET                  ADC  STATUS
+   GCP  byoip-lab        byoip-lab-eu-west       ✓    ✗ EXPIRED
+ ● GCP  cloudsuite       sap-gap-cloud-asap-s    ✓    ● READY
+   GCP  demo-ai          ai-builder-cup-demo     ✓    ● READY
+   GCP  gap-dev          gap-platform-dev        ✓    ● READY
+   GCP  hcp-agents       hcp-tf-agents-poc       ✓    ● READY
+   GCP  infra-hub-prd    emarsys-infra-hub-prd   ✓    ● READY
+   GCP  infra-hub-stg    emarsys-infra-hub-stg   ✓    ● READY
+   GCP  rca-poc          k8s-ai-rca-poc          ✓    ● READY
+   GCP  sbx-aliz         sandbox-dev-anggana     ✗    ⚠ AUTH REQUIRED
+   AWS  legacy-aws       legacy                  –    ⚠ AUTH REQUIRED
+▌● AWS  prod-aws         prod-sso                –    ● READY
+   AZR  corp-azure       8c1f0a3e-0…000000e2a9   –    ⠋ checking…
+  [CLD] claude-personal  personal                –    ⚠ AUTH REQUIRED
+  [CLD] claude-vertex    via cloudsuite          –    ● READY
+ ●[CLD] claude-work      org Aliz Tech           –    ● READY
+ ●[OAI] codex-work       workspace Aliz          –    ● READY
+ ●[SMP] sumopod-dev      ai.sumopod.com          –    ● READY
+  [SMP] sumopod-prod     ai.sumopod.com          –    ⚠ BUDGET LOW
+──────────────────────────────────────────────────────────────────────
+✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)  19 accounts · 5 need action
+↵ activate  / filter  d details  tab provider  ? help

@@ -193,3 +193,28 @@ func TestReloadKeyStartsCredsCheck(t *testing.T) {
 	}
 	_ = callsBefore
 }
+
+// TestNewMainScreenBindings pins the v2 main-screen keys and that the
+// existing keys keep theirs.
+func TestNewMainScreenBindings(t *testing.T) {
+	cases := []struct {
+		name string
+		keys []string
+		want []string
+	}{
+		{"NextTab", keys.NextTab.Keys(), []string{"tab"}},
+		{"PrevTab", keys.PrevTab.Keys(), []string{"shift+tab"}},
+		{"JumpTab", keys.JumpTab.Keys(), []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}},
+		{"TogglePane", keys.TogglePane.Keys(), []string{"p"}},
+		{"Fold", keys.Fold.Keys(), []string{"z"}},
+		{"NeedsAction", keys.NeedsAction.Keys(), []string{"!"}},
+		{"Sort", keys.Sort.Keys(), []string{"o"}},
+		{"Delete", keys.Delete.Keys(), []string{"ctrl+d"}},
+		{"First", keys.First.Keys(), []string{"g", "home"}},
+	}
+	for _, c := range cases {
+		if strings.Join(c.keys, ",") != strings.Join(c.want, ",") {
+			t.Errorf("%s: keys %v, want %v", c.name, c.keys, c.want)
+		}
+	}
+}

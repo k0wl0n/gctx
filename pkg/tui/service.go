@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
 // Service is everything the TUI needs from the domain layer. *manager.Manager
@@ -13,6 +14,9 @@ import (
 type Service interface {
 	Overview() (manager.Overview, error)
 	CheckCredentials(ctx context.Context) (manager.CredentialReport, error)
+	CheckProviderCredentials(ctx context.Context, id provider.ID) (manager.CredentialReport, error)
+	Providers() []manager.ProviderInfo
+	Env(name string) ([]string, error) // env lines; key references, never key values
 	Info(name string) (manager.AccountStatus, error)
 	Switch(ctx context.Context, name string) (manager.SwitchResult, error)
 	Create(ctx context.Context, name, projectID string) (manager.CreateResult, error)

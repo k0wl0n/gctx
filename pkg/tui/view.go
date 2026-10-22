@@ -6,6 +6,10 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/charmbracelet/x/ansi"
+	"github.com/k0wl0n/gctx/pkg/config"
+	"github.com/k0wl0n/gctx/pkg/provider"
+
 	"github.com/k0wl0n/gctx/pkg/manager"
 )
 
@@ -39,180 +43,170 @@ func hRule(g glyphs, st styles, w int) string {
 }
 
 // viewMain draws the main screen, including the too-small replacement.
+// Regions, top to bottom: header, tab row, list (plus the detail pane when
+// wide), status line, hint line.
 func (m Model) viewMain() string {
-	g := newGlyphs(asciiRequested())
-	st := newStyles()
-
 	if m.tooSmall() {
 		return fmt.Sprintf("Terminal too small: need at least %d×%d, current %d×%d",
 			minWidth, minHeight, m.width, m.height)
 	}
+	g := newGlyphs(asciiRequested())
+	st := newStylesFor(m.profile)
+	t := tierFor(m.width)
 
-	st = newStylesFor(m.profile)
-	cols := m.tableColumns(m.width - markerWidth)
-	var out strings.Builder
-
-	// Header line
-	out.WriteString(renderHeader(m, g, st))
-	out.WriteByte('\n')
-	out.WriteString(hRule(g, st, m.width))
-	out.WriteByte('\n')
-
-	// Table title line (filter or account count)
-	out.WriteString(renderTableTitle(m, g, st))
-	out.WriteByte('\n')
-
-	// Column headers
-	out.WriteString(renderColumnHeaders(cols, g, st))
-	out.WriteByte('\n')
-
-	// Body rows — subtract 2 extra for the two separator lines
-	bodyLines := m.height - 7 // header, sep, title, colheaders, sep, status, hints
-	if bodyLines < 1 {
-		bodyLines = 1
+	top := m.headerLines(t, g, st)
+	if t != tierNarrow {
+		top = append(top, m.tabRow(g, st))
 	}
+	top = append(top, hRule(g, st, m.width))
+	bodyHeight := max(m.height-len(top)-4, 1) // column headers, rule, status, hints
 
-	if m.loadErr != nil {
-		msg := fmt.Sprintf("Error loading accounts: %s", m.loadErr)
-		out.WriteString(st.Error.Render(truncate(msg, m.width)))
-		out.WriteByte('\n')
-	} else if len(m.visible) == 0 {
-		if m.filter.query != "" {
-			out.WriteString(st.Dim.Render(fmt.Sprintf("No accounts match %q", m.filter.query)))
-		} else {
-			out.WriteString(st.Dim.Render("No accounts configured. Press c to create one."))
-		}
-		out.WriteByte('\n')
-	} else {
-		selIdx := m.selectedIndex()
-		// scroll so selection is visible
-		offset := m.offset
-		if selIdx < offset {
-			offset = selIdx
-		}
-		if selIdx >= offset+bodyLines {
-			offset = selIdx - bodyLines + 1
-		}
+	listWidth := m.width
+	showPane := t == tierWide && m.paneOpen
+	if showPane {
+		listWidth = m.width - paneWidth(m.width) - 3
+	}
+	cols := m.tableColumns(listWidth - markerWidth)
+	list := append([]string{renderColumnHeaders(cols, g, st)}, m.listLines(cols, listWidth, bodyHeight, g, st)...)
 
-		rendered := 0
-		for row := offset; row < len(m.visible) && rendered < bodyLines; row++ {
-			acct := m.overview.Accounts[m.visible[row]]
-			line := m.renderRow(acct, cols, g, st, acct.Name == m.selected)
-			out.WriteString(line)
-			out.WriteByte('\n')
-			rendered++
-		}
-		// fill remaining body with blank lines
-		for rendered < bodyLines {
-			out.WriteByte('\n')
-			rendered++
+	if showPane {
+		pane := m.paneLines(m.width-listWidth-3, g, st)
+		sep := st.Sep.Render(g.VSep)
+		for i := range list {
+			right := ""
+			if i < len(pane) {
+				right = pane[i]
+			}
+			list[i] = padCells(list[i], listWidth) + " " + sep + " " + right
 		}
 	}
 
-	// Separator before status
-	out.WriteString(hRule(g, st, m.width))
-	out.WriteByte('\n')
-
-	// Status line
-	out.WriteString(renderStatus(m, st, g))
-	out.WriteByte('\n')
-
-	// Key-hint line
-	out.WriteString(renderHints(m, m.width, st))
-
-	return out.String()
+	out := append(top, list...)
+	out = append(out,
+		hRule(g, st, m.width),
+		m.renderStatus(m.width, g, st),
+		renderHints(m, m.width, st),
+	)
+	return strings.Join(out, "\n")
 }
 
-func renderHeader(m Model, g glyphs, st styles) string {
+// listLines is the list body, exactly height lines, scrolled so the
+// selected row is visible. On All it is grouped by category and provider.
+func (m Model) listLines(cols []colSpec, width, height int, g glyphs, st styles) []string {
+	var body []string
+	selectedLine := 0
+	switch {
+	case m.loadErr != nil:
+		body = append(body, st.Error.Render(truncateCells("Error loading accounts: "+m.loadErr.Error(), width, g.Ellipsis)))
+	case len(m.groups) == 0:
+		text := "No accounts configured. Press c to create one."
+		switch {
+		case m.filter.query != "":
+			text = fmt.Sprintf("No accounts match %q", m.filter.query)
+		case m.needsAction:
+			text = "Nothing needs action"
+		}
+		body = append(body, st.Dim.Render(truncateCells(text, width, g.Ellipsis)))
+	default:
+		_, onTab := m.tabProvider()
+		headings := !onTab && tierFor(m.width) != tierNarrow
+		var category provider.Category
+		for i, group := range m.groups {
+			if headings && (i == 0 || group.info.Category != category) {
+				if i > 0 {
+					body = append(body, "")
+				}
+				body = append(body, m.categoryHeading(group.info.Category, width, g, st))
+			}
+			category = group.info.Category
+			if headings {
+				body = append(body, m.groupHeading(group.info, width, g, st))
+			}
+			for _, idx := range group.rows {
+				acct := m.overview.Accounts[idx]
+				if acct.Name == m.selected {
+					selectedLine = len(body)
+				}
+				body = append(body, m.renderRow(acct, cols, g, st, acct.Name == m.selected, width))
+			}
+			if group.hidden > 0 {
+				body = append(body, st.Dim.Render(fmt.Sprintf("  %s %d more ready %s %s expand", g.Ellipsis, group.hidden, g.Dot, keys.Fold.Keys()[0])))
+			}
+		}
+	}
+	offset := 0
+	if selectedLine >= height {
+		offset = selectedLine - height + 1
+	}
+	body = body[min(offset, len(body)):]
+	if len(body) > height {
+		body = body[:height]
+	}
+	for len(body) < height {
+		body = append(body, "")
+	}
+	return body
+}
+
+func (m Model) categoryHeading(c provider.Category, width int, g glyphs, st styles) string {
+	total := 0
+	for _, info := range m.listedProviders() {
+		if info.Category == c {
+			total += info.Count
+		}
+	}
+	return ruledLine(st.Bold.Render(categoryHeading(c)), fmt.Sprint(total), width, g, st)
+}
+
+// groupHeading is a provider's heading: label, target label and summary.
+func (m Model) groupHeading(info manager.ProviderInfo, width int, g glyphs, st styles) string {
+	left := tint(info.Badge.Color, st.prof, strings.ToUpper(info.Label)) + st.Dim.Render(" "+g.Dot+" "+strings.ToLower(info.TargetLabel))
+	return ruledLine(left, m.groupSummary(info, g), width, g, st)
+}
+
+// groupSummary counts a provider's accounts by state: "9 · 7 ready, 1 expired, 1 login".
+func (m Model) groupSummary(info manager.ProviderInfo, g glyphs) string {
+	labels := []string{"ready", "expired", "login", "unverified", "low budget", "n/a", "issue"}
+	counts := map[string]int{}
+	total := 0
+	for _, a := range m.overview.Accounts {
+		if a.Provider != info.ID {
+			continue
+		}
+		total++
+		switch a.Status {
+		case manager.HealthReady:
+			counts["ready"]++
+		case manager.HealthExpired:
+			counts["expired"]++
+		case manager.HealthAuthRequired, manager.HealthADCMissing:
+			counts["login"]++
+		case manager.HealthUnverified:
+			counts["unverified"]++
+		case manager.HealthBudgetLow:
+			counts["low budget"]++
+		case manager.HealthCLIMissing:
+			counts["n/a"]++
+		default:
+			counts["issue"]++
+		}
+	}
 	var parts []string
-	parts = append(parts, st.Title.Render("gctx"))
-	if m.version != "" {
-		parts = append(parts, st.Dim.Render("v"+m.version))
-	}
-
-	// Spacer
-	parts = append(parts, " ")
-
-	if m.overview.ShellAccount != "" {
-		parts = append(parts, st.Warn.Render("shell: "+m.overview.ShellAccount))
-	}
-
-	if active, ok := m.overview.Active(); ok {
-		proj := active.ProjectID
-		if proj == "" {
-			proj = "-"
+	for _, label := range labels {
+		if n := counts[label]; n > 0 {
+			parts = append(parts, fmt.Sprintf("%d %s", n, label))
 		}
-		parts = append(parts, st.OK.Render(g.Active)+" "+active.Name+" ("+proj+")")
-	} else {
-		parts = append(parts, st.Dim.Render("no active account"))
 	}
-
-	gcfg := m.overview.GcloudActiveConfig
-	if gcfg == "" {
-		gcfg = "default"
-	}
-	active, hasActive := m.overview.Active()
-	drifted := hasActive && active.ConfigName != gcfg
-	gcfgText := st.Dim.Render("cfg:") + " " + gcfg
-	if drifted {
-		gcfgText += " " + st.Warn.Render(g.Warn+" drift")
-	}
-	parts = append(parts, gcfgText)
-
-	adcText := renderADCIndicator(m.overview.DefaultADC, g, st)
-	parts = append(parts, adcText)
-
-	return strings.Join(parts, "  ")
+	return fmt.Sprintf("%d %s %s", total, g.Dot, strings.Join(parts, ", "))
 }
 
-func renderADCIndicator(ind manager.ADCIndicator, g glyphs, st styles) string {
-	switch ind {
-	case manager.ADCActive:
-		return st.Dim.Render("adc:") + " " + st.OK.Render(g.Yes)
-	case manager.ADCDiffers:
-		return st.Dim.Render("adc:") + " " + st.Warn.Render(g.Warn+" differs")
-	case manager.ADCNone:
-		return st.Dim.Render("adc:") + " " + st.Error.Render(g.No+" none")
-	default:
-		return st.Dim.Render("adc: ?")
+// ruledLine is "left ──── right" across width.
+func ruledLine(left, right string, width int, g glyphs, st styles) string {
+	fill := width - ansi.StringWidth(left) - ansi.StringWidth(right) - 2
+	if fill < 1 {
+		return truncateCells(left+" "+right, width, g.Ellipsis)
 	}
-}
-
-func renderTableTitle(m Model, g glyphs, st styles) string {
-	total := len(m.overview.Accounts)
-	if m.filter.query != "" {
-		matches := len(m.visible)
-		return fmt.Sprintf("filter: %s (%d/%d)", m.filter.query, matches, total)
-	}
-	return st.Header.Render("Accounts") + fmt.Sprintf(" (%d)", total)
-}
-
-func renderStatus(m Model, st styles, g glyphs) string {
-	// filter input takes priority
-	if m.filter.editing {
-		return m.filter.input.View(true)
-	}
-	if m.busy() {
-		return st.Warn.Render(g.Ellipsis + " " + m.spin.View() + " " + m.op.desc)
-	}
-	if m.status.text == "" {
-		return ""
-	}
-	switch m.status.level {
-	case levelError:
-		return st.Error.Render(m.status.text)
-	case levelWarning:
-		return st.Warn.Render(m.status.text)
-	default:
-		return m.status.text
-	}
-}
-
-func renderHints(m Model, width int, st styles) string {
-	if tierFor(width) == tierNarrow {
-		return st.Dim.Render("↵ switch  ? help  q quit")
-	}
-	return st.Dim.Render("j/k move  ↵ switch  / filter  d details  l login  c create  s shell  r run  ? help  q quit")
+	return left + " " + st.Sep.Render(strings.Repeat(g.HRule, fill)) + " " + st.Dim.Render(right)
 }
 
 // viewOverlay draws the help or details screen.
@@ -228,7 +222,7 @@ func (m Model) viewOverlay() string {
 
 func renderHelp(m Model) string {
 	var b strings.Builder
-	b.WriteString("  gctx keybindings\n\n")
+	b.WriteString("  " + config.AppName + " keybindings\n\n")
 	for _, group := range keys.groups() {
 		b.WriteString("  " + group.Title + "\n")
 		for _, binding := range group.Bindings {
@@ -280,6 +274,18 @@ func renderDetails(m Model) string {
 			b.WriteString(fmt.Sprintf("    %s — %s\n", f.Health, remedy))
 		}
 	}
+	if len(acct.Details) > 0 {
+		b.WriteString("\n  Provider details:\n")
+		for _, field := range acct.Details {
+			b.WriteString(fmt.Sprintf("    %-16s %s\n", field.Label+":", strOrDash(field.Value)))
+		}
+	}
+	if env := m.envs[acct.Name]; len(env) > 0 {
+		b.WriteString("\n  Env applied on activate:\n")
+		for _, kv := range env {
+			b.WriteString("    " + displayEnv(kv) + "\n")
+		}
+	}
 	b.WriteString("\n  esc/d/i/q  close\n")
 	return b.String()
 }
@@ -306,28 +312,3 @@ func strOrDash(s string) string {
 	}
 	return s
 }
-
-// detailsPane renders the right-side details pane for widths ≥ 120.
-func (m Model) detailsPane(width int) string {
-	acct, ok := m.selectedAccount()
-	if !ok {
-		return ""
-	}
-	g := newGlyphs(asciiRequested())
-	var b strings.Builder
-	b.WriteString(fmt.Sprintf("Name: %s\n", acct.Name))
-	b.WriteString(fmt.Sprintf("Project: %s\n", strOrDash(acct.ProjectID)))
-	b.WriteString(fmt.Sprintf("Email: %s\n", strOrDash(acct.Email)))
-	b.WriteString(fmt.Sprintf("Config: %s\n", acct.ConfigName))
-	if acct.ADCExists {
-		b.WriteString(g.Yes + " ADC\n")
-	} else {
-		b.WriteString(g.No + " ADC\n")
-	}
-	b.WriteString(fmt.Sprintf("Status: %s\n", acct.Status))
-	_ = width
-	return b.String()
-}
-
-// runeLen is imported above; this silences unused import if needed.
-var _ = runeLen

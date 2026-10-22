@@ -72,11 +72,40 @@ func (m *Manager) Overview() (Overview, error) {
 		counts[status.Provider]++
 		overview.Accounts = append(overview.Accounts, status)
 	}
-	for _, p := range m.providers.All() {
-		overview.Providers = append(overview.Providers, ProviderInfo{ID: p.ID(), Label: p.Label(), CLI: clis[p.ID()], Count: counts[p.ID()]})
-	}
+	overview.Providers = m.providerInfos(clis, counts)
 	m.fillGlobalState(&overview)
 	return overview, nil
+}
+
+// Providers describes every registered provider, in registry order, with
+// the number of configured accounts. It reads files and PATH only.
+func (m *Manager) Providers() []ProviderInfo {
+	counts := map[provider.ID]int{}
+	m.mu.Lock()
+	cfg, err := m.loadConfig()
+	m.mu.Unlock()
+	if err == nil {
+		for _, account := range cfg.ListAccounts() {
+			counts[provider.ID(account.ProviderID())]++
+		}
+	}
+	clis := map[provider.ID]provider.CLIStatus{}
+	for _, p := range m.providers.All() {
+		clis[p.ID()] = p.CLI()
+	}
+	return m.providerInfos(clis, counts)
+}
+
+func (m *Manager) providerInfos(clis map[provider.ID]provider.CLIStatus, counts map[provider.ID]int) []ProviderInfo {
+	var infos []ProviderInfo
+	for _, p := range m.providers.All() {
+		infos = append(infos, ProviderInfo{
+			ID: p.ID(), Label: p.Label(), Category: p.Category(), Badge: p.Badge(), Slot: p.Slot(),
+			TargetLabel: p.TargetLabel(), Columns: p.Columns(), CLI: clis[p.ID()],
+			CheckTimeout: m.opts.CredentialTimeout, Count: counts[p.ID()],
+		})
+	}
+	return infos
 }
 
 // Info returns the status of one account.
@@ -105,6 +134,7 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, cli
 		Email:      account.Email,
 		CreatedAt:  account.CreatedAt,
 		ADCPath:    account.ADCPath,
+		Settings:   maps.Clone(account.Settings),
 	}
 	p, err := m.providerFor(*account)
 	if err != nil {
@@ -116,6 +146,7 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, cli
 	status.Active = cfg.ActiveBySlot[p.Slot()] == account.Name
 	status.TargetLabel = p.TargetLabel()
 	status.Category = p.Category()
+	status.Details = p.Details(*account)
 
 	if inspector, ok := p.(provider.StatusInspector); ok {
 		inspected := inspector.Inspect(*account)
@@ -335,7 +366,37 @@ func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error
 		}()
 	}
 	wg.Wait()
+	return m.applyChecks(cfg, results), nil
+}
 
+// CheckProviderCredentials is one provider's part of CheckCredentials, under
+// that provider's timeout, so callers can report progress per provider.
+func (m *Manager) CheckProviderCredentials(ctx context.Context, id provider.ID) (CredentialReport, error) {
+	p, ok := m.providers.Get(id)
+	if !ok {
+		return CredentialReport{}, fmt.Errorf("unknown provider %q", id)
+	}
+	m.mu.Lock()
+	cfg, err := m.loadConfig()
+	m.mu.Unlock()
+	if err != nil {
+		return CredentialReport{}, err
+	}
+	var accounts []config.Account
+	for _, account := range cfg.ListAccounts() {
+		if provider.ID(account.ProviderID()) == id {
+			accounts = append(accounts, *account)
+		}
+	}
+	if len(accounts) == 0 {
+		return CredentialReport{}, nil
+	}
+	return m.applyChecks(cfg, []providerCheck{m.checkProvider(ctx, p, accounts)}), nil
+}
+
+// applyChecks records finished provider checks in the session state and the
+// status cache.
+func (m *Manager) applyChecks(cfg *config.Config, results []providerCheck) CredentialReport {
 	now := m.opts.Now()
 	var report CredentialReport
 	m.stateMu.Lock()
@@ -369,7 +430,7 @@ func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error
 	}
 	m.stateMu.Unlock()
 	m.recordStatusCache(cfg, now)
-	return report, nil
+	return report
 }
 
 // recordStatusCache merges this session's per-account results into the

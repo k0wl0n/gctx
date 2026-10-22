@@ -115,7 +115,9 @@ type AccountStatus struct {
 	ProjectID   string
 	Email       string
 	CreatedAt   time.Time
-	Active      bool // the gctx active account
+	Active      bool              // the active account of its provider's slot
+	Settings    map[string]string // provider settings from config.json; never secrets
+	Details     []provider.Field  // provider's Details() rows
 
 	ADCPath       string // path recorded in config.json
 	StoredADCPath string // file actually holding the stored ADC; "" when none
@@ -182,10 +184,16 @@ type Overview struct {
 
 // ProviderInfo summarises one registered provider for the overview.
 type ProviderInfo struct {
-	ID    provider.ID
-	Label string
-	CLI   provider.CLIStatus
-	Count int // accounts using this provider
+	ID           provider.ID
+	Label        string
+	Category     provider.Category
+	Badge        provider.Badge
+	Slot         string
+	TargetLabel  string
+	Columns      []provider.Column
+	CLI          provider.CLIStatus
+	CheckTimeout time.Duration // bound on one credential check
+	Count        int           // accounts using this provider
 }
 
 // Active returns the status of the gcp slot's active account, if any.

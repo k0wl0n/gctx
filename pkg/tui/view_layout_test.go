@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/k0wl0n/gctx/pkg/manager"
 )
 
@@ -106,13 +107,13 @@ func TestActiveHighlightAndOrder(t *testing.T) {
 	}
 }
 
-// TestNoActiveAccount verifies the header shows "Active: none".
+// TestNoActiveAccount verifies the header shows the slot with no active account.
 func TestNoActiveAccount(t *testing.T) {
 	svc := newFakeService(sampleOverview("", "alpha", "beta"))
 	m := newTestModel(t, svc, 100, 24)
 	out := screen(m)
-	if !strings.Contains(out, "no active account") {
-		t.Errorf("want 'no active account', got: %q", out)
+	if header := strings.Split(out, "\n")[0]; !strings.Contains(header, "GCP ○") || strings.Contains(header, "GCP ●") {
+		t.Errorf("want 'GCP ○' (no active account) in header, got: %q", header)
 	}
 	// selection should be on first row
 	if m.selected != "alpha" {
@@ -375,15 +376,17 @@ func TestRandomResizeNoPanic(t *testing.T) {
 
 // TestHintLineNarrow verifies shortened hints at narrow width.
 func TestHintLineNarrow(t *testing.T) {
-	hints := renderHints(Model{}, 70, newStyles())
-	if strings.Contains(hints, "filter") {
-		t.Errorf("narrow hints should not mention filter: %q", hints)
+	m := newTestModel(t, newFakeService(sampleOverview("work", "work")), 70, 24)
+	hints := renderHints(m, 70, newStyles())
+	if n := len(strings.Split(strings.TrimSpace(ansi.Strip(hints)), "  ")); n > 5 || strings.Contains(hints, "login") {
+		t.Errorf("narrow hints should be at most 5, without login: %q", hints)
 	}
 }
 
 // TestHintLineWide verifies full hints at wide width.
 func TestHintLineWide(t *testing.T) {
-	hints := renderHints(Model{}, 100, newStyles())
+	m := newTestModel(t, newFakeService(sampleOverview("work", "work")), 100, 24)
+	hints := renderHints(m, 100, newStyles())
 	if !strings.Contains(hints, "filter") {
 		t.Errorf("wide hints should mention filter: %q", hints)
 	}

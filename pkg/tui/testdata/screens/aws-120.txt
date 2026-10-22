@@ -1,0 +1,24 @@
+gctx │ GCP cloudsuite  AWS prod-aws  AZR ○ │ ai CLD claude-work  OAI codex-work  SMP sumopod-dev              ✓ cfg  14s
+env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-work CODEX_H…
+ All 19  GCP 9  AWS 2  Azure 1 │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                    sort name  / filter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  NAME        PROFILE   IDENTITY                    REGION     STATUS           EXPIRES
+  legacy-aws  legacy    –                           us-east-1  ⚠ AUTH REQUIRED  –
+▌●prod-aws    prod-sso  arn:aws:sts:…tformDev/dev   eu-west-1  ● READY          3h 12m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)                          19 accounts · 1 expired · 3 need login · 1 low budget
+tab provider  j/k move  ↵ activate  / filter  d details  l login  c create  s shell  ! needs action  o sort  R recheck

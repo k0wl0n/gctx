@@ -81,7 +81,7 @@ flowchart TB
   model -->|tea.Exec| child[(login / gcloud run / shell<br/>owns the terminal)]
 ```
 
-`pkg/tui` and `cmd` depend on `pkg/manager` and `pkg/present`. `pkg/manager` owns `config.json` and session state and dispatches each account operation to the provider named by the account (`pkg/provider` registry; accounts without a provider are GCP). The GCP provider (`pkg/provider/gcp`) wraps `adc`, `gcloud` and `gcloudconfig`; GCP-only details (stored ADC, gcloud configuration, `save`, default-ADC comparison) reach the manager through optional interfaces in `pkg/provider`. Credential checks run per provider in parallel, each under its own timeout. `pkg/manager` never depends on the TUI, presenters, Cobra or Bubble Tea. See the [TUI guide](tui.md) for behavior.
+`pkg/tui` and `cmd` depend on `pkg/manager` and `pkg/present`. `pkg/manager` owns `config.json` and session state and dispatches each account operation to the provider named by the account (`pkg/provider` registry; accounts without a provider are GCP). The GCP provider (`pkg/provider/gcp`) wraps `adc`, `gcloud` and `gcloudconfig`; GCP-only details (stored ADC, gcloud configuration, `save`, default-ADC comparison) reach the manager through optional interfaces in `pkg/provider`. Credential checks run per provider in parallel, each under its own timeout; the TUI starts one `CheckProviderCredentials` per provider so its status line updates as each finishes, and renders badges, slots, tabs and provider columns from `ProviderInfo` metadata only. `pkg/manager` never depends on the TUI, presenters, Cobra or Bubble Tea. See the [TUI guide](tui.md) for behavior.
 
 ## Core Components
 
