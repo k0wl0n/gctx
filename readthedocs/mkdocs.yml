@@ -8,6 +8,7 @@ nav:
   - Home: index.md
   - Interactive TUI: tui.md
   - Architecture: architecture.md
+  - AWS: aws.md
   - CLI Reference:
     - gctx: gctx.md
     - active: gctx_active.md

@@ -13,6 +13,7 @@ import (
 	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/gcloudconfig"
 	"github.com/k0wl0n/gctx/pkg/provider"
+	"github.com/k0wl0n/gctx/pkg/provider/aws"
 	"github.com/k0wl0n/gctx/pkg/provider/gcp"
 )
 
@@ -156,6 +157,10 @@ func defaultProviders(opts Options) []provider.Provider {
 			Client:     opts.Gcloud,
 			LookPath:   opts.LookPath,
 			Getenv:     opts.Getenv,
+		}),
+		aws.New(aws.Options{
+			LookPath: opts.LookPath,
+			Getenv:   opts.Getenv,
 		}),
 	}
 }

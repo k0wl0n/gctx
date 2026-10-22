@@ -109,7 +109,10 @@ type LocalStatus struct {
 // non-empty when the check could not complete.
 type AuthReport struct {
 	Credentialed map[string]bool
-	Warnings     []Warning
+	// Identities maps account name to the identity the provider reported
+	// (for AWS, the caller ARN). Never holds tokens or secrets.
+	Identities map[string]string
+	Warnings   []Warning
 }
 
 // LoginEventKind names a progress point in the login flow.
@@ -190,4 +193,21 @@ type Runner interface {
 	Interactive(ctx context.Context, stdio Stdio, env []string, args ...string) error
 	// WithEnv returns a Runner whose every child process also gets extra.
 	WithEnv(extra []string) Runner
+}
+
+// CommandError describes a failed CLI invocation. Its message is the
+// underlying error's.
+type CommandError struct {
+	Step   string // command arguments, e.g. "sts get-caller-identity"
+	Err    error
+	Output string // combined stdout and stderr of non-interactive runs
+}
+
+func (e *CommandError) Error() string { return e.Err.Error() }
+func (e *CommandError) Unwrap() error { return e.Err }
+
+// LastLine returns the last non-empty output line, for compact UI messages.
+func (e *CommandError) LastLine() string {
+	lines := strings.Split(strings.TrimSpace(e.Output), "\n")
+	return strings.TrimSpace(lines[len(lines)-1])
 }

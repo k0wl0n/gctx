@@ -570,7 +570,7 @@ func TestCreateUnknownProviderListsValid(t *testing.T) {
 	env := testutil.NewEnv(t)
 	r := runGctx(t, "create", "demo", "demo-project", "--provider", "nope")
 	assertCode(t, r, 1)
-	if !strings.Contains(r.stderr, `unknown provider "nope" (valid: gcp)`) {
+	if !strings.Contains(r.stderr, `unknown provider "nope" (valid: gcp, aws)`) {
 		t.Errorf("stderr %q", r.stderr)
 	}
 	if len(env.Invocations()) != 0 {
@@ -597,7 +597,7 @@ func TestListProviderFilter(t *testing.T) {
 
 	r = runGctx(t, "list", "--provider", "nope")
 	assertCode(t, r, 1)
-	if !strings.Contains(r.stderr, `unknown provider "nope" (valid: gcp)`) {
+	if !strings.Contains(r.stderr, `unknown provider "nope" (valid: gcp, aws)`) {
 		t.Errorf("stderr %q", r.stderr)
 	}
 }
