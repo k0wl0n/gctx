@@ -111,6 +111,9 @@ func (m *Manager) providerInfos(clis map[provider.ID]provider.CLIStatus, counts 
 		if footer, ok := p.(provider.FormFooter); ok {
 			info.Footer = footer.Footer
 		}
+		if network, ok := p.(provider.NetworkAuth); ok {
+			info.NetworkAuth = network.ChecksOverNetwork()
+		}
 		if installer, ok := p.(provider.Installer); ok {
 			info.InstallHint = installer.InstallHint()
 		}
@@ -418,6 +421,9 @@ func (m *Manager) applyChecks(cfg *config.Config, results []providerCheck) Crede
 	var report CredentialReport
 	m.stateMu.Lock()
 	for _, result := range results {
+		if m.networkFailed(result) {
+			report.NetworkFailed = append(report.NetworkFailed, result.id)
+		}
 		stamped := make(map[string]provider.AuthResult, len(result.report.Results))
 		for key, res := range result.report.Results {
 			if res.Checked.IsZero() {
@@ -448,6 +454,25 @@ func (m *Manager) applyChecks(cfg *config.Config, results []providerCheck) Crede
 	m.stateMu.Unlock()
 	m.recordStatusCache(cfg, now)
 	return report
+}
+
+// networkFailed reports whether a network-checked provider answered nothing:
+// it had accounts checked and every one failed with a non-auth error (a
+// timeout, an abandoned check or a CLI network error), none succeeding.
+func (m *Manager) networkFailed(result providerCheck) bool {
+	p, ok := m.providers.Get(result.id)
+	if !ok {
+		return false
+	}
+	if network, ok := p.(provider.NetworkAuth); !ok || !network.ChecksOverNetwork() || len(result.report.Results) == 0 {
+		return false
+	}
+	for _, res := range result.report.Results {
+		if res.Err == nil || res.Credentialed {
+			return false
+		}
+	}
+	return true
 }
 
 // recordStatusCache merges this session's per-account results into the

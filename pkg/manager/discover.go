@@ -42,6 +42,13 @@ type DiscoverySource struct {
 type DiscoveryResult struct {
 	Sources []DiscoverySource
 	Items   []DiscoveredAccount
+	Skipped []SkippedSource // sources that could not be read; the others still count
+}
+
+// SkippedSource is a provider whose setup could not be read.
+type SkippedSource struct {
+	Provider provider.ID
+	Reason   string
 }
 
 // SkippedImport is an item ImportAccounts did not import.
@@ -82,7 +89,8 @@ func (m *Manager) Discover() (DiscoveryResult, error) {
 			continue
 		}
 		if err != nil {
-			return DiscoveryResult{}, err
+			result.Skipped = append(result.Skipped, SkippedSource{Provider: p.ID(), Reason: err.Error()})
+			continue
 		}
 		result.Sources = append(result.Sources, DiscoverySource{Provider: p.ID(), Count: len(items), Noun: noun})
 		result.Items = append(result.Items, items...)
@@ -303,6 +311,13 @@ func (m *Manager) ImportAccounts(items []DiscoveredAccount) (ImportResult, error
 			account := &config.Account{
 				Name: name, ProjectID: item.Target, ConfigName: item.ConfigName, Email: item.Email,
 				Settings: safeSettings(item.Settings), CreatedAt: m.opts.Now(),
+			}
+			if item.Provider == provider.GCP {
+				// The configuration is the user's own: mark it so delete keeps it by default.
+				if account.Settings == nil {
+					account.Settings = map[string]string{}
+				}
+				account.Settings[provider.SettingConfigOrigin] = provider.ConfigOriginImported
 			}
 			if item.Provider != provider.GCP {
 				account.Provider = string(item.Provider)

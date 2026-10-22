@@ -210,6 +210,7 @@ type ProviderInfo struct {
 	Badge        provider.Badge
 	Slot         string
 	EnvBased     bool // activation only prints an env line (provider.EnvBased)
+	NetworkAuth  bool // the credential check calls a remote service (provider.NetworkAuth)
 	TargetLabel  string
 	Columns      []provider.Column
 	CLI          provider.CLIStatus
@@ -247,4 +248,8 @@ func (o Overview) Account(name string) (AccountStatus, bool) {
 type CredentialReport struct {
 	Accounts []string
 	Warnings []Warning
+	// NetworkFailed lists network-checked providers (provider.NetworkAuth) that
+	// had accounts checked, every one of which failed with a non-auth error
+	// (timeout, abandoned check or CLI network error) and none succeeded.
+	NetworkFailed []provider.ID
 }

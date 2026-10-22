@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"regexp"
@@ -207,6 +208,11 @@ func (p *Provider) PrepareCreate(acct config.Account, existing []config.Account)
 			return acct, nil
 		}
 	}
+	acct.Settings = maps.Clone(acct.Settings)
+	if acct.Settings == nil {
+		acct.Settings = map[string]string{}
+	}
+	acct.Settings[provider.SettingConfigOrigin] = provider.ConfigOriginExisting
 	return acct, []provider.Warning{{
 		Code: provider.WarnConfigReused, Account: acct.Name,
 		Message: fmt.Sprintf("gcloud configuration %s already exists and will be reused", acct.ConfigName),
@@ -532,13 +538,27 @@ func (p *Provider) DeleteItems(acct config.Account) []provider.DeleteItem {
 		Key: provider.DeleteKeyGcloudConfig, Label: "gcloud configuration " + acct.ConfigName,
 		Default: !active, Locked: active,
 	}
+	if userOwnedConfig(acct) {
+		// gcloud refuses to delete its active configuration, so that case stays locked off.
+		configItem.Label = "existing gcloud configuration (not created by " + config.AppName + ") " + acct.ConfigName
+		configItem.Default = false
+	}
 	if active {
 		configItem.Detail = "gcloud's active configuration"
 	}
 	return append(items, configItem)
 }
 
-func (p *Provider) Kept(config.Account) string {
+// userOwnedConfig reports whether the gcloud configuration existed before gctx.
+func userOwnedConfig(acct config.Account) bool {
+	origin := acct.Settings[provider.SettingConfigOrigin]
+	return origin == provider.ConfigOriginImported || origin == provider.ConfigOriginExisting
+}
+
+func (p *Provider) Kept(acct config.Account) string {
+	if userOwnedConfig(acct) {
+		return "the GCP project and its resources, and the existing gcloud configuration " + acct.ConfigName + " (kept by default)"
+	}
 	return "the GCP project and its resources"
 }
 

@@ -455,10 +455,14 @@ func rowOf(out, name string) string {
 	return row
 }
 
-var timedOut = manager.CredentialReport{Warnings: []manager.Warning{{Code: manager.WarnCredentialCheck, Message: "check timed out"}}}
+// networkDown is the report of a provider whose check reached nothing: the
+// manager lists it in NetworkFailed, with or without a warning.
+func networkDown(id provider.ID) manager.CredentialReport {
+	return manager.CredentialReport{NetworkFailed: []provider.ID{id}}
+}
 
 // finishChecks delivers one report per listed provider; reports[id] defaults
-// to the timeout.
+// to a failed network check.
 func finishChecks(m Model, reports map[provider.ID]manager.CredentialReport) Model {
 	for _, info := range m.listedProviders() {
 		if info.Count == 0 {
@@ -466,7 +470,7 @@ func finishChecks(m Model, reports map[provider.ID]manager.CredentialReport) Mod
 		}
 		report, ok := reports[info.ID]
 		if !ok {
-			report = timedOut
+			report = networkDown(info.ID)
 		}
 		m, _ = m.dispatch(credsCheckedMsg{seq: m.creds.seq, provider: info.ID, report: report})
 	}
@@ -514,7 +518,7 @@ func TestSingleSlowProviderIsNotOffline(t *testing.T) {
 	markOffline(svc)
 	m := checksInFlight(t, svc, 120, 40)
 	reports := multiReports()
-	reports[provider.GCP] = timedOut
+	reports[provider.AWS] = networkDown(provider.AWS)
 	m = finishChecks(m, reports)
 	out := screen(m)
 	if strings.Contains(out, "network unreachable") || strings.Contains(out, "switching still works offline") {
@@ -561,5 +565,58 @@ func TestNoProviderLiteralsInTUI(t *testing.T) {
 				t.Errorf("%s names a provider: %s", file, literal)
 			}
 		}
+	}
+}
+
+func TestOneFailedProviderIsNotOffline(t *testing.T) {
+	m := checksInFlight(t, newMultiService(), 120, 40)
+	reports := multiReports()
+	reports[provider.Azure] = networkDown(provider.Azure)
+	if out := screen(finishChecks(m, reports)); strings.Contains(out, "network unreachable") {
+		t.Errorf("one failed provider among successful ones:\n%s", out)
+	}
+}
+
+// TestOfflineFromTimeoutWarningAlone keeps the older shape of an abandoned
+// check, a warning with nothing verified, working through the same state.
+func TestOfflineFromTimeoutWarningAlone(t *testing.T) {
+	m := checksInFlight(t, newMultiService(), 120, 40)
+	timedOut := manager.CredentialReport{Warnings: []manager.Warning{{Code: manager.WarnCredentialCheck, Message: "check timed out"}}}
+	reports := map[provider.ID]manager.CredentialReport{}
+	for _, info := range m.listedProviders() {
+		reports[info.ID] = timedOut
+	}
+	if out := screen(finishChecks(m, reports)); !strings.Contains(out, "network unreachable") {
+		t.Errorf("timeouts of every network provider:\n%s", out)
+	}
+}
+
+func TestGCPOnlyNeverOffline(t *testing.T) {
+	svc := newFakeService(sampleOverview("a", "a", "b"))
+	svc.overview.Providers[0].CLI.Name = "gcloud"
+	m := checksInFlight(t, svc, 120, 40)
+	m, _ = m.dispatch(credsCheckedMsg{seq: m.creds.seq, provider: provider.GCP, err: fmt.Errorf("gcloud auth list failed")})
+	m, _ = m.dispatch(startCredsMsg{})
+	m, _ = m.dispatch(credsCheckedMsg{seq: m.creds.seq, provider: provider.GCP, report: manager.CredentialReport{
+		Warnings: []manager.Warning{{Code: manager.WarnCredentialCheck, Message: "unexpected gcloud auth list output"}}}})
+	if out := screen(m); strings.Contains(out, "network unreachable") || strings.Contains(out, "switching still works offline") {
+		t.Errorf("a local check failure is not a network outage:\n%s", out)
+	}
+}
+
+func TestOfflineBannerClearsOnSuccess(t *testing.T) {
+	svc := newMultiService()
+	markOffline(svc)
+	m := finishChecks(checksInFlight(t, svc, 120, 40), nil)
+	if !strings.Contains(screen(m), "network unreachable") {
+		t.Fatal("not offline")
+	}
+	m, _ = m.dispatch(startCredsMsg{})
+	if !strings.Contains(screen(m), "network unreachable") {
+		t.Error("the banner must stay while the retry has no answer yet")
+	}
+	m, _ = m.dispatch(credsCheckedMsg{seq: m.creds.seq, provider: fakeSumoPod, report: manager.CredentialReport{Accounts: []string{"sumopod-dev"}}})
+	if strings.Contains(screen(m), "network unreachable") {
+		t.Error("one network provider answering must clear the banner")
 	}
 }

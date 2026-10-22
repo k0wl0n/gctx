@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/k0wl0n/gctx/internal/testutil"
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/manager"
 	"github.com/k0wl0n/gctx/pkg/provider"
@@ -409,5 +410,87 @@ func TestCLIVersionsSkipsMissingCLIsAndHonoursCancel(t *testing.T) {
 	versions := fx.manager.CLIVersions(ctx)
 	if time.Since(start) > 3*time.Second || versions[provider.GCP] != "" {
 		t.Errorf("a hanging CLI must be cut off: %v after %s", versions, time.Since(start))
+	}
+}
+
+func TestImportMarksGCPConfigOrigin(t *testing.T) {
+	t.Setenv("PATH", "")
+	fx := newDiscoveryFixture(t, nil)
+	result, err := fx.manager.Discover()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fx.manager.ImportAccounts(result.Items); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.LoadFrom(fx.paths.ConfigPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"default", "work-prod"} {
+		if got := cfg.Accounts[name].Settings["config_origin"]; got != "imported" {
+			t.Errorf("%s config_origin %q, want imported", name, got)
+		}
+	}
+	if _, ok := cfg.Accounts["prod-sso"].Settings["config_origin"]; ok {
+		t.Error("only gcloud configurations carry an origin")
+	}
+}
+
+func TestGCPDeleteKeepsImportedConfigByDefault(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.WriteFile(env.GcloudConfigPath("legacy"), []byte("[core]\naccount = me@example.com\nproject = legacy-project-1\n"), 0o644)
+	env.SetGcloudActiveConfig("other-config")
+	m := newManager(t, env)
+	result, err := m.Discover()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var gcpItems []manager.DiscoveredAccount
+	for _, item := range result.Items {
+		if item.Provider == provider.GCP && item.Name == "legacy" {
+			gcpItems = append(gcpItems, item)
+		}
+	}
+	if _, err := m.ImportAccounts(gcpItems); err != nil {
+		t.Fatal(err)
+	}
+
+	plan, err := m.DeletePlan("legacy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range plan.Items {
+		if item.Key == provider.DeleteKeyGcloudConfig && (item.Default || !strings.Contains(item.Label, "not created by")) {
+			t.Errorf("the user's own configuration is offered ticked: %+v", item)
+		}
+	}
+
+	env.ResetInvocations()
+	if _, err := m.Delete(context.Background(), "legacy", manager.DeleteOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range env.InvocationLines() {
+		if strings.Contains(line, "configurations delete") {
+			t.Errorf("deleted the user's gcloud configuration: %q", line)
+		}
+	}
+	if _, err := os.Stat(env.GcloudConfigPath("legacy")); err != nil {
+		t.Errorf("configuration file gone: %v", err)
+	}
+}
+
+func TestDiscoverSkipsFailingSource(t *testing.T) {
+	fx := newDiscoveryFixture(t, nil)
+	writeFixtureFile(t, filepath.Join(fx.home, ".azure", "azureProfile.json"), "{not json")
+	result, err := fx.manager.Discover()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(itemsOf(result, provider.GCP)) == 0 || len(itemsOf(result, provider.AWS)) == 0 {
+		t.Error("a broken azure profile must not hide the other sources")
+	}
+	if len(result.Skipped) != 1 || result.Skipped[0].Provider != provider.Azure || result.Skipped[0].Reason == "" {
+		t.Errorf("skipped %+v", result.Skipped)
 	}
 }

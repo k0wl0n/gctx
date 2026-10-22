@@ -142,3 +142,35 @@ func TestGCPDeleteItemsPreserveGcloudConfigDefault(t *testing.T) {
 		t.Errorf("kept %q", p.Kept(acct))
 	}
 }
+
+func TestGCPDeleteItemsImportedConfigDefaultsOff(t *testing.T) {
+	gcloudDir := t.TempDir()
+	writeFile(t, filepath.Join(gcloudDir, "active_config"), "other-config\n")
+	p := gcp.New(gcp.Options{GcloudDir: gcloudDir, ADCDir: t.TempDir(), Client: &gcloud.Client{}})
+	for _, origin := range []string{"imported", "existing"} {
+		acct := config.Account{Name: "work", ConfigName: "mine", ProjectID: "work-project", Settings: map[string]string{"config_origin": origin}}
+		items := p.DeleteItems(acct)
+		if len(items) != 1 || items[0].Key != "gcloud_config" || items[0].Default || items[0].Locked ||
+			!strings.Contains(items[0].Label, "existing gcloud configuration (not created by gctx)") {
+			t.Fatalf("%s: %+v", origin, items)
+		}
+		if kept := p.Kept(acct); !strings.Contains(kept, "mine") || !strings.Contains(kept, "kept by default") {
+			t.Errorf("%s: kept %q", origin, kept)
+		}
+	}
+}
+
+func TestGCPCreateReusedConfigMarksOrigin(t *testing.T) {
+	gcloudDir := t.TempDir()
+	writeFile(t, filepath.Join(gcloudDir, "configurations", "config_demo-config"), "[core]\n")
+	p := gcp.New(gcp.Options{GcloudDir: gcloudDir, ADCDir: t.TempDir(), Client: &gcloud.Client{}})
+
+	reused, warnings := p.PrepareCreate(config.Account{Name: "demo", Settings: map[string]string{"x": "y"}}, nil)
+	if reused.Settings["config_origin"] != "existing" || reused.Settings["x"] != "y" || len(warnings) != 1 {
+		t.Errorf("reused configuration: %+v %v", reused.Settings, warnings)
+	}
+	fresh, _ := p.PrepareCreate(config.Account{Name: "brand-new"}, nil)
+	if _, ok := fresh.Settings["config_origin"]; ok {
+		t.Errorf("a configuration gctx creates has no origin: %+v", fresh.Settings)
+	}
+}

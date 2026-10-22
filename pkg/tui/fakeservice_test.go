@@ -299,7 +299,8 @@ func multiProviders() []manager.ProviderInfo {
 			settingColumn("key_ref", "KEY REF", 30)),
 	}
 	for i := range infos {
-		infos[i].EnvBased = infos[i].ID != provider.GCP // GCP switches globally
+		infos[i].EnvBased = infos[i].ID != provider.GCP    // GCP switches globally
+		infos[i].NetworkAuth = infos[i].ID != provider.GCP // GCP checks with a local gcloud call
 	}
 	return infos
 }

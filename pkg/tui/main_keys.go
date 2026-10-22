@@ -363,7 +363,7 @@ func cloneOrNew[K comparable, V any](in map[K]V) map[K]V {
 
 func finishedProgress(p checkProgress, msg credsCheckedMsg) checkProgress {
 	p.done = true
-	p.unreachable = unreachable(msg)
+	p.unreachable = p.network && unreachable(msg)
 	switch {
 	case msg.err != nil:
 		p.failed, p.warning = true, msg.err.Error()

@@ -90,6 +90,13 @@ type Installer interface {
 	InstallHint() string
 }
 
+// NetworkAuth marks a provider whose credential check calls a remote service.
+// Its failures can mean the network is down; a provider without it (GCP's
+// local `gcloud auth list`) never counts towards "offline".
+type NetworkAuth interface {
+	ChecksOverNetwork() bool
+}
+
 // LoginCapable reports whether the provider has an interactive login. A
 // provider without it is assumed to have one.
 type LoginCapable interface {
@@ -102,6 +109,14 @@ type LoginCapable interface {
 type StreamingLogin interface {
 	StreamsLogin() bool
 }
+
+// SettingConfigOrigin marks an account whose CLI configuration existed before
+// gctx and so is not gctx's to delete.
+const (
+	SettingConfigOrigin  = "config_origin"
+	ConfigOriginImported = "imported" // adopted by the first-run import
+	ConfigOriginExisting = "existing" // reused by create
+)
 
 // Delete item keys name the DeleteOptions field an item controls.
 const (

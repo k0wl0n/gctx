@@ -85,13 +85,13 @@ type credState struct {
 
 // checkProgress is one provider's part of a credential check.
 type checkProgress struct {
-	done    bool
-	total   int // accounts of the provider
-	checked int // accounts with a verdict
-	warning string
-	failed  bool // the check itself returned an error
-	// unreachable: the check failed or timed out and verified no account.
-	unreachable bool
+	done        bool
+	total       int // accounts of the provider
+	checked     int // accounts with a verdict
+	warning     string
+	failed      bool // the check itself returned an error
+	network     bool // the check calls a remote service; only these can mean offline
+	unreachable bool // network provider: the check reached nothing
 	timeout     time.Duration
 }
 
@@ -404,7 +404,7 @@ func (m *Model) startCredsCheck() tea.Cmd {
 		if info.Count == 0 {
 			continue // listed for its missing CLI only: nothing to check
 		}
-		m.creds.progress[info.ID] = checkProgress{total: info.Count, timeout: info.CheckTimeout}
+		m.creds.progress[info.ID] = checkProgress{total: info.Count, timeout: info.CheckTimeout, network: info.NetworkAuth}
 		cmds = append(cmds, checkProviderCmd(m.svc, m.seq, info.ID))
 	}
 	if len(cmds) == 0 {

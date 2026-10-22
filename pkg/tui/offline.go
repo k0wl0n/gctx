@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"slices"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -8,31 +9,28 @@ import (
 	"github.com/k0wl0n/gctx/pkg/manager"
 )
 
-// unreachable reports whether a provider's check could not reach its service:
-// the check failed or timed out and verified no account. A check that
-// verified some accounts did reach it.
+// unreachable reports whether a network provider's check reached nothing:
+// the manager lists it in NetworkFailed (every account failed with a non-auth
+// error), the check itself failed, or it was cut short with no account verified.
 func unreachable(msg credsCheckedMsg) bool {
-	if msg.err != nil {
+	if msg.err != nil || slices.Contains(msg.report.NetworkFailed, msg.provider) {
 		return true
 	}
 	if len(msg.report.Accounts) > 0 {
 		return false
 	}
-	for _, w := range msg.report.Warnings {
-		if w.Code == manager.WarnCredentialCheck {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(msg.report.Warnings, func(w manager.Warning) bool { return w.Code == manager.WarnCredentialCheck })
 }
 
-// offlineAfterCheck is the offline state once the latest provider reported:
-// every provider unreachable means offline, one success clears it, and a
-// cycle still waiting on providers keeps what was known.
+// offlineAfterCheck is the offline state once the latest provider reported.
+// Only network-checked providers count: when every one that ran is
+// unreachable the network is down, one success clears it, and a cycle still
+// waiting on providers keeps what was known.
 func (m Model) offlineAfterCheck() bool {
 	failed, pending := 0, 0
 	for _, p := range m.creds.progress {
 		switch {
+		case !p.network:
 		case !p.done:
 			pending++
 		case p.unreachable:
@@ -44,7 +42,7 @@ func (m Model) offlineAfterCheck() bool {
 	if pending == 0 {
 		return failed > 0
 	}
-	return m.offline
+	return m.offline && failed+pending > 0
 }
 
 func (m Model) offlineBanner(width int, g glyphs, st styles) string {
