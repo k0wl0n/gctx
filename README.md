@@ -133,7 +133,8 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `enter` | switch to the selected account |
 | `/` | filter (`esc` clears) |
 | `d` / `i` | details |
-| `l` | log in (suspends the TUI for the browser flows) |
+| `l` | log in (Azure on a full-screen login page with the device code, `o` open browser, `y` copy code, `v` full log, `esc` cancel; other providers suspend the TUI) |
+| `L` | log in every account that is AUTH REQUIRED or EXPIRED, one after the other (`n` skips to the next) |
 | `s` | subshell with every active slot's account |
 | `S` | subshell with only the selected account |
 | `y` | copy the account's `eval "$(gctx env <name>)"` line |

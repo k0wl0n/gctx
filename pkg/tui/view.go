@@ -227,13 +227,15 @@ func ruledLine(left, right string, width int, g glyphs, st styles) string {
 	return left + " " + st.Sep.Render(strings.Repeat(g.HRule, fill)) + " " + st.Dim.Render(right)
 }
 
-// viewOverlay draws the help or details screen.
+// viewOverlay draws the help, details or login screen.
 func (m Model) viewOverlay() string {
 	switch m.screen {
 	case screenHelp:
 		return renderHelp(m)
 	case screenDetails:
 		return renderDetails(m)
+	case screenLogin:
+		return m.viewLogin()
 	}
 	return ""
 }

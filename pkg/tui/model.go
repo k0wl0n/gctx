@@ -27,6 +27,7 @@ const (
 	screenMain screenKind = iota
 	screenHelp
 	screenDetails
+	screenLogin
 )
 
 type statusLevel int
@@ -172,6 +173,12 @@ type Model struct {
 	width, height int
 	profile       colorprofile.Profile // from tea.ColorProfileMsg; TrueColor until then
 	history       []string             // run prompt history, memory only
+
+	login     *loginSession // the streamed login on screenLogin
+	queue     *loginQueue   // logins in progress, one entry for a single login
+	loginSeq  int
+	openURL   func(string) error   // opens the browser; replaced in tests
+	loginTick func(id int) tea.Cmd // animates the login screen; replaced in tests
 }
 
 // New builds the model and loads the local overview synchronously: it is a few
@@ -194,10 +201,12 @@ func NewWithGOOS(svc Service, opts Options, goos string) Model {
 		spin: spinner.New(spinner.WithSpinner(spinner.Spinner{
 			Frames: newGlyphs(asciiRequested()).Spinner, FPS: time.Second / 10,
 		})),
-		filter:   filterState{input: newLineInput("/")},
-		profile:  colorprofile.TrueColor,
-		folded:   map[string]bool{},
-		paneOpen: true,
+		openURL:   openBrowser,
+		loginTick: tickLogin,
+		filter:    filterState{input: newLineInput("/")},
+		profile:   colorprofile.TrueColor,
+		folded:    map[string]bool{},
+		paneOpen:  true,
 	}
 	m.reload()
 	return m
@@ -453,9 +462,18 @@ func (m Model) dispatch(msg tea.Msg) (Model, tea.Cmd) {
 		return next, tea.Batch(cmd, next.loadEnvCmd())
 	case execDoneMsg:
 		return m.handleExecDone(msg)
+	case loginEventMsg:
+		return m.handleLoginEvent(msg)
+	case loginFinishedMsg:
+		return m.handleLoginFinished(msg)
+	case loginTickMsg:
+		return m.handleLoginTick(msg)
 	}
 
 	if key, ok := msg.(tea.KeyPressMsg); ok && m.tooSmall() {
+		if m.screen == screenLogin {
+			return m.updateLogin(key)
+		}
 		if k := key.String(); k == "q" || k == "ctrl+c" {
 			return m.updateMain(key)
 		}
@@ -471,6 +489,8 @@ func (m Model) dispatch(msg tea.Msg) (Model, tea.Cmd) {
 	switch {
 	case m.filter.editing:
 		return m.updateFilter(key)
+	case m.screen == screenLogin:
+		return m.updateLogin(key)
 	case m.screen != screenMain:
 		return m.updateOverlay(key)
 	}

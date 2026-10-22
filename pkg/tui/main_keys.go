@@ -127,6 +127,10 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, m.setStatus("Busy: "+m.op.desc, levelWarning)
 	}
 
+	if matches(msg, keys.LoginStale.Keys()) {
+		return m.startLoginQueue()
+	}
+
 	// CLI gating: switch, login and run need the selected row's provider CLI.
 	// Create opens regardless, and its form shows the install hint.
 	acct, hasSelection := m.selectedAccount()

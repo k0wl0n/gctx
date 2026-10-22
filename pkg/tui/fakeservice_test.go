@@ -29,6 +29,7 @@ type fakeService struct {
 	updateErr   error
 	loginRes    manager.LoginResult
 	loginErr    error
+	loginFn     func(ctx context.Context, name string, io manager.LoginIO) (manager.LoginResult, error) // overrides loginRes and loginErr
 	saveRes     manager.SaveResult
 	saveErr     error
 	deleteRes   manager.DeleteResult
@@ -140,6 +141,9 @@ func (f *fakeService) UpdateAccount(ctx context.Context, name string, req manage
 
 func (f *fakeService) Login(ctx context.Context, name string, io manager.LoginIO) (manager.LoginResult, error) {
 	f.record("Login", name)
+	if f.loginFn != nil {
+		return f.loginFn(ctx, name, io)
+	}
 	return f.loginRes, f.loginErr
 }
 

@@ -7,7 +7,8 @@ type keyMap struct {
 	Down, Up, First, Last, PageDown, PageUp key.Binding
 	NextTab, PrevTab, JumpTab               key.Binding
 	Switch, Filter, Clear, Details          key.Binding
-	Login, Shell, ShellOne, CopyEnv, Run    key.Binding
+	Login, LoginStale, Shell, ShellOne      key.Binding
+	CopyEnv, Run                            key.Binding
 	Create, Edit, Delete, Save              key.Binding
 	TogglePane, Fold, NeedsAction, Sort     key.Binding
 	Reload, Help, Quit, Command             key.Binding
@@ -31,11 +32,13 @@ var keys = keyMap{
 	JumpTab: key.NewBinding(key.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"),
 		key.WithHelp("1-9", "jump to tab (1 is All)")),
 
-	Switch:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "switch to selected account")),
-	Filter:   key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
-	Clear:    key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "clear applied filter")),
-	Details:  key.NewBinding(key.WithKeys("d", "i"), key.WithHelp("d/i", "details")),
-	Login:    key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "login")),
+	Switch:  key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "switch to selected account")),
+	Filter:  key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
+	Clear:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "clear applied filter")),
+	Details: key.NewBinding(key.WithKeys("d", "i"), key.WithHelp("d/i", "details")),
+	Login:   key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "login")),
+	LoginStale: key.NewBinding(key.WithKeys("L"),
+		key.WithHelp("L", "login every account that needs it (all providers; ignores the filter and tab)")),
 	Shell:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "subshell with every active slot")),
 	ShellOne: key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "subshell with only this account")),
 	CopyEnv:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy the env eval line")),
@@ -60,7 +63,7 @@ var keys = keyMap{
 func (k keyMap) groups() []keyGroup {
 	return []keyGroup{
 		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab}},
-		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.Shell, k.ShellOne, k.CopyEnv, k.Run, k.Create, k.Edit, k.Delete, k.Save}},
+		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.LoginStale, k.Shell, k.ShellOne, k.CopyEnv, k.Run, k.Create, k.Edit, k.Delete, k.Save}},
 		{"View", []key.Binding{k.TogglePane, k.Fold, k.NeedsAction, k.Sort}},
 		{"General", []key.Binding{k.Reload, k.Help, k.Quit, k.Command}},
 	}
@@ -96,7 +99,7 @@ func (k keyMap) hints(t tier, allTab bool, g glyphs) []hint {
 	if t != tierWide {
 		out = append(out, hint{first(k.Details), "details"})
 	}
-	out = append(out, hint{first(k.Login), "login"}, hint{first(k.Create), "create"}, hint{first(k.Shell), "shell"}, hint{first(k.CopyEnv), "copy env"})
+	out = append(out, hint{first(k.Login), "login"}, hint{first(k.LoginStale), "login all stale"}, hint{first(k.Create), "create"}, hint{first(k.Shell), "shell"}, hint{first(k.CopyEnv), "copy env"})
 	if allTab {
 		out = append(out, hint{first(k.Fold), "fold group"})
 	}

@@ -185,7 +185,22 @@ func (m Model) handleExecDone(msg execDoneMsg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+// handleLoginDone applies a terminal login and moves the login queue on.
 func (m Model) handleLoginDone(msg execDoneMsg) (Model, tea.Cmd) {
+	m, cmd := m.applyLoginDone(msg)
+	if q := m.queue; q != nil && q.current() == msg.account {
+		outcome := loginFailed
+		var le *loginError
+		if errors.As(msg.err, &le) && le.err == nil {
+			outcome = loginSucceeded
+		}
+		m, next := m.leaveLogin(outcome, false)
+		return m, tea.Batch(cmd, next)
+	}
+	return m, cmd
+}
+
+func (m Model) applyLoginDone(msg execDoneMsg) (Model, tea.Cmd) {
 	var le *loginError
 	if errors.As(msg.err, &le) {
 		if le.err == nil {
@@ -238,9 +253,19 @@ func (m Model) handleShellDone(msg execDoneMsg) (Model, tea.Cmd) {
 	return m, m.setStatus("Shell for "+msg.account+" exited", levelInfo)
 }
 
-// beginLogin suspends the TUI for the login flow.
+// beginLogin logs in one account: on the login screen when its provider
+// streams the login, else through the terminal.
 func (m Model) beginLogin(name string) (Model, tea.Cmd) {
-	account, ok := m.selectedAccount()
+	if account, ok := m.overview.Account(name); ok && m.providerInfo(account.Provider).StreamsLogin {
+		m.queue = &loginQueue{entries: []string{name}}
+		return m.runQueueEntry()
+	}
+	return m.beginExecLogin(name)
+}
+
+// beginExecLogin suspends the TUI for the login flow.
+func (m Model) beginExecLogin(name string) (Model, tea.Cmd) {
+	account, ok := m.overview.Account(name)
 	configName := name + "-config"
 	if ok {
 		configName = account.ConfigName
