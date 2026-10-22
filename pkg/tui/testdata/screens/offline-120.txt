@@ -1,0 +1,40 @@
+gctx │ GCP cloudsuite  AWS prod-aws  AZR ○ │ ai CLD claude-work  OAI codex-work  SMP sumopod-dev               ✓ cfg  0s
+env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-work CODEX_H…
+ All 19  GCP 9  AWS 2  Azure 1 │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                    sort name  / filter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠ network unreachable · showing last known status
+  KIND   NAME             TARGET                  IDENTITY                    ADC  STATUS           EXPIRES
+CLOUDS ────────────────────────────────────────────────────────────────────────────────────────────────────────────── 12
+GCP · project ───────────────────────────────────────────────────────────────────── 9 · 1 expired, 1 login, 7 unverified
+   GCP   byoip-lab        byoip-lab-eu-west       ops@emarsys.example         ✓    ✗ EXPIRED        2d ago
+ ● GCP   cloudsuite       sap-gap-cloud-asap-s    ops@emarsys.example         ✓    ? UNVERIFIED 2h  52m
+   GCP   demo-ai          ai-builder-cup-demo     dev@aliz.example            ✓    ? UNVERIFIED 2h  7h
+   GCP   gap-dev          gap-platform-dev        ops@emarsys.example         ✓    ? UNVERIFIED 2h  52m
+   GCP   hcp-agents       hcp-tf-agents-poc       dev@aliz.example            ✓    ? UNVERIFIED 3d  7h
+   GCP   infra-hub-prd    emarsys-infra-hub-prd   ops@emarsys.example         ✓    ? UNVERIFIED 3d  52m
+   GCP   infra-hub-stg    emarsys-infra-hub-stg   ops@emarsys.example         ✓    ? UNVERIFIED 2h  52m
+   GCP   rca-poc          k8s-ai-rca-poc          dev@aliz.example            ✓    ? UNVERIFIED 2h  7h
+   GCP   sbx-aliz         sandbox-dev-anggana     dev@aliz.example            ✗    ⚠ AUTH REQUIRED  –
+AWS · profile ──────────────────────────────────────────────────────────────────────────────── 2 · 1 login, 1 unverified
+   AWS   legacy-aws       legacy                  –                           –    ⚠ AUTH REQUIRED  –
+▌● AWS   prod-aws         prod-sso                arn:aws:sts:…tformDev/dev   –    ? UNVERIFIED 3d  3h 12m
+AZURE · subscription ────────────────────────────────────────────────────────────────────────────────── 1 · 1 unverified
+   AZR   corp-azure       8c1f0a3e-0…000000e2a9   dev@corp.example            –    ? UNVERIFIED 2h  –
+
+AI TOOLS ───────────────────────────────────────────────────────────────────────────────────────────────────────────── 4
+CLAUDE CODE · org ──────────────────────────────────────────────────────────────────────────── 3 · 1 login, 2 unverified
+  [CLD]  claude-personal  personal                –                           –    ⚠ AUTH REQUIRED  –
+  [CLD]  claude-vertex    via cloudsuite          Vertex AI · us-east5        –    ? UNVERIFIED 3d  52m
+ ●[CLD]  claude-work      org Aliz Tech           dev@aliz.example            –    ? UNVERIFIED 2h  6d
+CODEX · workspace ───────────────────────────────────────────────────────────────────────────────────── 1 · 1 unverified
+ ●[OAI]  codex-work       workspace Aliz          dev@aliz.example            –    ? UNVERIFIED 2h  –
+
+AI GATEWAYS ────────────────────────────────────────────────────────────────────────────────────────────────────────── 3
+SUMOPOD · base url ────────────────────────────────────────────────────────────────────── 2 · 1 unverified, 1 low budget
+ ●[SMP]  sumopod-dev      ai.sumopod.com          –                           –    ? UNVERIFIED 2h  $3.15 left
+  [SMP]  sumopod-prod     ai.sumopod.com          –                           –    ⚠ BUDGET LOW     $1.60 left
+OPENROUTER · base url ───────────────────────────────────────────────────────────────────────────────── 1 · 1 unverified
+  [ORT]  openrouter       openrouter.ai           –                           –    ? UNVERIFIED 3d  $7.40 left
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+R retry · switching still works offline            19 accounts · 1 expired · 3 need login · 1 low budget · 14 unverified
+tab provider  j/k move  ↵ activate  / filter  d details  l login  L login all stale  c create  s shell  ? help  q quit

@@ -1,0 +1,24 @@
+gctx · keys                             j/k scroll · esc or ? to close
+──────────────────────────────────────────────────────────────────────
+  navigation
+  j/↓          next row
+  k/↑          previous row
+  g/home       first row
+  G/end        last row
+  ctrl+f/pgdn  page down
+  ctrl+b/pgup  page up
+  tab          next provider tab
+  shift+tab    previous provider tab
+  1-9          jump to tab (1 is All)
+
+  view
+  p  toggle detail pane
+  z  fold or unfold the provider group
+  !  only rows needing action
+  o  cycle sort: name, status, expiry
+
+  actions
+  enter   switch to selected account
+  /       filter
+──────────────────────────────────────────────────────────────────────
+config /tmp/gctx/config.json · log ~/.cache/gctx/tui-debug.log

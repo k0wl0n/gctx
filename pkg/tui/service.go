@@ -28,6 +28,9 @@ type Service interface {
 	RunCommand(name string, args []string) (*exec.Cmd, error)
 	ShellCommand(name string, scope manager.ShellScope) (*exec.Cmd, error)
 	GcloudBin() string
+	Discover() (manager.DiscoveryResult, error)
+	ImportAccounts(items []manager.DiscoveredAccount) (manager.ImportResult, error)
+	CLIVersions(ctx context.Context) map[provider.ID]string // runs <cli> --version; slow, call off the UI path
 }
 
 var _ Service = (*manager.Manager)(nil)

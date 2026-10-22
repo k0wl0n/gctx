@@ -49,7 +49,8 @@ Between 60 and 99 columns the badge moves into the NAME column, the tab row beco
 | `z` | fold or unfold the selected provider group (shows only rows needing action plus a selectable `… N more ready` row; `z` on it expands the group) |
 | `!` | only rows needing action |
 | `o` | cycle sort: name, status, expiry |
-| `R` | reload |
+| `R` | reload: re-locates provider CLIs and re-runs the auth checks (retry when offline, rescan on a tab whose CLI is missing) |
+| `:` | command palette |
 | `?` | help |
 | `q` / `ctrl+c` | quit |
 
@@ -58,9 +59,21 @@ Notes:
 - `d` opens details, not delete. Delete is `ctrl+d`, and its dialog starts with focus on Cancel.
 - Filtering is a case-insensitive substring match on name, project, email and gcloud configuration, within the current tab. While the filter input is open, letters are text, not commands.
 - `esc` cancels any dialog. `ctrl+c` quits unless a command is running.
-- `:` is reserved and currently shows `Command mode is not available yet`.
+- `:` opens the command palette; the right column shows the CLI equivalent of each entry.
 - A missing provider CLI blocks switch, login and run only on that provider's rows. `a` applies only to accounts with ADC (GCP).
 - Only one changing operation (switch, save, delete, create, login) runs at a time.
+
+## Help
+
+`?` lists every key in up to three columns, generated from the same key map that drives the keys and the hint line, then a providers block: for each provider its CLI and version (or `<cli> not found` with the install hint) and how it switches (`global switch`, or `env: <VARIABLES>`). The versions come from `<cli> --version`, run in the background when help first opens, so the screen appears at once and shows `…` until they arrive. The last line gives the config path and, with `--debug`, the log path. On a short terminal `j`/`k`, `ctrl+f`/`ctrl+b` and `g`/`G` scroll; `esc` or `?` closes.
+
+## First run, missing CLI and offline
+
+**First run.** With no accounts the TUI looks for existing setups and offers to import them: gcloud configurations (`<gcloud dir>/configurations/config_*`), AWS profiles (`~/.aws/config`, including SSO profiles) and Azure subscriptions (`~/.azure/azureProfile.json`). Discovery only reads those files: it starts no CLI, makes no network call and never reads tokens or credentials. Only names, targets (project, profile, subscription id), regions and SSO start URL and region are recorded; a gcloud configuration is reused under its existing name and nothing is created in gcloud. Tick sources and press `Import N`, press `Review each` to tick single items, or `Start empty`. Names are lower-cased and invalid characters become `-`; an item whose name is still invalid or already taken is skipped and reported. Imported accounts show `AUTH REQUIRED` or `ADC MISSING` until you log in with `l`. The offer is not shown if nothing importable is found, and not again in the same session once dismissed.
+
+**Missing CLI.** A registered provider whose CLI is not on PATH keeps a dim `<Label> n/a` tab, even with no accounts; `tab` and `1`-`9` include it. With no accounts the tab explains what the CLI is needed for and shows the install command: `y` copies it, `R` rescans PATH. Other providers are unaffected.
+
+**Offline.** When every network check of a cycle fails or times out, a `network unreachable · showing last known status` banner appears above the list. Rows keep their last known status as `UNVERIFIED` with its age, local checks (file reads) still run, and switching still works. `R` retries; the banner clears as soon as one check succeeds. One slow provider alone is not offline.
 
 ## Login, shell and run
 

@@ -90,7 +90,9 @@ type checkProgress struct {
 	checked int // accounts with a verdict
 	warning string
 	failed  bool // the check itself returned an error
-	timeout time.Duration
+	// unreachable: the check failed or timed out and verified no account.
+	unreachable bool
+	timeout     time.Duration
 }
 
 type filterState struct {
@@ -140,6 +142,7 @@ type Model struct {
 	version  string
 	debug    bool
 	debugLog *slog.Logger
+	logPath  string // debug log file; "" when debug logging is off
 	goos     string
 
 	overview manager.Overview
@@ -173,6 +176,15 @@ type Model struct {
 	width, height int
 	profile       colorprofile.Profile // from tea.ColorProfileMsg; TrueColor until then
 	history       []string             // run prompt history, memory only
+
+	firstRun     *firstRunState // import offer on a machine without accounts
+	firstRunDone bool           // the offer was taken or declined this session
+
+	cliVersions     map[provider.ID]string // first line of <cli> --version, loaded when help opens
+	versionsLoaded  bool
+	versionsLoading bool
+	helpOffset      int  // first body row shown on the help screen
+	offline         bool // the last checks all failed to reach the network
 
 	login     *loginSession // the streamed login on screenLogin
 	queue     *loginQueue   // logins in progress, one entry for a single login
@@ -214,7 +226,7 @@ func NewWithGOOS(svc Service, opts Options, goos string) Model {
 
 // Init starts the credential check and loads the env lines after the first frame.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(func() tea.Msg { return startCredsMsg{} }, m.loadEnvCmd())
+	return tea.Batch(func() tea.Msg { return startCredsMsg{} }, m.loadEnvCmd(), m.discoverCmd())
 }
 
 // loadEnvCmd reads every account's env lines for the header and the detail
@@ -389,6 +401,9 @@ func (m *Model) startCredsCheck() tea.Cmd {
 	m.creds = credState{phase: credChecking, seq: m.seq, progress: map[provider.ID]checkProgress{}, finished: m.creds.finished}
 	var cmds []tea.Cmd
 	for _, info := range m.listedProviders() {
+		if info.Count == 0 {
+			continue // listed for its missing CLI only: nothing to check
+		}
 		m.creds.progress[info.ID] = checkProgress{total: info.Count, timeout: info.CheckTimeout}
 		cmds = append(cmds, checkProviderCmd(m.svc, m.seq, info.ID))
 	}
@@ -457,6 +472,12 @@ func (m Model) dispatch(msg tea.Msg) (Model, tea.Cmd) {
 	case envLoadedMsg:
 		m.envs = msg.envs
 		return m, nil
+	case cliVersionsMsg:
+		return m.handleCLIVersions(msg)
+	case discoveredMsg:
+		return m.handleDiscovered(msg)
+	case importedMsg:
+		return m.handleImported(msg)
 	case opDoneMsg:
 		next, cmd := m.handleOpDone(msg) // create and delete change the accounts
 		return next, tea.Batch(cmd, next.loadEnvCmd())

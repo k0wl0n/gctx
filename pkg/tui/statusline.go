@@ -33,6 +33,8 @@ func (m Model) renderStatus(width int, g glyphs, st styles) string {
 		default:
 			left = m.status.text
 		}
+	case m.offline && m.creds.phase != credChecking:
+		left = m.offlineStatus(g, st)
 	default:
 		left = m.progress(budget, g, st)
 	}
@@ -211,6 +213,9 @@ func categoryShort(c provider.Category) string {
 // renderHints is the hint line generated from keyMap. When it does not fit
 // width, the highest-ranked entries are dropped first, so help and quit stay.
 func renderHints(m Model, width int, st styles) string {
+	if m.onMissingCLITab() {
+		return truncateCells(missingCLIHints(st), width, "…")
+	}
 	g := newGlyphs(asciiRequested())
 	_, onTab := m.tabProvider()
 	hints := keys.hints(tierFor(width), !onTab, g)

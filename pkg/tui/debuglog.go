@@ -9,21 +9,28 @@ import (
 
 const debugLogMaxSize = 1 << 20 // 1 MiB
 
+// debugLogPath is where the debug log is written when debug logging is on.
+func debugLogPath() (string, error) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(cacheDir, "gctx", "tui-debug.log"), nil
+}
+
 // newDebugLogger opens or creates the debug log file.
 // When enabled is false it returns a discarding logger and a no-op closer.
 func newDebugLogger(enabled bool) (*slog.Logger, io.Closer, error) {
 	if !enabled {
 		return slog.New(slog.NewTextHandler(io.Discard, nil)), io.NopCloser(nil), nil
 	}
-	cacheDir, err := os.UserCacheDir()
+	logPath, err := debugLogPath()
 	if err != nil {
 		return nil, nil, err
 	}
-	dir := filepath.Join(cacheDir, "gctx")
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(logPath), 0700); err != nil {
 		return nil, nil, err
 	}
-	logPath := filepath.Join(dir, "tui-debug.log")
 
 	// Truncate if over 1 MiB.
 	if fi, err := os.Stat(logPath); err == nil && fi.Size() > debugLogMaxSize {

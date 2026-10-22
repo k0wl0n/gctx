@@ -43,7 +43,7 @@ var keys = keyMap{
 	Details: key.NewBinding(key.WithKeys("d", "i"), key.WithHelp("d/i", "details")),
 	Login:   key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "login")),
 	LoginStale: key.NewBinding(key.WithKeys("L"),
-		key.WithHelp("L", "login every account that needs it (all providers; ignores the filter and tab)")),
+		key.WithHelp("L", "login every stale account")),
 	Shell:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "subshell with every active slot")),
 	ShellOne: key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "subshell with only this account")),
 	CopyEnv:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy the env eval line")),
@@ -53,7 +53,7 @@ var keys = keyMap{
 	Delete:   key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "delete account")),
 	Save:     key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "save current ADC to selected account")),
 
-	TogglePane:  key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "toggle detail pane (150+ columns)")),
+	TogglePane:  key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "toggle detail pane")),
 	Fold:        key.NewBinding(key.WithKeys("z"), key.WithHelp("z", "fold or unfold the provider group")),
 	NeedsAction: key.NewBinding(key.WithKeys("!"), key.WithHelp("!", "only rows needing action")),
 	Sort:        key.NewBinding(key.WithKeys("o"), key.WithHelp("o", "cycle sort: name, status, expiry")),
@@ -68,8 +68,8 @@ var keys = keyMap{
 func (k keyMap) groups() []keyGroup {
 	return []keyGroup{
 		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab}},
-		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.LoginStale, k.Shell, k.ShellOne, k.CopyEnv, k.Run, k.Create, k.Edit, k.Delete, k.Save}},
 		{"View", []key.Binding{k.TogglePane, k.Fold, k.NeedsAction, k.Sort}},
+		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.LoginStale, k.Shell, k.ShellOne, k.CopyEnv, k.Run, k.Create, k.Edit, k.Delete, k.Save}},
 		{"General", []key.Binding{k.Reload, k.Help, k.Quit, k.Command}},
 	}
 }

@@ -24,6 +24,9 @@ func (m Model) slots() []slotView {
 	var out []slotView
 	index := map[string]int{}
 	for _, info := range m.listedProviders() {
+		if info.Count == 0 {
+			continue // no accounts, no slot
+		}
 		slot := info.Slot
 		if slot == "" {
 			slot = string(info.ID)

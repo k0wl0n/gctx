@@ -43,6 +43,14 @@ type fakeService struct {
 	shellScopes []manager.ShellScope
 	gcloudBin   string
 
+	discoverRes manager.DiscoveryResult
+	discoverErr error
+	importRes   manager.ImportResult
+	importErr   error
+	imported    [][]manager.DiscoveredAccount
+	onImport    func(items []manager.DiscoveredAccount) // lets a test change the overview an import produces
+	cliVersions map[provider.ID]string
+
 	envs            map[string][]string                      // Env results by account
 	providerReports map[provider.ID]manager.CredentialReport // CheckProviderCredentials results
 
@@ -185,6 +193,28 @@ func (f *fakeService) ShellCommand(name string, scope manager.ShellScope) (*exec
 }
 
 func (f *fakeService) GcloudBin() string { return f.gcloudBin }
+
+func (f *fakeService) Discover() (manager.DiscoveryResult, error) {
+	f.record("Discover")
+	return f.discoverRes, f.discoverErr
+}
+
+func (f *fakeService) ImportAccounts(items []manager.DiscoveredAccount) (manager.ImportResult, error) {
+	f.record("ImportAccounts")
+	f.mu.Lock()
+	f.imported = append(f.imported, items)
+	hook := f.onImport
+	f.mu.Unlock()
+	if hook != nil {
+		hook(items)
+	}
+	return f.importRes, f.importErr
+}
+
+func (f *fakeService) CLIVersions(ctx context.Context) map[provider.ID]string {
+	f.record("CLIVersions")
+	return f.cliVersions
+}
 
 // gcpInfo is the GCP provider's metadata as the registry reports it.
 func gcpInfo(count int) manager.ProviderInfo {

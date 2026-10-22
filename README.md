@@ -147,10 +147,16 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `z` | fold or unfold a provider group |
 | `!` | only rows needing action |
 | `o` | cycle sort: name, status, expiry |
-| `R` | reload |
+| `R` | reload: re-locates provider CLIs and re-runs the auth checks (on a tab whose CLI is missing it is the rescan key) |
 | `:` | command palette: fuzzy search over every action and account; the right column is the CLI equivalent, `enter` runs, `tab` completes |
-| `?` | help |
+| `?` | help: every key (generated from the key map) and a providers block with each CLI's version or install hint, plus the config and debug log paths; `j`/`k` scroll on a short terminal, `esc` or `?` closes |
 | `q` / `ctrl+c` | quit |
+
+Special states:
+
+- **First run.** With no accounts, the TUI offers to import the existing gcloud configurations, `~/.aws/config` profiles and `~/.azure` subscriptions it finds (names, targets and non-secret settings only; discovery reads files and never runs a CLI or reads a token). Choose `Import N`, `Review each` or `Start empty`. Imported accounts show `AUTH REQUIRED` or `ADC MISSING` until you log in.
+- **Missing CLI.** A provider whose CLI is not installed keeps a dim `<Label> n/a` tab. Selecting it explains what the CLI is needed for and shows the install command: `y` copies it, `R` rescans PATH.
+- **Offline.** When every network check of a cycle fails, a banner says `network unreachable`, rows keep their last known status as `UNVERIFIED` with its age, and switching still works. The banner clears as soon as one check succeeds.
 
 See the [TUI guide](https://gctx.readthedocs.io/en/latest/tui/) for health statuses and troubleshooting.
 

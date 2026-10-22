@@ -24,11 +24,15 @@ func Run(ctx context.Context, svc Service, opts Options) error {
 	if err != nil {
 		// Non-fatal: fall back to discarding logger.
 		logger, closer, _ = newDebugLogger(false)
+		debugEnabled = false
 	}
 	defer closer.Close()
 
 	model := NewWithGOOS(svc, opts, runtime.GOOS)
 	model.debugLog = logger
+	if debugEnabled {
+		model.logPath, _ = debugLogPath()
+	}
 
 	_, err = tea.NewProgram(model, tea.WithContext(ctx)).Run()
 	return mapRunError(err)

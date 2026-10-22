@@ -1,0 +1,24 @@
+gctx ● ● ○ ● ● ●  5 active                                tab  All 19
+──────────────────────────────────────────────────────────────────────
+⚠ network unreachable · showing last known status
+  NAME                   TARGET                  ADC  STATUS
+   GCP  byoip-lab        byoip-lab-eu-west       ✓    ✗ EXPIRED
+ ● GCP  cloudsuite       sap-gap-cloud-asap-s    ✓    ? UNVERIFIED 2h
+   GCP  demo-ai          ai-builder-cup-demo     ✓    ? UNVERIFIED 2h
+   GCP  gap-dev          gap-platform-dev        ✓    ? UNVERIFIED 2h
+   GCP  hcp-agents       hcp-tf-agents-poc       ✓    ? UNVERIFIED 3d
+   GCP  infra-hub-prd    emarsys-infra-hub-prd   ✓    ? UNVERIFIED 3d
+   GCP  infra-hub-stg    emarsys-infra-hub-stg   ✓    ? UNVERIFIED 2h
+   GCP  rca-poc          k8s-ai-rca-poc          ✓    ? UNVERIFIED 2h
+   GCP  sbx-aliz         sandbox-dev-anggana     ✗    ⚠ AUTH REQUIRED
+   AWS  legacy-aws       legacy                  –    ⚠ AUTH REQUIRED
+▌● AWS  prod-aws         prod-sso                –    ? UNVERIFIED 3d
+   AZR  corp-azure       8c1f0a3e-0…000000e2a9   –    ? UNVERIFIED 2h
+  [CLD] claude-personal  personal                –    ⚠ AUTH REQUIRED
+  [CLD] claude-vertex    via cloudsuite          –    ? UNVERIFIED 3d
+ ●[CLD] claude-work      org Aliz Tech           –    ? UNVERIFIED 2h
+ ●[OAI] codex-work       workspace Aliz          –    ? UNVERIFIED 2h
+ ●[SMP] sumopod-dev      ai.sumopod.com          –    ? UNVERIFIED 2h
+──────────────────────────────────────────────────────────────────────
+R retry · switching still works offline   19 accounts · 19 need action
+tab provider  ↵ activate  / filter  ? help  q quit

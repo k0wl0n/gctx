@@ -7,7 +7,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/provider"
 
 	"github.com/k0wl0n/gctx/pkg/manager"
@@ -50,6 +49,9 @@ func (m Model) viewMain() string {
 		return fmt.Sprintf("Terminal too small: need at least %d×%d, current %d×%d",
 			minWidth, minHeight, m.width, m.height)
 	}
+	if m.firstRun != nil {
+		return m.viewFirstRun()
+	}
 	g := newGlyphs(asciiRequested())
 	st := newStylesFor(m.profile)
 	t := tierFor(m.width)
@@ -59,6 +61,9 @@ func (m Model) viewMain() string {
 		top = append(top, m.tabRow(g, st))
 	}
 	top = append(top, hRule(g, st, m.width))
+	if m.offline {
+		top = append(top, m.offlineBanner(m.width, g, st))
+	}
 	bodyHeight := max(m.height-len(top)-4, 1) // column headers, rule, status, hints
 	var panel []string
 	if m.feedback != nil && m.panelFits() {
@@ -67,12 +72,17 @@ func (m Model) viewMain() string {
 	}
 
 	listWidth := m.width
-	showPane := t == tierWide && m.paneOpen
+	showPane := t == tierWide && m.paneOpen && !m.onMissingCLITab()
 	if showPane {
 		listWidth = m.width - paneWidth(m.width) - 3
 	}
-	cols := m.tableColumns(listWidth - markerWidth)
-	list := append([]string{renderColumnHeaders(cols, g, st)}, m.listLines(cols, listWidth, bodyHeight, g, st)...)
+	var list []string
+	if m.onMissingCLITab() {
+		list = m.missingCLILines(listWidth, bodyHeight+1, g, st)
+	} else {
+		cols := m.tableColumns(listWidth - markerWidth)
+		list = append([]string{renderColumnHeaders(cols, g, st)}, m.listLines(cols, listWidth, bodyHeight, g, st)...)
+	}
 
 	if showPane {
 		pane := m.paneLines(m.width-listWidth-3, g, st)
@@ -231,32 +241,13 @@ func ruledLine(left, right string, width int, g glyphs, st styles) string {
 func (m Model) viewOverlay() string {
 	switch m.screen {
 	case screenHelp:
-		return renderHelp(m)
+		return m.viewHelp()
 	case screenDetails:
 		return renderDetails(m)
 	case screenLogin:
 		return m.viewLogin()
 	}
 	return ""
-}
-
-func renderHelp(m Model) string {
-	var b strings.Builder
-	b.WriteString("  " + config.AppName + " keybindings\n\n")
-	for _, group := range keys.groups() {
-		b.WriteString("  " + group.Title + "\n")
-		for _, binding := range group.Bindings {
-			h := binding.Help()
-			line := fmt.Sprintf("    %-20s %s\n", h.Key, h.Desc)
-			if cli := cliEquivalent(binding, "<name>"); cli != "" {
-				line = fmt.Sprintf("    %-20s %s  (%s)\n", h.Key, h.Desc, cli)
-			}
-			b.WriteString(line)
-		}
-		b.WriteByte('\n')
-	}
-	b.WriteString("  q / esc  close\n")
-	return b.String()
 }
 
 func renderDetails(m Model) string {

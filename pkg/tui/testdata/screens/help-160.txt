@@ -1,0 +1,40 @@
+gctx · keys                                                                                                                                    esc or ? to close
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  navigation                             actions                                        general
+  j/↓          next row                  enter   switch to selected account             R         reload
+  k/↑          previous row              /       filter                                 ?         help
+  g/home       first row                 esc     clear applied filter                   q/ctrl+c  quit
+  G/end        last row                  d/i     details                                :         command palette
+  ctrl+f/pgdn  page down                 l       login
+  ctrl+b/pgup  page up                   L       login every stale account
+  tab          next provider tab         s       subshell with every active slot
+  shift+tab    previous provider tab     S       subshell with only this account
+  1-9          jump to tab (1 is All)    y       copy the env eval line
+                                         r       run gcloud command
+  view                                   c       create account
+  p  toggle detail pane                  e       edit account
+  z  fold or unfold the provider group   ctrl+d  delete account
+  !  only rows needing action            a       save current ADC to selected account
+  o  cycle sort: name, status, expiry
+
+  providers
+  GCP          gcloud 540.0.0   ✓ global switch · ADC
+  AWS          aws 2.27.4       ✓ env: AWS_PROFILE
+  Azure        az 2.75.0        ✓ env: AZURE_CONFIG_DIR
+  Tencent      tccli not found  ○ pipx install tccli, or pip install tccli
+  Claude Code  no CLI needed    ✓ env: CLAUDE_CONFIG_DIR
+  Codex        no CLI needed    ✓ env: CODEX_HOME
+  SumoPod      no CLI needed    ✓ env: OPENAI_BASE_URL, OPENAI_API_KEY
+  OpenRouter   no CLI needed    ✓ env-based
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+config /tmp/gctx/config.json · log ~/.cache/gctx/tui-debug.log

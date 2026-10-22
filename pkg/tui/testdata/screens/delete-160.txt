@@ -1,0 +1,16 @@
+Delete  AZR  corp-azure
+
+⚠ this is the active Azure account; AZR becomes none
+
+remove
+  [x] gctx entry in config.json · always
+  [x] isolated az dir ~/.config/gctx/azure/corp-azure · 2.1 MB, cached tokens
+  [ ] run az logout first · revokes the refresh token server-side
+
+kept: the Azure subscription and its resources. gctx never touches cloud resources.
+
+type corp-azure to confirm
+
+
+[ Delete ]  [*Cancel*]
+esc cancel · default focus on Cancel · tab moves · space toggles

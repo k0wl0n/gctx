@@ -22,6 +22,9 @@ func matches(msg tea.KeyPressMsg, bound []string) bool {
 // updateMain handles all key presses in the main view.
 func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	k := msg.String()
+	if m.firstRun != nil {
+		return m.updateFirstRun(msg)
+	}
 
 	// quit always works
 	if matches(msg, keys.Quit.Keys()) {
@@ -63,8 +66,7 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		m = m.moveSelection(-m.pageSize())
 		return m, nil
 	case matches(msg, keys.Help.Keys()):
-		m.screen = screenHelp
-		return m, nil
+		return m.openHelp()
 	case matches(msg, keys.Details.Keys()):
 		m.screen = screenDetails
 		return m, nil
@@ -108,6 +110,7 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, nil
 	case matches(msg, keys.Reload.Keys()):
 		m.reload()
+		m.versionsLoaded = false // a rescan may have found new CLIs
 		cmd := m.startCredsCheck()
 		return m, tea.Batch(cmd, m.loadEnvCmd())
 	case matches(msg, keys.Command.Keys()):
@@ -231,6 +234,9 @@ func (m Model) updateFilter(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 
 // updateOverlay handles key presses on help and details screens.
 func (m Model) updateOverlay(msg tea.KeyPressMsg) (Model, tea.Cmd) {
+	if m.screen == screenHelp {
+		return m.updateHelp(msg)
+	}
 	k := msg.String()
 	switch k {
 	case "esc", "q", "d", "i", "?":
@@ -335,6 +341,7 @@ func (m Model) handleCreds(msg credsCheckedMsg) (Model, tea.Cmd) {
 		m.creds.progress = cloneOrNew(m.creds.progress)
 		m.creds.progress[msg.provider] = finishedProgress(m.creds.progress[msg.provider], msg)
 	}
+	m.offline = m.offlineAfterCheck()
 	for _, p := range m.creds.progress {
 		if !p.done {
 			m.reload()
@@ -356,6 +363,7 @@ func cloneOrNew[K comparable, V any](in map[K]V) map[K]V {
 
 func finishedProgress(p checkProgress, msg credsCheckedMsg) checkProgress {
 	p.done = true
+	p.unreachable = unreachable(msg)
 	switch {
 	case msg.err != nil:
 		p.failed, p.warning = true, msg.err.Error()
@@ -424,6 +432,9 @@ func dismissesFeedback(msg tea.KeyPressMsg) bool {
 // the open panel shows). It is a lookup command, never a secret. Providers
 // that switch globally have nothing to copy.
 func (m Model) copyEnvLine() (Model, tea.Cmd) {
+	if m.onMissingCLITab() {
+		return m.copyInstallCommand()
+	}
 	acct, ok := m.selectedAccount()
 	if !ok {
 		return m, m.setStatus("No account selected", levelInfo)

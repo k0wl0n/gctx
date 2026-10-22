@@ -257,7 +257,7 @@ func TestColonOpensPalette(t *testing.T) {
 // TestHelpScreenOpen verifies ? opens the help overlay.
 func TestHelpScreenOpen(t *testing.T) {
 	svc := newFakeService(sampleOverview("a", "a"))
-	m := newTestModel(t, svc, 100, 24)
+	m := newTestModel(t, svc, 160, 40) // the key list needs room: smaller terminals scroll it
 	m = press(t, m, "?")
 	if m.screen != screenHelp {
 		t.Errorf("screen %v, want screenHelp", m.screen)

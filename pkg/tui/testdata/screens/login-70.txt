@@ -1,0 +1,24 @@
+accounts ›  AZR  corp-azure › login
+──────────────────────────────────────────────────────────────────────
+1 ✓ isolate config
+2 ⠋ az login --use-device-code waiting 0:00
+
+┌──────────────────────────────────────────────────────┐
+│ open this page in any browser                        │
+│ https://microsoft.com/devicelogin                    │
+│ and enter the code                                   │
+│ F 7 K 2 - Q 9 X M                                    │
+│ o open browser   y copy code                         │
+└──────────────────────────────────────────────────────┘
+
+az output                                                   v full log
+$ az login --use-device-code
+To sign in, use a web browser to open the page
+https://microsoft.com/devicelogin
+and enter the code F7K2-Q9XM to authenticate.
+
+
+tokens stay in the isolated az dir; gctx never reads them
+──────────────────────────────────────────────────────────────────────
+                                           19 accounts · 6 need action
+esc cancel (stops az, account unchanged)

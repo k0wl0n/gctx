@@ -1,0 +1,24 @@
+gctx ● ● ○ ● ● ●  5 active                           tab  Tencent n/a
+──────────────────────────────────────────────────────────────────────
+
+
+                                  ○
+
+                        tccli is not installed
+
+    Tencent accounts need it for login, switching and auth checks.
+                     Other clouds are unaffected.
+
+                   ┌─────────────────────────────┐
+                   │ $ pipx install tccli        │
+                   │ then press R to rescan PATH │
+                   └─────────────────────────────┘
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────
+✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)  19 accounts · 5 need action
+y copy  R rescan  tab next provider

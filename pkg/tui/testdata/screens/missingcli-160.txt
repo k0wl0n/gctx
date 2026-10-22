@@ -1,0 +1,40 @@
+gctx vtest │ GCP ● cloudsuite  AWS ● prod-aws  AZR ○ │ ai CLD ● claude-work  OAI ● codex-work  SMP ● sumopod-dev                     ✓ cfg  auth checked 14s ago
+env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-work CODEX_HOME=~/.config/gctx/ai/codex-work OPENAI_…
+ All 19  GCP 9  AWS 2  Azure 1  Tencent n/a │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                                               sort name  / filter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+                                                                               ○
+
+                                                                     tccli is not installed
+
+                                  Tencent accounts need it for login, switching and auth checks. Other clouds are unaffected.
+
+                                                                ┌─────────────────────────────┐
+                                                                │ $ pipx install tccli        │
+                                                                │ then press R to rescan PATH │
+                                                                └─────────────────────────────┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+✓ GCP 9/9  ✓ AWS 2/2  ⠋ Azure 0/1 (timeout 8s)  ✓ AI tools 4/4  ✓ gateways 3/3                             19 accounts · 1 expired · 3 need login · 1 low budget
+y copy  R rescan  tab next provider

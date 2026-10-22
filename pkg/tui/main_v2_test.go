@@ -109,6 +109,7 @@ func TestHeaderHidesEmptySlots(t *testing.T) {
 	overview.Providers = append(overview.Providers, manager.ProviderInfo{
 		ID: "tencent", Label: "Tencent", Category: provider.CategoryCloud, Slot: "tencent", TargetLabel: "PROFILE",
 		Badge: provider.Badge{Text: "TCT", Style: provider.BadgeFilled, Color: "#c39bff"},
+		CLI:   provider.CLIStatus{Name: "tccli", Found: true}, // a missing CLI gets a tab; see TestMissingCLITabShowsInstallHint
 	})
 	svc := newMultiService()
 	svc.overview = overview
