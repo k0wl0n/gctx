@@ -214,6 +214,11 @@ func (m *Manager) sessionResult(id provider.ID, name, identity string) (provider
 	if identity != "" {
 		keys = append(keys, strings.ToLower(identity))
 	}
+	// A name-keyed Err result comes from a check that timed out after any
+	// identity-keyed result, so it wins.
+	if res, ok := m.authResults[id][name]; ok && res.Err != nil {
+		return res, true
+	}
 	var match provider.AuthResult
 	found := false
 	for _, key := range keys {
@@ -271,9 +276,10 @@ func (m *Manager) fillGlobalState(overview *Overview) {
 
 // providerCheck is one provider's part of CheckCredentials.
 type providerCheck struct {
-	id       provider.ID
-	accounts []string
-	report   provider.AuthReport
+	id        provider.ID
+	accounts  []string
+	report    provider.AuthReport
+	abandoned bool // timed out; report holds an Err result for every account
 }
 
 // CheckCredentials asks every provider that has accounts which of them hold
@@ -326,6 +332,12 @@ func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error
 			// Per-account results of an incomplete check still apply (a timed-out
 			// account becomes UNVERIFIED); unlisted accounts keep their status.
 			report.Warnings = append(report.Warnings, result.report.Warnings...)
+			if result.abandoned {
+				// Drop earlier results, including identity-keyed ones, so none
+				// outlives the timeout.
+				m.authResults[result.id] = stamped
+				continue
+			}
 			if m.authResults[result.id] == nil {
 				m.authResults[result.id] = map[string]provider.AuthResult{}
 			}
@@ -450,7 +462,7 @@ func (m *Manager) checkProvider(ctx context.Context, p provider.Provider, accoun
 		for _, account := range accounts {
 			results[account.Name] = provider.AuthResult{Err: ctx.Err()}
 		}
-		return providerCheck{id: p.ID(), report: provider.AuthReport{Results: results, Warnings: []Warning{{
+		return providerCheck{id: p.ID(), abandoned: true, report: provider.AuthReport{Results: results, Warnings: []Warning{{
 			Code:    WarnCredentialCheck,
 			Message: fmt.Sprintf("%s credential check did not finish within %s: %v", p.Label(), timeout, ctx.Err()),
 		}}}}

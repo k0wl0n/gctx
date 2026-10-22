@@ -197,6 +197,24 @@ func TestAzureCheckAuthExpired(t *testing.T) {
 	}
 }
 
+func TestAzureCheckAuthNetworkErrorIsUnverified(t *testing.T) {
+	h := newHarness(t, "FAKE_AZ_TOKEN_NETFAIL=1")
+	acct := h.created(t, "work")
+	report := h.provider.CheckAuth(context.Background(), []config.Account{acct})
+	if result := report.Results["work"]; result.Credentialed || result.Err == nil {
+		t.Fatalf("result %+v, want not credentialed with Err", result)
+	}
+}
+
+func TestAzureCheckAuthExpiredStillAuthRequired(t *testing.T) {
+	h := newHarness(t, "FAKE_AZ_TOKEN_FAIL=1")
+	acct := h.created(t, "work")
+	report := h.provider.CheckAuth(context.Background(), []config.Account{acct})
+	if result, present := report.Results["work"]; !present || result.Credentialed || result.Err != nil {
+		t.Fatalf("result %+v, want a not-credentialed verdict", result)
+	}
+}
+
 func TestAzureCheckAuthCredentialed(t *testing.T) {
 	h := newHarness(t)
 	acct := h.created(t, "work")

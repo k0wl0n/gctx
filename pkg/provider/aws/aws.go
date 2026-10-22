@@ -32,6 +32,14 @@ var ErrCLINotFound = errors.New("aws CLI not found; install AWS CLI v2")
 
 var profilePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,64}$`)
 
+// authFailureMarkers identify an sts failure caused by missing or expired
+// credentials; any other failure leaves the account UNVERIFIED.
+var authFailureMarkers = []string{
+	"ExpiredToken", "expired", "Unable to locate credentials", "Error loading SSO Token",
+	"SSO session", "The SSO session", "Token has expired", "InvalidClientTokenId",
+	"could not be found", "NoCredentialProviders",
+}
+
 // Options injects the AWS config location and process hooks.
 type Options struct {
 	ConfigFile string // "": $AWS_CONFIG_FILE, else ~/.aws/config
@@ -296,7 +304,7 @@ func (p *Provider) CheckAuth(ctx context.Context, accts []config.Account) provid
 	return providerutil.CheckEach(ctx, accts, func(ctx context.Context, acct config.Account) provider.AuthResult {
 		out, err := runner.Query(ctx, p.childEnv(), "sts", "get-caller-identity", "--profile", acct.Target(), "--output", "json")
 		if err != nil {
-			return provider.AuthResult{}
+			return providerutil.FailedCheck(err, authFailureMarkers)
 		}
 		var identity struct{ Arn string }
 		if json.Unmarshal([]byte(out), &identity) != nil {

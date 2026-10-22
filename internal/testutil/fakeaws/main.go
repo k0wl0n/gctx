@@ -5,6 +5,7 @@
 //
 //	FAKE_AWS_STS_FAIL=1       sts get-caller-identity exits 255 with ExpiredToken
 //	FAKE_AWS_STS_HANG=1       sts get-caller-identity blocks until killed
+//	FAKE_AWS_STS_NETFAIL=1    sts get-caller-identity exits 255 with a network error
 //	FAKE_AWS_ARN=<arn>        ARN returned by sts (default arn:aws:iam::123456789012:user/tester)
 //	FAKE_AWS_LOGIN_FAIL=1     sso login exits 1
 //
@@ -52,6 +53,10 @@ func run(args []string) int {
 func sts() int {
 	if os.Getenv("FAKE_AWS_STS_HANG") != "" {
 		time.Sleep(time.Minute)
+	}
+	if os.Getenv("FAKE_AWS_STS_NETFAIL") != "" {
+		fmt.Fprintln(os.Stderr, `Could not connect to the endpoint URL: "https://sts.amazonaws.com/"`)
+		return 255
 	}
 	if os.Getenv("FAKE_AWS_STS_FAIL") != "" {
 		fmt.Fprintln(os.Stderr, "An error occurred (ExpiredToken) when calling the GetCallerIdentity operation: The security token included in the request is expired")

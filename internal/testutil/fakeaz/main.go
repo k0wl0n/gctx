@@ -6,6 +6,7 @@
 //	FAKE_AZ_LOGIN_FAIL=1   login exits 1
 //	FAKE_AZ_TOKEN_FAIL=1   account get-access-token exits 1 with an expiry error
 //	FAKE_AZ_TOKEN_HANG=1   account get-access-token blocks until killed
+//	FAKE_AZ_TOKEN_NETFAIL=1 account get-access-token exits 1 with a network error
 //
 // get-access-token prints a token-looking value only when --query is absent,
 // so tests can prove gctx never asks for the token itself.
@@ -72,6 +73,10 @@ func login() int {
 func accessToken(args []string) (code int, tokenEmitted bool) {
 	if os.Getenv("FAKE_AZ_TOKEN_HANG") != "" {
 		time.Sleep(time.Minute)
+	}
+	if os.Getenv("FAKE_AZ_TOKEN_NETFAIL") != "" {
+		fmt.Fprintln(os.Stderr, "ERROR: HTTPSConnectionPool(host='login.microsoftonline.com', port=443): Max retries exceeded (Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known)")
+		return 1, false
 	}
 	if os.Getenv("FAKE_AZ_TOKEN_FAIL") != "" {
 		fmt.Fprintln(os.Stderr, "ERROR: AADSTS70043: The refresh token has expired. Run 'az login' to refresh.")

@@ -3,6 +3,8 @@ package providerutil
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"sync"
 
 	"github.com/k0wl0n/gctx/pkg/config"
@@ -57,4 +59,31 @@ func CheckEach(ctx context.Context, accts []config.Account, check func(ctx conte
 	}
 	wg.Wait()
 	return report
+}
+
+// IsAuthFailure reports whether CLI output contains one of the markers that
+// identify a rejected or expired credential (case-insensitive).
+func IsAuthFailure(output string, markers []string) bool {
+	output = strings.ToLower(output)
+	for _, marker := range markers {
+		if strings.Contains(output, strings.ToLower(marker)) {
+			return true
+		}
+	}
+	return false
+}
+
+// FailedCheck turns a failed credential check into a result: a known auth
+// failure is a not-credentialed verdict; anything else (network, timeout,
+// unknown) carries err and becomes UNVERIFIED.
+func FailedCheck(err error, markers []string) provider.AuthResult {
+	output := err.Error()
+	var commandErr *provider.CommandError
+	if errors.As(err, &commandErr) {
+		output = commandErr.Output
+	}
+	if IsAuthFailure(output, markers) {
+		return provider.AuthResult{}
+	}
+	return provider.AuthResult{Err: err}
 }

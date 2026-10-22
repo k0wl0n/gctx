@@ -200,3 +200,37 @@ func TestAbandonedProviderBecomesUnverified(t *testing.T) {
 		t.Errorf("b-aws: %s %+v", b.Status, b.Findings)
 	}
 }
+
+func TestAbandonedIdentityKeyedProviderBecomesUnverified(t *testing.T) {
+	fake := newFake(provider.GCP, "PROJECT")
+	fake.localFn = func(config.Account) provider.LocalStatus {
+		return provider.LocalStatus{Status: provider.HealthReady, Identity: "Me@Example.com"}
+	}
+	hang := false
+	release := make(chan struct{})
+	defer close(release)
+	fake.checkAuthFn = func(context.Context, []config.Account) provider.AuthReport {
+		if hang {
+			<-release // hung: ignores ctx entirely
+		}
+		// Keyed by lower-cased identity, as GCP's ListAuth does.
+		return provider.AuthReport{Results: map[string]provider.AuthResult{"me@example.com": {Credentialed: true, Identity: "Me@Example.com"}}}
+	}
+	now := cacheNow
+	m := cacheManager(t, &now, []config.Account{{Name: "work", ConfigName: "work-config", ProjectID: "proj-one"}}, fake)
+	if _, err := m.CheckCredentials(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if got := status(t, m, "work"); got.Status != manager.HealthReady {
+		t.Fatalf("after good check: %s", got.Status)
+	}
+
+	now, hang = cacheNow.Add(2*time.Hour), true
+	if _, err := m.CheckCredentials(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	got := status(t, m, "work")
+	if got.Status != manager.HealthUnverified || got.LastGoodAge != 2*time.Hour || got.Identity != "Me@Example.com" {
+		t.Errorf("after hung check: %s age=%s %+v", got.Status, got.LastGoodAge, got)
+	}
+}

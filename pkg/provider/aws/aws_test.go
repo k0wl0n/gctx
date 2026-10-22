@@ -137,6 +137,22 @@ func TestAWSCheckAuthExpired(t *testing.T) {
 	}
 }
 
+func TestAWSCheckAuthNetworkErrorIsUnverified(t *testing.T) {
+	h := newHarness(t, ssoConfig, "FAKE_AWS_STS_NETFAIL=1")
+	report := h.provider.CheckAuth(context.Background(), []config.Account{account("work", "work")})
+	if result := report.Results["work"]; result.Credentialed || result.Err == nil {
+		t.Fatalf("result %+v, want not credentialed with Err", result)
+	}
+}
+
+func TestAWSCheckAuthExpiredStillAuthRequired(t *testing.T) {
+	h := newHarness(t, ssoConfig, "FAKE_AWS_STS_FAIL=1")
+	report := h.provider.CheckAuth(context.Background(), []config.Account{account("work", "work")})
+	if result, present := report.Results["work"]; !present || result.Credentialed || result.Err != nil {
+		t.Fatalf("result %+v, want a not-credentialed verdict", result)
+	}
+}
+
 func TestAWSCheckAuthHonoursContext(t *testing.T) {
 	h := newHarness(t, ssoConfig, "FAKE_AWS_STS_HANG=1")
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)

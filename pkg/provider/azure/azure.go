@@ -31,6 +31,13 @@ var ErrCLINotFound = errors.New("az CLI not found; install the Azure CLI")
 
 var guidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
+// authFailureMarkers identify a token failure caused by a missing or expired
+// login; any other failure leaves the account UNVERIFIED.
+var authFailureMarkers = []string{
+	"AADSTS", "az login", "Please run 'az login'", "Interactive authentication is needed",
+	"expired", "refresh token", "No subscription found", "not logged in",
+}
+
 // Options injects the isolated-directory root and process hooks.
 type Options struct {
 	ConfigRoot string // parent of every account's AZURE_CONFIG_DIR
@@ -230,7 +237,7 @@ func (p *Provider) Local(acct config.Account) provider.LocalStatus {
 
 // CheckAuth asks az only for the token's expiry (--query keeps the token out
 // of the output) for every account in parallel. Results are keyed by
-// account name; a non-zero exit means expired or not logged in.
+// account name; a failure is not logged in only when az says so (authFailureMarkers).
 func (p *Provider) CheckAuth(ctx context.Context, accts []config.Account) provider.AuthReport {
 	runner, err := p.runner()
 	if err != nil {
@@ -246,7 +253,10 @@ func (p *Provider) CheckAuth(ctx context.Context, accts []config.Account) provid
 		}
 		out, err := runner.Query(ctx, []string{envConfDir + "=" + dir},
 			"account", "get-access-token", "--subscription", acct.Target(), "--query", "expiresOn", "--output", "tsv")
-		return provider.AuthResult{Credentialed: err == nil && out != ""}
+		if err != nil {
+			return providerutil.FailedCheck(err, authFailureMarkers)
+		}
+		return provider.AuthResult{Credentialed: out != ""}
 	})
 }
 
