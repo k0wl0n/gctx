@@ -414,3 +414,10 @@ func TestAWSLoginNoWarningWhenComplete(t *testing.T) {
 		t.Fatalf("result %+v err %v", result, err)
 	}
 }
+
+func TestAWSIsEnvBased(t *testing.T) {
+	var p provider.Provider = aws.New(aws.Options{})
+	if eb, ok := p.(provider.EnvBased); !ok || !eb.EnvBased() {
+		t.Error("aws must be env-based")
+	}
+}

@@ -531,7 +531,7 @@ func TestFoldAllReadyGroupCanBeExpanded(t *testing.T) {
 	}
 	// Actions do not act on the placeholder.
 	before := len(m.svcCalls())
-	for _, k := range []string{"enter", "l", "s", "r", "a", "ctrl+d"} {
+	for _, k := range []string{"enter", "l", "s", "S", "y", "r", "a", "ctrl+d"} {
 		m2, _ := m.dispatch(keyMsg(k)) // dispatch: keep the info message, which drain would expire
 		if !strings.Contains(m2.status.text, "press z") || m2.modal != nil || len(m.svcCalls()) != before {
 			t.Errorf("%s on placeholder: status %q modal %v calls %v", k, m2.status.text, m2.modal, m.svcCalls()[before:])

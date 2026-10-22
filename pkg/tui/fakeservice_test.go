@@ -219,7 +219,7 @@ func multiProviders() []manager.ProviderInfo {
 			CLI: provider.CLIStatus{Bin: "/usr/bin/" + string(id), Found: true}, CheckTimeout: 8 * time.Second,
 		}
 	}
-	return []manager.ProviderInfo{
+	infos := []manager.ProviderInfo{
 		info(provider.GCP, "GCP", provider.CategoryCloud, "gcp", "PROJECT", provider.Badge{Text: "GCP", Style: provider.BadgeFilled, Color: "#6ea8fe"}),
 		info(provider.AWS, "AWS", provider.CategoryCloud, "aws", "PROFILE", provider.Badge{Text: "AWS", Style: provider.BadgeFilled, Color: "#ffa657"},
 			settingColumn("region", "REGION", 14)),
@@ -233,6 +233,10 @@ func multiProviders() []manager.ProviderInfo {
 		info(fakeOpenRouter, "OpenRouter", provider.CategoryAIGateway, "openai-api", "BASE URL", provider.Badge{Text: "ORT", Style: provider.BadgeDashed, Color: "#a3b1ff"},
 			settingColumn("key_ref", "KEY REF", 30)),
 	}
+	for i := range infos {
+		infos[i].EnvBased = infos[i].ID != provider.GCP // GCP switches globally
+	}
+	return infos
 }
 
 // multiOverview is the canvas data: 9 GCP, 2 AWS, 1 Azure, 3 Claude Code,

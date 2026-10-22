@@ -18,6 +18,19 @@ type feedbackPanel struct {
 	account       string
 	replaced      string
 	evalLine      string
+	slot          string
+}
+
+// panelFits reports whether the panel can be drawn on this terminal: the
+// header, tabs, column headers, status and hints take up to 8 rows. The view
+// and the switch status share this so the user always gets one confirmation.
+func (m Model) panelFits() bool {
+	return m.height-8-feedbackHeight >= minListRows
+}
+
+// feedbackStatus is the one-line confirmation used when the panel cannot be drawn.
+func feedbackStatus(f *feedbackPanel) string {
+	return f.account + " active for " + f.slot + " · terminal unchanged: " + f.evalLine
 }
 
 // feedbackHeight is the panel's maximum height; it is only drawn when the
@@ -33,7 +46,7 @@ func envEvalLine(account string) string {
 }
 
 func (m Model) newFeedback(res manager.SwitchResult) *feedbackPanel {
-	panel := &feedbackPanel{account: res.Account, replaced: res.Replaced, evalLine: res.ApplyHint}
+	panel := &feedbackPanel{account: res.Account, replaced: res.Replaced, evalLine: res.ApplyHint, slot: res.Slot}
 	if account, ok := m.overview.Account(res.Account); ok {
 		info := m.providerInfo(account.Provider)
 		panel.providerLabel, panel.badgeColor = info.Label, info.Badge.Color

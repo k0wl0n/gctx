@@ -189,6 +189,7 @@ type ProviderInfo struct {
 	Category     provider.Category
 	Badge        provider.Badge
 	Slot         string
+	EnvBased     bool // activation only prints an env line (provider.EnvBased)
 	TargetLabel  string
 	Columns      []provider.Column
 	CLI          provider.CLIStatus

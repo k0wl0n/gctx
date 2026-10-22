@@ -99,7 +99,11 @@ func (m *Manager) Providers() []ProviderInfo {
 func (m *Manager) providerInfos(clis map[provider.ID]provider.CLIStatus, counts map[provider.ID]int) []ProviderInfo {
 	var infos []ProviderInfo
 	for _, p := range m.providers.All() {
-		infos = append(infos, ProviderInfo{
+		envBased := false
+		if marker, ok := p.(provider.EnvBased); ok {
+			envBased = marker.EnvBased()
+		}
+		infos = append(infos, ProviderInfo{EnvBased: envBased,
 			ID: p.ID(), Label: p.Label(), Category: p.Category(), Badge: p.Badge(), Slot: p.Slot(),
 			TargetLabel: p.TargetLabel(), Columns: p.Columns(), CLI: clis[p.ID()],
 			CheckTimeout: m.opts.CredentialTimeout, Count: counts[p.ID()],

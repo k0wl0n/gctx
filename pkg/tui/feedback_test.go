@@ -151,3 +151,79 @@ func TestHintAndHelpListCopyAndSubshellKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestEnvSwitchOnAllTabKeepsActivatedAccountSelected(t *testing.T) {
+	svc := newMultiService()
+	svc.switchRes = manager.SwitchResult{Account: "legacy-aws", Slot: "aws", ApplyHint: wantEval}
+	m := multiModel(t, svc, 128, 40)
+	m.selected = "legacy-aws"
+	m, _ = m.startSwitch("legacy-aws")
+	m, _ = m.handleOpDone(opDoneMsg{seq: m.op.seq, kind: opSwitch, account: "legacy-aws", result: svc.switchRes})
+	if m.selected != "legacy-aws" {
+		t.Fatalf("selection jumped to %q", m.selected)
+	}
+	_, cmd := m.dispatch(keyMsg("y"))
+	if cmd == nil || !strings.Contains(m.statusFor(t, "y"), wantEval) {
+		t.Error("y did not act on the activated account")
+	}
+}
+
+func (m Model) statusFor(t testing.TB, key string) string {
+	m, _ = m.dispatch(keyMsg(key))
+	return m.status.text
+}
+
+func TestPanelDismissedByMovement(t *testing.T) {
+	for _, key := range []string{"j", "k", "g", "G", "ctrl+f", "ctrl+b", "tab", "shift+tab", "2", "z", "/"} {
+		m := press(t, awsSwitchModel(t, ""), "enter")
+		if m.feedback == nil {
+			t.Fatal("no panel")
+		}
+		m, _ = m.dispatch(keyMsg(key))
+		if m.feedback != nil {
+			t.Errorf("%s left the panel open", key)
+		}
+	}
+}
+
+func TestShortTerminalGetsStatusInsteadOfPanel(t *testing.T) {
+	svc := newMultiService()
+	svc.switchRes = manager.SwitchResult{Account: "legacy-aws", Slot: "aws", ApplyHint: wantEval}
+	m := multiModel(t, svc, 128, 14)
+	m = m.selectTab(2)
+	m.selected = "legacy-aws"
+	m, _ = m.startSwitch("legacy-aws")
+	m, _ = m.handleOpDone(opDoneMsg{seq: m.op.seq, kind: opSwitch, account: "legacy-aws", result: svc.switchRes})
+	if !strings.Contains(m.status.text, "unchanged") || !strings.Contains(m.status.text, wantEval) {
+		t.Errorf("status %q", m.status.text)
+	}
+	if strings.Contains(screen(m), "copy that line") {
+		t.Error("panel drawn on a short terminal")
+	}
+}
+
+func TestCopyEnvIgnoredOnGlobalSwitchProvider(t *testing.T) {
+	m := multiModel(t, newMultiService(), 128, 30)
+	m.selected = "cloudsuite"
+	m, cmd := m.dispatch(keyMsg("y"))
+	if !strings.Contains(m.status.text, "switches globally; nothing to copy") {
+		t.Errorf("status %q", m.status.text)
+	}
+	if strings.Contains(m.status.text, "eval") {
+		t.Error("status offers an eval line")
+	}
+	_ = cmd
+	var copied bool
+	if cmd != nil {
+		done := make(chan tea.Msg, 1)
+		go func() { done <- cmd() }()
+		select {
+		case msg := <-done:
+			copied = msg == tea.SetClipboard(`eval "$(`+config.AppName+` env cloudsuite)"`)()
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+	if copied {
+		t.Error("copied a line for a global-switch provider")
+	}
+}

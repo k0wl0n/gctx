@@ -77,7 +77,9 @@ func (m Model) handleOpDone(msg opDoneMsg) (Model, tea.Cmd) {
 			m.selected = account
 		}
 		// Re-apply: if the active account is now something else, follow it.
-		if active, ok := m.overview.Active(); ok && m.isVisible(active.Name) {
+		// An env-based switch leaves the activated account selected, which
+		// is the one the feedback panel and its keys refer to.
+		if active, ok := m.overview.Active(); ok && m.isVisible(active.Name) && res.ApplyHint == "" {
 			m.selected = active.Name
 		}
 		if res.ApplyHint != "" {
@@ -91,7 +93,10 @@ func (m Model) handleOpDone(msg opDoneMsg) (Model, tea.Cmd) {
 			return m, m.setStatus("switched (warnings: "+strings.Join(msgs, "; ")+")", levelWarning)
 		}
 		if m.feedback != nil {
-			return m, nil
+			if m.panelFits() {
+				return m, nil
+			}
+			return m, m.setStatus(feedbackStatus(m.feedback), levelInfo)
 		}
 		return m, m.setStatus("switched to "+account, levelInfo)
 

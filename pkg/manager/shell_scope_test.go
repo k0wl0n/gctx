@@ -74,3 +74,22 @@ func TestSelectedAccountWinsInItsSlot(t *testing.T) {
 		t.Error("other active slot missing")
 	}
 }
+
+type envBasedFake struct{ *fakeProvider }
+
+func (envBasedFake) EnvBased() bool { return true }
+
+func TestProviderInfoReportsEnvBased(t *testing.T) {
+	m, _ := dispatchManager(t, twoProviderAccounts(), newFake(provider.GCP, "PROJECT"), envBasedFake{newFake(provider.AWS, "PROFILE")})
+	overview, err := m.Overview()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[provider.ID]bool{}
+	for _, info := range overview.Providers {
+		got[info.ID] = info.EnvBased
+	}
+	if got[provider.GCP] || !got[provider.AWS] {
+		t.Errorf("EnvBased %v, want gcp false, aws true", got)
+	}
+}

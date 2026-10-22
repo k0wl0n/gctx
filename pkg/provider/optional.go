@@ -10,6 +10,13 @@ import (
 // The interfaces below are optional capabilities. Callers check for them with
 // a type assertion; today only GCP implements them.
 
+// EnvBased marks a provider whose activation is only an environment: switching
+// changes gctx's active account but no global state, so the user applies it
+// with `env` (eval line). Providers without it switch globally.
+type EnvBased interface {
+	EnvBased() bool
+}
+
 // InspectedStatus is LocalStatus plus GCP's stored-ADC and gcloud
 // configuration details.
 type InspectedStatus struct {

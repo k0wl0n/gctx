@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"charm.land/bubbles/v2/key"
 	"maps"
 	"strconv"
 
@@ -35,6 +36,10 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 			return m, m.setStatus("Busy: "+m.op.desc+" — wait for it to finish, or press ctrl+c twice to force quit", levelWarning)
 		}
 		return m, tea.Quit
+	}
+
+	if m.feedback != nil && dismissesFeedback(msg) {
+		m.feedback = nil
 	}
 
 	// navigation is always available (not gated by busy)
@@ -109,13 +114,12 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, m.setStatus("Command mode is not available yet", levelInfo)
 	}
 
+	if _, ok := m.selectedPlaceholder(); ok && accountKeys[k] {
+		return m, m.setStatus("This group is folded: press z to expand it", levelInfo)
+	}
+
 	if matches(msg, keys.CopyEnv.Keys()) {
-		acct, ok := m.selectedAccount()
-		if !ok {
-			return m, m.setStatus("No account selected", levelInfo)
-		}
-		line := envEvalLine(acct.Name)
-		return m, tea.Batch(tea.SetClipboard(line), m.setStatus("copied: "+line, levelInfo))
+		return m.copyEnvLine()
 	}
 
 	// actions below may be gated by busy
@@ -123,13 +127,12 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, m.setStatus("Busy: "+m.op.desc, levelWarning)
 	}
 
-	if _, ok := m.selectedPlaceholder(); ok && accountKeys[k] {
-		return m, m.setStatus("This group is folded: press z to expand it", levelInfo)
-	}
-
 	// CLI gating: switch, login and run need the selected row's provider CLI;
 	// create still needs gcloud while the create form is GCP-only.
 	acct, hasSelection := m.selectedAccount()
+	if m.feedback != nil && hasSelection {
+		acct.Name = m.feedback.account // the panel's keys act on what it shows
+	}
 	if cliGated[k] && hasSelection {
 		if info, known := m.knownProvider(acct.Provider); known && !info.CLI.Found {
 			return m, m.setStatus(cliMissingText(info), levelError)
@@ -379,4 +382,36 @@ func (m Model) pageSize() int {
 		return 1
 	}
 	return ps
+}
+
+// dismissesFeedback reports keys that move the selection or change what is
+// listed, so the panel never describes a row other than the one acted on.
+func dismissesFeedback(msg tea.KeyPressMsg) bool {
+	for _, binding := range []key.Binding{
+		keys.Down, keys.Up, keys.First, keys.Last, keys.PageDown, keys.PageUp,
+		keys.NextTab, keys.PrevTab, keys.JumpTab, keys.Filter, keys.Fold, keys.NeedsAction, keys.Sort,
+	} {
+		if matches(msg, binding.Keys()) {
+			return true
+		}
+	}
+	return false
+}
+
+// copyEnvLine copies the eval line of the selected account (or the account
+// the open panel shows). It is a lookup command, never a secret. Providers
+// that switch globally have nothing to copy.
+func (m Model) copyEnvLine() (Model, tea.Cmd) {
+	acct, ok := m.selectedAccount()
+	if !ok {
+		return m, m.setStatus("No account selected", levelInfo)
+	}
+	if m.feedback != nil {
+		acct.Name = m.feedback.account
+	}
+	if info := m.providerInfo(acct.Provider); !info.EnvBased {
+		return m, m.setStatus(info.Label+" switches globally; nothing to copy", levelInfo)
+	}
+	line := envEvalLine(acct.Name)
+	return m, tea.Batch(tea.SetClipboard(line), m.setStatus("copied: "+line, levelInfo))
 }
