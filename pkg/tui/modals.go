@@ -7,6 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
 // warningMessage maps a warning code to a short user-facing message.
@@ -59,6 +60,7 @@ func (m Model) handleOpDone(msg opDoneMsg) (Model, tea.Cmd) {
 		return m, nil
 	}
 	kind := m.op.kind
+	loginAfter := m.op.loginAfter
 	account := msg.account
 	m.op = nil
 	m.modal = nil
@@ -113,9 +115,18 @@ func (m Model) handleOpDone(msg opDoneMsg) (Model, tea.Cmd) {
 			m.selected = res.Account
 		}
 		cmd := m.setStatus("created "+res.Account, levelInfo)
+		if !loginAfter {
+			return m, cmd
+		}
 		loginM, loginCmd := m.startLogin(res.Account)
 		m = loginM
 		return m, tea.Batch(cmd, loginCmd)
+
+	case opUpdate:
+		if m.isVisible(account) {
+			m.selected = account
+		}
+		return m, m.setStatus("updated "+account, levelInfo)
 	}
 
 	return m, nil
@@ -157,9 +168,28 @@ func (m Model) openDelete(name string) (Model, tea.Cmd) {
 	return m, nil
 }
 
-// openCreate opens the create account form.
+// openCreate opens the create account form, preselecting the provider of the
+// selected account.
 func (m Model) openCreate() (Model, tea.Cmd) {
-	m.modal = newCreateForm()
+	preferred := provider.ID("")
+	if acct, ok := m.selectedAccount(); ok {
+		preferred = acct.Provider
+	}
+	m.modal = newCreateForm(m.overview, preferred)
+	return m, nil
+}
+
+// openEdit opens the form prefilled for name; only editable fields change.
+func (m Model) openEdit(name string) (Model, tea.Cmd) {
+	acct, ok := m.overview.Account(name)
+	if !ok {
+		return m, nil
+	}
+	form, ok := newEditForm(m.overview, acct)
+	if !ok {
+		return m, m.setStatus("provider of "+name+" is not available in this build", levelError)
+	}
+	m.modal = form
 	return m, nil
 }
 
@@ -346,157 +376,5 @@ func (d *deleteDialog) view(m Model) string {
 		confirmLabel = "[*Delete*]"
 	}
 	sb.WriteString(cancelLabel + "  " + confirmLabel)
-	return sb.String()
-}
-
-// ─── Create form ──────────────────────────────────────────────────────────────
-
-type createField int
-
-const (
-	fieldName createField = iota
-	fieldProject
-	fieldSubmit
-)
-
-type createForm struct {
-	nameInput     lineInput
-	projectInput  lineInput
-	focus         createField
-	nameErr       string
-	projectErr    string
-	reuseWarning  string
-	reuseAccepted bool
-}
-
-func newCreateForm() *createForm {
-	name := newLineInput("Name: ")
-	project := newLineInput("Project: ")
-	return &createForm{nameInput: name, projectInput: project, focus: fieldName}
-}
-
-func (f *createForm) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
-	key, ok := msg.(tea.KeyPressMsg)
-	if !ok {
-		return m, nil
-	}
-
-	switch key.String() {
-	case "esc":
-		m.modal = nil
-		return m, nil
-
-	case "tab":
-		switch f.focus {
-		case fieldName:
-			f.focus = fieldProject
-		case fieldProject:
-			f.focus = fieldSubmit
-		case fieldSubmit:
-			f.focus = fieldName
-		}
-		m.modal = f
-		return m, nil
-
-	case "shift+tab":
-		switch f.focus {
-		case fieldSubmit:
-			f.focus = fieldProject
-		case fieldProject:
-			f.focus = fieldName
-		case fieldName:
-			f.focus = fieldSubmit
-		}
-		m.modal = f
-		return m, nil
-
-	case "enter":
-		if f.focus == fieldName {
-			f.focus = fieldProject
-			m.modal = f
-			return m, nil
-		}
-		if f.focus == fieldProject {
-			f.focus = fieldSubmit
-			m.modal = f
-			return m, nil
-		}
-		// Submit.
-		nameVal := strings.TrimSpace(f.nameInput.Value())
-		projectVal := strings.TrimSpace(f.projectInput.Value())
-
-		if err := manager.ValidateAccountName(nameVal); err != nil {
-			f.nameErr = err.Error()
-			f.focus = fieldName
-			m.modal = f
-			return m, nil
-		}
-		f.nameErr = ""
-		if projectVal != "" {
-			if err := manager.ValidateProjectID(projectVal); err != nil {
-				f.projectErr = err.Error()
-				f.focus = fieldProject
-				m.modal = f
-				return m, nil
-			}
-		}
-		f.projectErr = ""
-
-		if _, exists := m.overview.Account(nameVal); exists {
-			if !f.reuseAccepted {
-				f.reuseWarning = "Account '" + nameVal + "' already exists. Press Enter again to proceed anyway."
-				f.reuseAccepted = true
-				m.modal = f
-				return m, nil
-			}
-		}
-		f.reuseWarning = ""
-
-		m.modal = nil
-		if m.busy() {
-			return m, m.setStatus("Busy: "+m.op.desc, levelWarning)
-		}
-		m.seq++
-		seq := m.seq
-		name := nameVal
-		project := projectVal
-		m.op = &operation{kind: opCreate, account: name, desc: "creating", seq: seq, started: m.now()}
-		cmd := func() tea.Msg {
-			result, err := m.svc.Create(context.Background(), name, project)
-			return opDoneMsg{seq: seq, kind: opCreate, account: name, result: result, err: err}
-		}
-		return m, tea.Batch(func() tea.Msg { return m.spin.Tick() }, cmd)
-	}
-
-	// Forward typing to the active field.
-	switch f.focus {
-	case fieldName:
-		f.nameInput.update(key)
-	case fieldProject:
-		f.projectInput.update(key)
-	}
-	m.modal = f
-	return m, nil
-}
-
-func (f *createForm) view(m Model) string {
-	var sb strings.Builder
-	sb.WriteString("Create account\n\n")
-	sb.WriteString(f.nameInput.View(f.focus == fieldName) + "\n")
-	if f.nameErr != "" {
-		sb.WriteString("  ! " + f.nameErr + "\n")
-	}
-	sb.WriteString(f.projectInput.View(f.focus == fieldProject) + "\n")
-	if f.projectErr != "" {
-		sb.WriteString("  ! " + f.projectErr + "\n")
-	}
-	if f.reuseWarning != "" {
-		sb.WriteString("\n" + f.reuseWarning + "\n")
-	}
-	submitLabel := "[ Create ]"
-	if f.focus == fieldSubmit {
-		submitLabel = "[*Create*]"
-	}
-	sb.WriteString("\n" + submitLabel)
 	return sb.String()
 }

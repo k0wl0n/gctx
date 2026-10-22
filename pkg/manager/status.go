@@ -103,11 +103,21 @@ func (m *Manager) providerInfos(clis map[provider.ID]provider.CLIStatus, counts 
 		if marker, ok := p.(provider.EnvBased); ok {
 			envBased = marker.EnvBased()
 		}
-		infos = append(infos, ProviderInfo{EnvBased: envBased,
+		info := ProviderInfo{EnvBased: envBased, CanLogin: true, Form: p.Form(),
 			ID: p.ID(), Label: p.Label(), Category: p.Category(), Badge: p.Badge(), Slot: p.Slot(),
 			TargetLabel: p.TargetLabel(), Columns: p.Columns(), CLI: clis[p.ID()],
 			CheckTimeout: m.opts.CredentialTimeout, Count: counts[p.ID()],
-		})
+		}
+		if footer, ok := p.(provider.FormFooter); ok {
+			info.Footer = footer.Footer
+		}
+		if installer, ok := p.(provider.Installer); ok {
+			info.InstallHint = installer.InstallHint()
+		}
+		if login, ok := p.(provider.LoginCapable); ok {
+			info.CanLogin = login.HasLogin()
+		}
+		infos = append(infos, info)
 	}
 	return infos
 }

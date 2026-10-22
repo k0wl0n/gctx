@@ -68,6 +68,13 @@ type CreateRequest struct {
 	Fields   map[string]string
 }
 
+// UpdateRequest changes an account. An empty NewName keeps the name; Settings
+// are merged into the stored settings, an empty value removing the key.
+type UpdateRequest struct {
+	NewName  string
+	Settings map[string]string
+}
+
 type CreateResult struct {
 	Account    string
 	ConfigName string
@@ -195,6 +202,11 @@ type ProviderInfo struct {
 	CLI          provider.CLIStatus
 	CheckTimeout time.Duration // bound on one credential check
 	Count        int           // accounts using this provider
+
+	Form        []provider.FormField
+	Footer      func(values map[string]string) (writes, never string) // nil: none
+	InstallHint string                                                // how to install the CLI; "" when unknown
+	CanLogin    bool
 }
 
 // Active returns the status of the gcp slot's active account, if any.

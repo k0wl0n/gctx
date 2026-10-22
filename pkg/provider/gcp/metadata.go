@@ -17,3 +17,17 @@ func (p *Provider) Form() []provider.FormField {
 		{Key: provider.FormTargetKey, Label: "Project ID", Validate: p.ValidateTarget},
 	}
 }
+
+// Footer implements provider.FormFooter.
+func (p *Provider) Footer(values map[string]string) (writes, never string) {
+	configName := "<name>"
+	if name := values[provider.FormNameKey]; name != "" {
+		configName = ConfigNameFor(name)
+	}
+	return "config.json (name, project) · gcloud configuration " + configName, "passwords, tokens or keys"
+}
+
+// InstallHint implements provider.Installer.
+func (p *Provider) InstallHint() string {
+	return "install the Google Cloud SDK: https://cloud.google.com/sdk/docs/install"
+}

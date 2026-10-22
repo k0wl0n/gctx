@@ -92,7 +92,11 @@ type Column struct {
 // profile, subscription).
 const FormTargetKey = "target"
 
-// FormField is one create-form input. Validate may be nil.
+// FormNameKey is the key under which the account name is passed to Visible
+// and FormFooter alongside the field values.
+const FormNameKey = "name"
+
+// FormField is one create-form input. Validate and Visible may be nil.
 type FormField struct {
 	Key      string
 	Label    string
@@ -100,6 +104,12 @@ type FormField struct {
 	Help     string
 	Options  []string
 	Validate func(string) error
+	// Visible hides the field while it returns false for the current values
+	// (nil: always shown). Hidden fields are neither validated nor submitted.
+	Visible func(values map[string]string) bool
+	// Editable fields may change after creation; the rest are identity and
+	// read-only in the edit form.
+	Editable bool
 	// Secret fields accept only a key reference (op://, env:, ...), never a
 	// raw secret value.
 	Secret bool

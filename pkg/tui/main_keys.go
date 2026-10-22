@@ -127,8 +127,8 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, m.setStatus("Busy: "+m.op.desc, levelWarning)
 	}
 
-	// CLI gating: switch, login and run need the selected row's provider CLI;
-	// create still needs gcloud while the create form is GCP-only.
+	// CLI gating: switch, login and run need the selected row's provider CLI.
+	// Create opens regardless, and its form shows the install hint.
 	acct, hasSelection := m.selectedAccount()
 	if m.feedback != nil && hasSelection {
 		acct.Name = m.feedback.account // the panel's keys act on what it shows
@@ -137,9 +137,6 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		if info, known := m.knownProvider(acct.Provider); known && !info.CLI.Found {
 			return m, m.setStatus(cliMissingText(info), levelError)
 		}
-	}
-	if k == "c" && !m.overview.GcloudAvailable {
-		return m, m.setStatus("gcloud not found — install it and press R to reload", levelError)
 	}
 
 	// selection-required actions
@@ -167,6 +164,11 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m.openDelete(acct.Name)
 	case "c":
 		return m.openCreate()
+	case keys.Edit.Keys()[0]:
+		if !hasSelection {
+			return m, m.setStatus("No account selected", levelInfo)
+		}
+		return m.openEdit(acct.Name)
 	case "r":
 		if !hasSelection {
 			return m, m.setStatus("No account selected", levelInfo)
@@ -240,7 +242,7 @@ func (m Model) selectTab(tab int) Model {
 }
 
 // accountKeys act on the selected account; a placeholder is not one.
-var accountKeys = map[string]bool{"enter": true, "a": true, "ctrl+d": true, "r": true, "s": true, "S": true, "y": true, "l": true}
+var accountKeys = map[string]bool{"enter": true, "a": true, "ctrl+d": true, "e": true, "r": true, "s": true, "S": true, "y": true, "l": true}
 
 var cliGated = map[string]bool{"enter": true, "l": true, "r": true}
 

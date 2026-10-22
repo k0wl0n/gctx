@@ -24,6 +24,9 @@ type fakeService struct {
 	switchErr   error
 	createRes   manager.CreateResult
 	createErr   error
+	createReqs  []manager.CreateRequest
+	updateReqs  []manager.UpdateRequest
+	updateErr   error
 	loginRes    manager.LoginResult
 	loginErr    error
 	saveRes     manager.SaveResult
@@ -119,9 +122,20 @@ func (f *fakeService) Switch(ctx context.Context, name string) (manager.SwitchRe
 	return f.switchRes, f.switchErr
 }
 
-func (f *fakeService) Create(ctx context.Context, name, projectID string) (manager.CreateResult, error) {
-	f.record("Create", name, projectID)
+func (f *fakeService) CreateAccount(ctx context.Context, req manager.CreateRequest) (manager.CreateResult, error) {
+	f.record("CreateAccount", req.Name)
+	f.mu.Lock()
+	f.createReqs = append(f.createReqs, req)
+	f.mu.Unlock()
 	return f.createRes, f.createErr
+}
+
+func (f *fakeService) UpdateAccount(ctx context.Context, name string, req manager.UpdateRequest) error {
+	f.record("UpdateAccount", name)
+	f.mu.Lock()
+	f.updateReqs = append(f.updateReqs, req)
+	f.mu.Unlock()
+	return f.updateErr
 }
 
 func (f *fakeService) Login(ctx context.Context, name string, io manager.LoginIO) (manager.LoginResult, error) {
@@ -158,7 +172,8 @@ func gcpInfo(count int) manager.ProviderInfo {
 		ID: provider.GCP, Label: "GCP", Category: provider.CategoryCloud, Slot: "gcp", TargetLabel: "PROJECT",
 		Badge:        provider.Badge{Text: "GCP", Style: provider.BadgeFilled, Color: "#6ea8fe"},
 		CLI:          provider.CLIStatus{Name: "gcloud", Bin: "gcloud", Found: true},
-		CheckTimeout: 15 * time.Second, Count: count,
+		CheckTimeout: 15 * time.Second, Count: count, CanLogin: true,
+		Form: []provider.FormField{{Key: provider.FormTargetKey, Label: "Project ID", Validate: manager.ValidateProjectID}},
 	}
 }
 
@@ -216,7 +231,7 @@ func multiProviders() []manager.ProviderInfo {
 	info := func(id provider.ID, label string, cat provider.Category, slot, target string, badge provider.Badge, cols ...provider.Column) manager.ProviderInfo {
 		return manager.ProviderInfo{
 			ID: id, Label: label, Category: cat, Slot: slot, TargetLabel: target, Badge: badge, Columns: cols,
-			CLI: provider.CLIStatus{Bin: "/usr/bin/" + string(id), Found: true}, CheckTimeout: 8 * time.Second,
+			CLI: provider.CLIStatus{Bin: "/usr/bin/" + string(id), Found: true}, CheckTimeout: 8 * time.Second, CanLogin: true,
 		}
 	}
 	infos := []manager.ProviderInfo{

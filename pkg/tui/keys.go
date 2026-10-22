@@ -8,7 +8,7 @@ type keyMap struct {
 	NextTab, PrevTab, JumpTab               key.Binding
 	Switch, Filter, Clear, Details          key.Binding
 	Login, Shell, ShellOne, CopyEnv, Run    key.Binding
-	Create, Delete, Save                    key.Binding
+	Create, Edit, Delete, Save              key.Binding
 	TogglePane, Fold, NeedsAction, Sort     key.Binding
 	Reload, Help, Quit, Command             key.Binding
 }
@@ -41,6 +41,7 @@ var keys = keyMap{
 	CopyEnv:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy the env eval line")),
 	Run:      key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "run gcloud command")),
 	Create:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "create account")),
+	Edit:     key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit account")),
 	Delete:   key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "delete account")),
 	Save:     key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "save current ADC to selected account")),
 
@@ -59,7 +60,7 @@ var keys = keyMap{
 func (k keyMap) groups() []keyGroup {
 	return []keyGroup{
 		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab}},
-		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.Shell, k.ShellOne, k.CopyEnv, k.Run, k.Create, k.Delete, k.Save}},
+		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.Shell, k.ShellOne, k.CopyEnv, k.Run, k.Create, k.Edit, k.Delete, k.Save}},
 		{"View", []key.Binding{k.TogglePane, k.Fold, k.NeedsAction, k.Sort}},
 		{"General", []key.Binding{k.Reload, k.Help, k.Quit, k.Command}},
 	}

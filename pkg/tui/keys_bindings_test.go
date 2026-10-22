@@ -71,12 +71,17 @@ func TestGcloudUnavailableGatesActions(t *testing.T) {
 	svc := newFakeService(ov)
 	m := newTestModel(t, svc, 100, 24)
 
-	gated := []string{"enter", "l", "r", "c"}
+	gated := []string{"enter", "l", "r"}
 	for _, k := range gated {
 		m2, _ := m.dispatch(keyMsg(k))
 		if !strings.Contains(m2.status.text, "gcloud not found") {
 			t.Errorf("key %q: expected gcloud-unavailable error, got %q", k, m2.status.text)
 		}
+	}
+
+	// c still opens the form so the user sees the install hint.
+	if m2, _ := m.dispatch(keyMsg("c")); m2.modal == nil {
+		t.Error("c must open the create form even when gcloud is missing")
 	}
 
 	// s, a, d should not be gated

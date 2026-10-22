@@ -8,7 +8,7 @@ import (
 )
 
 // The interfaces below are optional capabilities. Callers check for them with
-// a type assertion; today only GCP implements them.
+// a type assertion; callers must not assume any is implemented.
 
 // EnvBased marks a provider whose activation is only an environment: switching
 // changes gctx's active account but no global state, so the user applies it
@@ -77,4 +77,21 @@ type GlobalState struct {
 // with storedCredentialPath (may be ""). It reads files only.
 type GlobalStateReader interface {
 	GlobalState(storedCredentialPath string) GlobalState
+}
+
+// FormFooter states what creating an account writes and what it never touches,
+// shown under the create form. values holds the form values plus FormNameKey.
+type FormFooter interface {
+	Footer(values map[string]string) (writes, never string)
+}
+
+// Installer tells the user how to install a missing CLI.
+type Installer interface {
+	InstallHint() string
+}
+
+// LoginCapable reports whether the provider has an interactive login. A
+// provider without it is assumed to have one.
+type LoginCapable interface {
+	HasLogin() bool
 }

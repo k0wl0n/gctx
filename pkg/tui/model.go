@@ -51,6 +51,7 @@ const (
 	opSave   opKind = "save"
 	opDelete opKind = "delete"
 	opCreate opKind = "create"
+	opUpdate opKind = "update"
 )
 
 // operation is the single in-flight mutating operation.
@@ -60,6 +61,8 @@ type operation struct {
 	desc    string // lower-case description used in "Busy: <desc>"
 	seq     int
 	started time.Time
+	// loginAfter runs the login flow once a create succeeds.
+	loginAfter bool
 }
 
 type credPhase int

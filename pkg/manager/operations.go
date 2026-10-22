@@ -127,6 +127,75 @@ func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateR
 	return result, err
 }
 
+// UpdateAccount renames an account and merges changed editable settings.
+// Only the config entry is renamed: provider-side resources (gcloud
+// configuration, ADC file, isolated directory, CLI profile) keep their old
+// names because the account record stores their paths. The slot the account
+// is active in follows the new name.
+func (m *Manager) UpdateAccount(ctx context.Context, name string, req UpdateRequest) error {
+	account, p, err := m.resolve(name)
+	if err != nil {
+		return err
+	}
+	renaming := req.NewName != "" && req.NewName != name
+	if renaming {
+		if err := ValidateAccountName(req.NewName); err != nil {
+			return err
+		}
+	}
+	editable := map[string]bool{}
+	for _, field := range p.Form() {
+		if field.Editable {
+			editable[field.Key] = true
+		}
+	}
+	for key := range req.Settings {
+		if !editable[key] {
+			return fmt.Errorf("setting %q cannot be changed after creation", key)
+		}
+	}
+	settings := maps.Clone(account.Settings)
+	for key, value := range req.Settings {
+		if value == "" {
+			delete(settings, key)
+			continue
+		}
+		if settings == nil {
+			settings = map[string]string{}
+		}
+		settings[key] = value
+	}
+
+	err = m.mutate(func(cfg *config.Config) error {
+		stored, err := cfg.GetAccount(name)
+		if err != nil {
+			return notFoundError{name}
+		}
+		if renaming {
+			if _, exists := cfg.Accounts[req.NewName]; exists {
+				return existsError{req.NewName}
+			}
+			delete(cfg.Accounts, name)
+			stored.Name = req.NewName
+			cfg.Accounts[req.NewName] = stored
+			for slot, active := range cfg.ActiveBySlot {
+				if active == name {
+					cfg.ActiveBySlot[slot] = req.NewName
+				}
+			}
+			if cfg.ActiveAccount == name {
+				cfg.ActiveAccount = req.NewName
+			}
+		}
+		stored.Settings = settings
+		return cfg.Save()
+	})
+	if err == nil && renaming {
+		m.forgetCachedStatus(name)
+	}
+	return err
+}
+
 // Login runs the interactive gcloud login and ADC login for an account, then
 // stores the resulting ADC. The result reports how far it got on failure.
 func (m *Manager) Login(ctx context.Context, name string, lio LoginIO) (LoginResult, error) {

@@ -138,7 +138,8 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `S` | subshell with only the selected account |
 | `y` | copy the account's `eval "$(gctx env <name>)"` line |
 | `r` | run a gcloud command as the selected account |
-| `c` | create an account |
+| `c` | create an account: pick provider, name and the provider's fields; shows what is written and the CLI install hint when it is missing |
+| `e` | edit the selected account: rename and change editable settings (identity fields are read-only) |
 | `ctrl+d` | delete (confirmation defaults to Cancel) |
 | `a` | save the current ADC to the selected account |
 | `p` | toggle the detail pane (150+ columns) |

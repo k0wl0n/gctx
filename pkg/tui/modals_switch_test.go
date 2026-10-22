@@ -121,9 +121,6 @@ func TestHandleOpDone_Error(t *testing.T) {
 	}
 }
 
-
-
-
 // Verify updateModal delegates to modal.update.
 func TestUpdateModal_Delegates(t *testing.T) {
 	svc := newFakeService(sampleOverview("alice", "alice", "bob"))
@@ -240,59 +237,6 @@ func TestDeleteDialog_ConfirmDeleteOp(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Error("expected cmd from delete confirm")
-	}
-}
-
-// TestCreateForm_Validation verifies name validation in the create form.
-func TestCreateForm_Validation(t *testing.T) {
-	svc := newFakeService(sampleOverview("alice", "alice"))
-	m := newTestModel(t, svc, 100, 24)
-	m, _ = m.openCreate()
-
-	// Type invalid name.
-	cf := m.modal.(*createForm)
-	cf.nameInput.SetValue("INVALID NAME!")
-	m.modal = cf
-
-	// Navigate to submit and hit enter.
-	m, _ = m.updateModal(keyMsg("enter")) // move to project
-	m, _ = m.updateModal(keyMsg("enter")) // move to submit
-	m2, _ := m.updateModal(keyMsg("enter"))
-
-	if m2.modal == nil {
-		t.Error("modal should remain open after validation error")
-	}
-	cf2, ok := m2.modal.(*createForm)
-	if !ok {
-		t.Fatal("modal should still be createForm after validation error")
-	}
-	if cf2.nameErr == "" {
-		t.Error("expected name validation error")
-	}
-}
-
-// TestCreateForm_SubmitStartsCreateOp verifies the create form starts a create op.
-func TestCreateForm_SubmitStartsOp(t *testing.T) {
-	svc := newFakeService(sampleOverview("alice", "alice"))
-	m := newTestModel(t, svc, 100, 24)
-	m, _ = m.openCreate()
-
-	cf := m.modal.(*createForm)
-	cf.nameInput.SetValue("newaccount")
-	m.modal = cf
-
-	m, _ = m.updateModal(keyMsg("enter")) // move to project
-	m, _ = m.updateModal(keyMsg("enter")) // move to submit
-	m2, cmd := m.updateModal(keyMsg("enter"))
-
-	if m2.modal != nil {
-		t.Error("modal should close after submit")
-	}
-	if m2.op == nil {
-		t.Error("expected create op to start")
-	}
-	if cmd == nil {
-		t.Error("expected cmd from create submit")
 	}
 }
 
