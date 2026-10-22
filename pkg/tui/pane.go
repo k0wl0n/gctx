@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
@@ -78,7 +77,7 @@ func (m Model) paneLines(width int, g glyphs, st styles) []string {
 	}
 	add("")
 	add(st.Dim.Render("apply in this shell"))
-	add(fmt.Sprintf(`$ eval "$(%s env %s)"`, config.AppName, acct.Name))
+	add("$ " + envEvalLine(acct.Name))
 	add("")
 	line := ""
 	for _, a := range []struct{ key, label string }{

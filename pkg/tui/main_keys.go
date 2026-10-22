@@ -68,6 +68,10 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		m.filter.input.SetValue(m.filter.query)
 		return m, nil
 	case matches(msg, keys.Clear.Keys()):
+		if m.feedback != nil {
+			m.feedback = nil
+			return m, nil
+		}
 		m.filter.query = ""
 		m.filter.input.Reset()
 		m.rebuildVisible()
@@ -103,6 +107,15 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, tea.Batch(cmd, m.loadEnvCmd())
 	case matches(msg, keys.Command.Keys()):
 		return m, m.setStatus("Command mode is not available yet", levelInfo)
+	}
+
+	if matches(msg, keys.CopyEnv.Keys()) {
+		acct, ok := m.selectedAccount()
+		if !ok {
+			return m, m.setStatus("No account selected", levelInfo)
+		}
+		line := envEvalLine(acct.Name)
+		return m, tea.Batch(tea.SetClipboard(line), m.setStatus("copied: "+line, levelInfo))
 	}
 
 	// actions below may be gated by busy
@@ -160,7 +173,12 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		if !hasSelection {
 			return m, m.setStatus("No account selected", levelInfo)
 		}
-		return m.startShell(acct.Name)
+		return m.startShell(acct.Name, manager.ShellAllActive)
+	case keys.ShellOne.Keys()[0]:
+		if !hasSelection {
+			return m, m.setStatus("No account selected", levelInfo)
+		}
+		return m.startShell(acct.Name, manager.ShellOnly)
 	case "l":
 		if !hasSelection {
 			return m, m.setStatus("No account selected", levelInfo)
@@ -219,7 +237,7 @@ func (m Model) selectTab(tab int) Model {
 }
 
 // accountKeys act on the selected account; a placeholder is not one.
-var accountKeys = map[string]bool{"enter": true, "a": true, "ctrl+d": true, "r": true, "s": true, "l": true}
+var accountKeys = map[string]bool{"enter": true, "a": true, "ctrl+d": true, "r": true, "s": true, "S": true, "y": true, "l": true}
 
 var cliGated = map[string]bool{"enter": true, "l": true, "r": true}
 

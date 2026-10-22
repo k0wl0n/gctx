@@ -45,6 +45,7 @@ type (
 		stdout, stderr io.Writer
 		svc            Service
 		name           string
+		scope          manager.ShellScope
 	}
 )
 
@@ -146,7 +147,7 @@ func (e *shellExec) SetStderr(w io.Writer) { e.stderr = w }
 
 func (e *shellExec) Run() error {
 	fmt.Fprintf(e.stdout, "Starting shell for account '%s'... Type 'exit' to return to gctx.\n", e.name)
-	cmd, err := e.svc.ShellCommand(e.name)
+	cmd, err := e.svc.ShellCommand(e.name, e.scope)
 	if err != nil {
 		return err
 	}
@@ -251,9 +252,9 @@ func (m Model) beginLogin(name string) (Model, tea.Cmd) {
 	return m, cmd
 }
 
-// beginShell suspends the TUI for an isolated shell.
-func (m Model) beginShell(name string) (Model, tea.Cmd) {
-	exec := &shellExec{svc: m.svc, name: name}
+// beginShell suspends the TUI for a subshell with the scope's environment.
+func (m Model) beginShell(name string, scope manager.ShellScope) (Model, tea.Cmd) {
+	exec := &shellExec{svc: m.svc, name: name, scope: scope}
 	cmd := m.exec(exec, func(err error) tea.Msg {
 		return execDoneMsg{kind: execShell, account: name, err: err}
 	})

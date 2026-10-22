@@ -34,6 +34,7 @@ type fakeService struct {
 	runErr      error
 	shellCmd    *exec.Cmd
 	shellErr    error
+	shellScopes []manager.ShellScope
 	gcloudBin   string
 
 	envs            map[string][]string                      // Env results by account
@@ -143,7 +144,8 @@ func (f *fakeService) RunCommand(name string, args []string) (*exec.Cmd, error) 
 	return f.runCmd, f.runErr
 }
 
-func (f *fakeService) ShellCommand(name string) (*exec.Cmd, error) {
+func (f *fakeService) ShellCommand(name string, scope manager.ShellScope) (*exec.Cmd, error) {
+	f.shellScopes = append(f.shellScopes, scope)
 	f.record("ShellCommand", name)
 	return f.shellCmd, f.shellErr
 }

@@ -134,7 +134,9 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `/` | filter (`esc` clears) |
 | `d` / `i` | details |
 | `l` | log in (suspends the TUI for the browser flows) |
-| `s` | isolated shell |
+| `s` | subshell with every active slot's account |
+| `S` | subshell with only the selected account |
+| `y` | copy the account's `eval "$(gctx env <name>)"` line |
 | `r` | run a gcloud command as the selected account |
 | `c` | create an account |
 | `ctrl+d` | delete (confirmation defaults to Cancel) |

@@ -40,6 +40,7 @@ func (m Model) startSwitch(name string) (Model, tea.Cmd) {
 	}
 	m.seq++
 	seq := m.seq
+	m.feedback = nil
 	m.op = &operation{kind: opSwitch, account: name, desc: "switching", seq: seq, started: m.now()}
 	if m.debugLog != nil {
 		m.debugLog.Info("op", "kind", opSwitch, "account", name)
@@ -79,12 +80,18 @@ func (m Model) handleOpDone(msg opDoneMsg) (Model, tea.Cmd) {
 		if active, ok := m.overview.Active(); ok && m.isVisible(active.Name) {
 			m.selected = active.Name
 		}
+		if res.ApplyHint != "" {
+			m.feedback = m.newFeedback(res)
+		}
 		if len(res.Warnings) > 0 {
 			msgs := make([]string, 0, len(res.Warnings))
 			for _, w := range res.Warnings {
 				msgs = append(msgs, warningMessage(w))
 			}
 			return m, m.setStatus("switched (warnings: "+strings.Join(msgs, "; ")+")", levelWarning)
+		}
+		if m.feedback != nil {
+			return m, nil
 		}
 		return m, m.setStatus("switched to "+account, levelInfo)
 
@@ -158,7 +165,9 @@ func (m Model) openRun(name string) (Model, tea.Cmd) {
 }
 
 // startShell and startLogin forward to the exec flows.
-func (m Model) startShell(name string) (Model, tea.Cmd) { return m.beginShell(name) }
+func (m Model) startShell(name string, scope manager.ShellScope) (Model, tea.Cmd) {
+	return m.beginShell(name, scope)
+}
 func (m Model) startLogin(name string) (Model, tea.Cmd) { return m.beginLogin(name) }
 
 // ─── Save dialog ─────────────────────────────────────────────────────────────
@@ -346,11 +355,11 @@ const (
 )
 
 type createForm struct {
-	nameInput    lineInput
-	projectInput lineInput
-	focus        createField
-	nameErr      string
-	projectErr   string
+	nameInput     lineInput
+	projectInput  lineInput
+	focus         createField
+	nameErr       string
+	projectErr    string
 	reuseWarning  string
 	reuseAccepted bool
 }

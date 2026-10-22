@@ -153,9 +153,10 @@ type Model struct {
 	needsAction bool            // only rows that need action
 	sort        sortKey
 
-	screen screenKind
-	modal  modal
-	filter filterState
+	screen   screenKind
+	modal    modal
+	feedback *feedbackPanel // after activating an env-based account
+	filter   filterState
 
 	op        *operation
 	creds     credState

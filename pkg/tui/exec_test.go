@@ -200,7 +200,7 @@ func TestBeginShell(t *testing.T) {
 	svc.shellCmd = exec.Command(os.Args[0], "-test.run=NOTEXIST")
 	m := newTestModel(t, svc, 100, 24)
 	m.exec = execSync("", nil)
-	m, cmd := m.beginShell("personal")
+	m, cmd := m.beginShell("personal", manager.ShellOnly)
 	m = drain(t, m, cmd)
 	_ = m
 	found := false

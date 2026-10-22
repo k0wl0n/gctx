@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 
 	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/provider"
@@ -68,16 +69,69 @@ func (m *Manager) RunCommand(name string, args []string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+// ShellScope selects which accounts' environments a subshell gets.
+type ShellScope int
+
+const (
+	// ShellAllActive merges the environment of every slot's active account
+	// with the selected account; the selected account wins its own slot.
+	ShellAllActive ShellScope = iota
+	// ShellOnly gives the selected account's environment alone.
+	ShellOnly
+)
+
 // ShellCommand returns an unstarted shell for the account's isolated
 // environment. The caller wires stdio and runs it.
-func (m *Manager) ShellCommand(name string) (*exec.Cmd, error) {
-	env, err := m.Env(name)
+func (m *Manager) ShellCommand(name string, scope ShellScope) (*exec.Cmd, error) {
+	selected, selectedProvider, err := m.resolve(name)
 	if err != nil {
 		return nil, err
 	}
+	var env []string
+	if scope == ShellAllActive {
+		if env, err = m.activeSlotsEnv(selectedProvider.Slot()); err != nil {
+			return nil, err
+		}
+	}
+	own, err := selectedProvider.Env(selected)
+	if err != nil {
+		return nil, err
+	}
+	env = append(env, own...)
 	shell := ResolveShell(m.opts.GOOS, m.opts.Getenv, m.opts.LookPath)
 	cmd := exec.Command(shell)
 	env = append(env, fmt.Sprintf("GCTX_ACCOUNT=%s", name))
 	cmd.Env = append(cmd.Environ(), env...)
 	return cmd, nil
+}
+
+// activeSlotsEnv is the environment of each slot's active account except
+// skipSlot, in slot-name order. Active accounts that no longer exist are
+// skipped.
+func (m *Manager) activeSlotsEnv(skipSlot string) ([]string, error) {
+	cfg, err := m.loadConfig()
+	if err != nil {
+		return nil, err
+	}
+	slots := make([]string, 0, len(cfg.ActiveBySlot))
+	for slot := range cfg.ActiveBySlot {
+		slots = append(slots, slot)
+	}
+	slices.Sort(slots)
+	var env []string
+	for _, slot := range slots {
+		if slot == skipSlot || cfg.ActiveBySlot[slot] == "" {
+			continue
+		}
+		account, p, err := m.resolve(cfg.ActiveBySlot[slot])
+		if err != nil {
+			continue
+		}
+		accountEnv, err := p.Env(account)
+		if err != nil {
+			return nil, err
+		}
+		env = append(env, accountEnv...)
+	}
+	return env, nil
 }

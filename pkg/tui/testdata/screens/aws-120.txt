@@ -21,4 +21,4 @@ env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DI
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)                          19 accounts · 1 expired · 3 need login · 1 low budget
-tab provider  j/k move  ↵ activate  / filter  d details  l login  c create  s shell  ! needs action  o sort  R recheck
+tab provider  j/k move  ↵ activate  / filter  d details  l login  c create  s shell  y copy env  ! needs action  o sort

@@ -7,7 +7,8 @@ type keyMap struct {
 	Down, Up, First, Last, PageDown, PageUp key.Binding
 	NextTab, PrevTab, JumpTab               key.Binding
 	Switch, Filter, Clear, Details          key.Binding
-	Login, Shell, Run, Create, Delete, Save key.Binding
+	Login, Shell, ShellOne, CopyEnv, Run    key.Binding
+	Create, Delete, Save                    key.Binding
 	TogglePane, Fold, NeedsAction, Sort     key.Binding
 	Reload, Help, Quit, Command             key.Binding
 }
@@ -30,16 +31,18 @@ var keys = keyMap{
 	JumpTab: key.NewBinding(key.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"),
 		key.WithHelp("1-9", "jump to tab (1 is All)")),
 
-	Switch:  key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "switch to selected account")),
-	Filter:  key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
-	Clear:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "clear applied filter")),
-	Details: key.NewBinding(key.WithKeys("d", "i"), key.WithHelp("d/i", "details")),
-	Login:   key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "login")),
-	Shell:   key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "isolated shell")),
-	Run:     key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "run gcloud command")),
-	Create:  key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "create account")),
-	Delete:  key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "delete account")),
-	Save:    key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "save current ADC to selected account")),
+	Switch:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "switch to selected account")),
+	Filter:   key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
+	Clear:    key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "clear applied filter")),
+	Details:  key.NewBinding(key.WithKeys("d", "i"), key.WithHelp("d/i", "details")),
+	Login:    key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "login")),
+	Shell:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "subshell with every active slot")),
+	ShellOne: key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "subshell with only this account")),
+	CopyEnv:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy the env eval line")),
+	Run:      key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "run gcloud command")),
+	Create:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "create account")),
+	Delete:   key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "delete account")),
+	Save:     key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "save current ADC to selected account")),
 
 	TogglePane:  key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "toggle detail pane (150+ columns)")),
 	Fold:        key.NewBinding(key.WithKeys("z"), key.WithHelp("z", "fold or unfold the provider group")),
@@ -56,7 +59,7 @@ var keys = keyMap{
 func (k keyMap) groups() []keyGroup {
 	return []keyGroup{
 		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab}},
-		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.Shell, k.Run, k.Create, k.Delete, k.Save}},
+		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.Shell, k.ShellOne, k.CopyEnv, k.Run, k.Create, k.Delete, k.Save}},
 		{"View", []key.Binding{k.TogglePane, k.Fold, k.NeedsAction, k.Sort}},
 		{"General", []key.Binding{k.Reload, k.Help, k.Quit, k.Command}},
 	}
@@ -92,7 +95,7 @@ func (k keyMap) hints(t tier, allTab bool, g glyphs) []hint {
 	if t != tierWide {
 		out = append(out, hint{first(k.Details), "details"})
 	}
-	out = append(out, hint{first(k.Login), "login"}, hint{first(k.Create), "create"}, hint{first(k.Shell), "shell"})
+	out = append(out, hint{first(k.Login), "login"}, hint{first(k.Create), "create"}, hint{first(k.Shell), "shell"}, hint{first(k.CopyEnv), "copy env"})
 	if allTab {
 		out = append(out, hint{first(k.Fold), "fold group"})
 	}

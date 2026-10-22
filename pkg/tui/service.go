@@ -24,7 +24,7 @@ type Service interface {
 	SaveCredentials(ctx context.Context, name string) (manager.SaveResult, error)
 	Delete(ctx context.Context, name string, opt manager.DeleteOptions) (manager.DeleteResult, error)
 	RunCommand(name string, args []string) (*exec.Cmd, error)
-	ShellCommand(name string) (*exec.Cmd, error)
+	ShellCommand(name string, scope manager.ShellScope) (*exec.Cmd, error)
 	GcloudBin() string
 }
 

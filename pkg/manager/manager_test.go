@@ -545,7 +545,7 @@ func TestRunAndShellEnvironment(t *testing.T) {
 		t.Errorf("env %v", run.Env)
 	}
 
-	shell, err := m.ShellCommand("personal")
+	shell, err := m.ShellCommand("personal", manager.ShellOnly)
 	if err != nil {
 		t.Fatal(err)
 	}

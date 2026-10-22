@@ -60,6 +60,11 @@ func (m Model) viewMain() string {
 	}
 	top = append(top, hRule(g, st, m.width))
 	bodyHeight := max(m.height-len(top)-4, 1) // column headers, rule, status, hints
+	var panel []string
+	if m.feedback != nil && bodyHeight-feedbackHeight >= minListRows {
+		panel = m.feedbackLines(m.width, g, st)
+		bodyHeight -= len(panel)
+	}
 
 	listWidth := m.width
 	showPane := t == tierWide && m.paneOpen
@@ -82,6 +87,7 @@ func (m Model) viewMain() string {
 	}
 
 	out := append(top, list...)
+	out = append(out, panel...)
 	out = append(out,
 		hRule(g, st, m.width),
 		m.renderStatus(m.width, g, st),

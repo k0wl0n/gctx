@@ -37,4 +37,4 @@ OPENROUTER · base url ───────────────────
                                                                                                                   │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ✓ GCP 9/9  ✓ AWS 2/2  ⠋ Azure 0/1 (timeout 8s)  ✓ AI tools 4/4  ✓ gateways 3/3                             19 accounts · 1 expired · 3 need login · 1 low budget
-tab provider  j/k move  ↵ activate  / filter  l login  c create  s shell  z fold group  p pane  ! needs action  o sort  R recheck  ? help  q quit
+tab provider  j/k move  ↵ activate  / filter  l login  c create  s shell  y copy env  z fold group  p pane  ! needs action  o sort  R recheck  ? help  q quit

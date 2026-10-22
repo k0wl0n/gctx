@@ -38,7 +38,7 @@ If no account is specified, an interactive selection menu is shown.`,
 			targetAccount = selected
 		}
 
-		child, err := m.ShellCommand(targetAccount)
+		child, err := m.ShellCommand(targetAccount, manager.ShellOnly)
 		if err != nil {
 			return err
 		}
