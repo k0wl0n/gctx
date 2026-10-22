@@ -38,6 +38,12 @@ const (
 	LoginADCStarted       = provider.LoginADCStarted
 	LoginSetProjectFailed = provider.LoginSetProjectFailed
 	LoginVerifyingADC     = provider.LoginVerifyingADC
+	LoginStepPending      = provider.LoginStepPending
+	LoginStepStarted      = provider.LoginStepStarted
+	LoginStepDone         = provider.LoginStepDone
+	LoginStepFailed       = provider.LoginStepFailed
+	LoginDeviceCode       = provider.LoginDeviceCode
+	LoginOutput           = provider.LoginOutput
 )
 
 const (
@@ -203,10 +209,11 @@ type ProviderInfo struct {
 	CheckTimeout time.Duration // bound on one credential check
 	Count        int           // accounts using this provider
 
-	Form        []provider.FormField
-	Footer      func(values map[string]string) (writes, never string) // nil: none
-	InstallHint string                                                // how to install the CLI; "" when unknown
-	CanLogin    bool
+	Form         []provider.FormField
+	Footer       func(values map[string]string) (writes, never string) // nil: none
+	InstallHint  string                                                // how to install the CLI; "" when unknown
+	CanLogin     bool
+	StreamsLogin bool // Login reports steps and output as events (provider.StreamingLogin)
 }
 
 // Active returns the status of the gcp slot's active account, if any.

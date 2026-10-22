@@ -167,8 +167,55 @@ func (p *Provider) Create(_ context.Context, acct config.Account) (provider.Crea
 	return outcome, nil
 }
 
-// Login runs `az login --use-device-code` in the isolated directory, then
-// selects the subscription there.
+// Login steps, in the order they run.
+const (
+	stepIsolate = "isolate config"
+	stepLogin   = "az login --use-device-code"
+	stepVerify  = "verify az account get-access-token"
+)
+
+// deviceCodePage is shown when az names the code but not the page.
+const deviceCodePage = "https://microsoft.com/devicelogin"
+
+var (
+	urlPattern        = regexp.MustCompile(`https?://[^\s]+`)
+	deviceCodePattern = regexp.MustCompile(`(?i)enter\s+the\s+code\s+([A-Z0-9][A-Z0-9-]*)`)
+)
+
+// parseDeviceCode extracts the verification page and the code from az's
+// "open the page ... and enter the code ABC123 to authenticate" message.
+func parseDeviceCode(line string) (url, code string, ok bool) {
+	match := deviceCodePattern.FindStringSubmatch(line)
+	if match == nil {
+		return "", "", false
+	}
+	url = strings.TrimRight(urlPattern.FindString(line), ".,;)")
+	if url == "" {
+		url = deviceCodePage
+	}
+	return url, match[1], true
+}
+
+func (p *Provider) StreamsLogin() bool { return true }
+
+// loginReporter sends the streaming events when the caller listens.
+type loginReporter struct{ progress func(provider.LoginEvent) }
+
+func (r loginReporter) emit(event provider.LoginEvent) {
+	if r.progress != nil {
+		r.progress(event)
+	}
+}
+
+func (r loginReporter) step(kind provider.LoginEventKind, step, detail string) {
+	r.emit(provider.LoginEvent{Kind: kind, Step: step, Message: detail})
+}
+
+// Login runs `az login --use-device-code` in the isolated directory, selects
+// the subscription there and checks a token can be obtained. With
+// lio.Progress set, az runs with piped output: every line becomes a
+// LoginOutput event, the device code a LoginDeviceCode event, and the lines
+// are also written to lio.Stdout and lio.Stderr when those are set.
 func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.LoginIO) (provider.LoginResult, error) {
 	result := provider.LoginResult{Account: acct.Name}
 	dir, err := p.accountDir(acct)
@@ -179,9 +226,18 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 	if err != nil {
 		return result, err
 	}
+	report := loginReporter{progress: lio.Progress}
+	setStep := "az account set --subscription " + acct.Target()
+	for _, step := range []string{stepIsolate, stepLogin, setStep, stepVerify} {
+		report.step(provider.LoginStepPending, step, "")
+	}
+
+	report.step(provider.LoginStepStarted, stepIsolate, "")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
+		report.step(provider.LoginStepFailed, stepIsolate, err.Error())
 		return result, fmt.Errorf("failed to create azure config dir: %w", err)
 	}
+	report.step(provider.LoginStepDone, stepIsolate, envConfDir+"="+dir)
 	env := []string{envConfDir + "=" + dir}
 
 	args := []string{"login", "--use-device-code"}
@@ -189,17 +245,59 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 		args = append(args, "--tenant", tenant)
 	}
 	providerutil.Progress(lio, provider.LoginAuthStarted)
-	stdio := provider.Stdio{Stdin: lio.Stdin, Stdout: lio.Stdout, Stderr: lio.Stderr}
-	if err := runner.Interactive(ctx, stdio, env, args...); err != nil {
+	report.step(provider.LoginStepStarted, stepLogin, "")
+	if err := p.runLogin(ctx, runner, env, args, lio, report); err != nil {
+		report.step(provider.LoginStepFailed, stepLogin, err.Error())
 		return result, fmt.Errorf("az login failed: %w", err)
 	}
+	report.step(provider.LoginStepDone, stepLogin, "")
 	result.Completed = []string{"az login"}
+
+	report.step(provider.LoginStepStarted, setStep, "")
 	if _, err := runner.Query(ctx, env, "account", "set", "--subscription", acct.Target()); err != nil {
+		report.step(provider.LoginStepFailed, setStep, err.Error())
 		return result, fmt.Errorf("az account set failed: %w", err)
 	}
-	providerutil.Progress(lio, provider.LoginAuthDone)
+	report.step(provider.LoginStepDone, setStep, "")
 	result.Completed = append(result.Completed, "account set")
+
+	report.step(provider.LoginStepStarted, stepVerify, "")
+	if _, err := runner.Query(ctx, env, "account", "get-access-token", "--subscription", acct.Target(), "--query", "expiresOn", "--output", "tsv"); err != nil {
+		report.step(provider.LoginStepFailed, stepVerify, err.Error())
+		return result, fmt.Errorf("az login could not be verified: %w", err)
+	}
+	report.step(provider.LoginStepDone, stepVerify, "")
+	providerutil.Progress(lio, provider.LoginAuthDone)
+	result.Completed = append(result.Completed, "verified")
 	return result, nil
+}
+
+// runLogin runs az login interactively, or streamed when the caller listens
+// and the runner can stream.
+func (p *Provider) runLogin(ctx context.Context, runner provider.Runner, env, args []string, lio provider.LoginIO, report loginReporter) error {
+	streamer, canStream := runner.(provider.StreamingRunner)
+	if lio.Progress == nil || !canStream {
+		stdio := provider.Stdio{Stdin: lio.Stdin, Stdout: lio.Stdout, Stderr: lio.Stderr}
+		return runner.Interactive(ctx, stdio, env, args...)
+	}
+	report.emit(provider.LoginEvent{Kind: provider.LoginOutput, Output: "$ " + cliName + " " + strings.Join(args, " ")})
+	codeReported := false
+	return streamer.Stream(ctx, env, func(stream, line string) {
+		report.emit(provider.LoginEvent{Kind: provider.LoginOutput, Output: line})
+		if !codeReported {
+			if url, code, ok := parseDeviceCode(line); ok {
+				codeReported = true
+				report.emit(provider.LoginEvent{Kind: provider.LoginDeviceCode, URL: url, Code: code})
+			}
+		}
+		out := lio.Stdout
+		if stream == provider.StreamStderr {
+			out = lio.Stderr
+		}
+		if out != nil {
+			fmt.Fprintln(out, line)
+		}
+	}, args...)
 }
 
 // Activate only hints at the shell command that applies the account: Azure

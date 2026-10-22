@@ -6,6 +6,7 @@ import (
 	"errors"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -76,5 +77,63 @@ func TestInteractivePassesStdio(t *testing.T) {
 		provider.Stdio{Stdin: strings.NewReader("typed\n"), Stdout: &stdout}, nil, "-c", "read x; echo got-$x")
 	if err != nil || strings.TrimSpace(stdout.String()) != "got-typed" {
 		t.Fatalf("out %q err %v", stdout.String(), err)
+	}
+}
+
+func TestStreamDeliversLinesAndKillsOnCancel(t *testing.T) {
+	runner, ok := execrunner.New(shell(t)).(provider.StreamingRunner)
+	if !ok {
+		t.Fatal("execrunner does not implement provider.StreamingRunner")
+	}
+
+	type line struct{ stream, text string }
+	var mu sync.Mutex
+	var lines []line
+	collect := func(stream, text string) {
+		mu.Lock()
+		defer mu.Unlock()
+		lines = append(lines, line{stream, text})
+	}
+	snapshot := func() []line {
+		mu.Lock()
+		defer mu.Unlock()
+		return append([]line(nil), lines...)
+	}
+
+	err := runner.Stream(context.Background(), nil, collect, "-c", "echo out1; echo err1 >&2; printf 'partial'")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := snapshot()
+	want := map[line]bool{{provider.StreamStdout, "out1"}: true, {provider.StreamStderr, "err1"}: true, {provider.StreamStdout, "partial"}: true}
+	if len(got) != len(want) {
+		t.Fatalf("lines %v", got)
+	}
+	for _, l := range got {
+		if !want[l] {
+			t.Errorf("unexpected line %v", l)
+		}
+	}
+
+	lines = nil
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- runner.Stream(ctx, nil, collect, "-c", "echo started; sleep 30") }()
+	deadline := time.Now().Add(5 * time.Second)
+	for len(snapshot()) == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("no line before cancel")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	cancel()
+	select {
+	case err := <-done:
+		var cmdErr *provider.CommandError
+		if !errors.Is(err, context.Canceled) || !errors.As(err, &cmdErr) {
+			t.Fatalf("err %v, want a canceled CommandError", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("child was not killed after cancel")
 	}
 }

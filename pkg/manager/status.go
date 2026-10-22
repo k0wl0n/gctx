@@ -117,6 +117,9 @@ func (m *Manager) providerInfos(clis map[provider.ID]provider.CLIStatus, counts 
 		if login, ok := p.(provider.LoginCapable); ok {
 			info.CanLogin = login.HasLogin()
 		}
+		if streaming, ok := p.(provider.StreamingLogin); ok {
+			info.StreamsLogin = streaming.StreamsLogin()
+		}
 		infos = append(infos, info)
 	}
 	return infos

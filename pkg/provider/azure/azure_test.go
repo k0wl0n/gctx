@@ -21,7 +21,10 @@ import (
 	"github.com/k0wl0n/gctx/pkg/provider/execrunner"
 )
 
-var _ provider.Provider = (*azure.Provider)(nil)
+var (
+	_ provider.Provider       = (*azure.Provider)(nil)
+	_ provider.StreamingLogin = (*azure.Provider)(nil)
+)
 
 const (
 	subscription = "12345678-1234-1234-1234-123456789abc"
@@ -249,7 +252,7 @@ func TestAzureCheckAuthNeverRequestsToken(t *testing.T) {
 			}
 		}
 	}
-	if tokenCalls != 1 {
+	if tokenCalls != 2 { // login's verify step and the check
 		t.Fatalf("token calls %d", tokenCalls)
 	}
 	recorded, _ := os.ReadFile(h.logPath)
@@ -339,15 +342,19 @@ func TestAzureLoginSetsSubscription(t *testing.T) {
 	var events []provider.LoginEventKind
 	var out bytes.Buffer
 	result, err := h.provider.Login(context.Background(), acct, provider.LoginIO{
-		Stdout:   &out,
-		Stderr:   &out,
-		Progress: func(e provider.LoginEvent) { events = append(events, e.Kind) },
+		Stdout: &out,
+		Stderr: &out,
+		Progress: func(e provider.LoginEvent) {
+			if e.Kind == provider.LoginAuthStarted || e.Kind == provider.LoginAuthDone {
+				events = append(events, e.Kind)
+			}
+		},
 	})
 	if err != nil || result.Account != "work" {
 		t.Fatalf("result %+v err %v", result, err)
 	}
 	calls := h.calls(t)
-	if len(calls) != 2 {
+	if len(calls) != 3 {
 		t.Fatalf("calls %+v", calls)
 	}
 	wantLogin := "login --use-device-code --tenant contoso.onmicrosoft.com"
@@ -356,8 +363,11 @@ func TestAzureLoginSetsSubscription(t *testing.T) {
 		t.Fatalf("calls %+v", calls)
 	}
 	dir := filepath.Join(h.root, "work")
-	if calls[0].ConfigDir != dir || calls[1].ConfigDir != dir {
-		t.Errorf("config dirs %q %q, want %q", calls[0].ConfigDir, calls[1].ConfigDir, dir)
+	if calls[0].ConfigDir != dir || calls[1].ConfigDir != dir || calls[2].ConfigDir != dir {
+		t.Errorf("config dirs %q %q %q, want %q", calls[0].ConfigDir, calls[1].ConfigDir, calls[2].ConfigDir, dir)
+	}
+	if strings.Join(calls[2].Args[:2], " ") != "account get-access-token" || calls[2].TokenEmitted {
+		t.Errorf("verify call %+v", calls[2])
 	}
 	if !strings.Contains(out.String(), "devicelogin") {
 		t.Errorf("device code instructions not passed through: %q", out.String())
@@ -431,5 +441,121 @@ func TestAzureDetails(t *testing.T) {
 	}
 	if got["Subscription"] != subscription || got["Tenant"] != "contoso" || got["Config dir"] != filepath.Join(h.root, "work") {
 		t.Fatalf("details %v", got)
+	}
+}
+
+func TestParseDeviceCode(t *testing.T) {
+	cases := []struct {
+		name, line, url, code string
+		ok                    bool
+	}{
+		{"real az text", "To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code F7K2Q9XM to authenticate.", "https://microsoft.com/devicelogin", "F7K2Q9XM", true},
+		{"hyphenated code", "To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code F7K2-Q9XM to authenticate.", "https://microsoft.com/devicelogin", "F7K2-Q9XM", true},
+		{"extra whitespace and prefix", "  WARNING:   open https://login.microsoft.com/device   and  enter   the  code   AB12CD34 ", "https://login.microsoft.com/device", "AB12CD34", true},
+		{"fake az line", "fake-az: To sign in, use a web browser to open https://microsoft.com/devicelogin and enter the code FAKECODE", "https://microsoft.com/devicelogin", "FAKECODE", true},
+		{"url without code", "To sign in, use a web browser to open the page https://microsoft.com/devicelogin", "", "", false},
+		{"unrelated line", "Retrieving tenants and subscriptions for the selection...", "", "", false},
+		{"code without url uses the default page", "enter the code ZZ99", "https://microsoft.com/devicelogin", "ZZ99", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			url, code, ok := azure.ParseDeviceCode(tc.line)
+			if ok != tc.ok || url != tc.url || code != tc.code {
+				t.Errorf("got (%q, %q, %v), want (%q, %q, %v)", url, code, ok, tc.url, tc.code, tc.ok)
+			}
+		})
+	}
+}
+
+func TestAzureLoginEmitsDeviceCodeEvent(t *testing.T) {
+	h := newHarness(t)
+	acct := h.created(t, "work")
+	var events []provider.LoginEvent
+	if _, err := h.provider.Login(context.Background(), acct, provider.LoginIO{
+		Progress: func(e provider.LoginEvent) { events = append(events, e) },
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var codes []provider.LoginEvent
+	for _, e := range events {
+		if e.Kind == provider.LoginDeviceCode {
+			codes = append(codes, e)
+		}
+	}
+	if len(codes) != 1 || codes[0].URL != "https://microsoft.com/devicelogin" || codes[0].Code != "FAKECODE" {
+		t.Fatalf("device code events %+v", codes)
+	}
+}
+
+func TestAzureLoginStreamsOutputLines(t *testing.T) {
+	h := newHarness(t)
+	acct := h.created(t, "work")
+	var events []provider.LoginEvent
+	if _, err := h.provider.Login(context.Background(), acct, provider.LoginIO{
+		Progress: func(e provider.LoginEvent) { events = append(events, e) },
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var output []string
+	var steps []string
+	for _, e := range events {
+		switch e.Kind {
+		case provider.LoginOutput:
+			output = append(output, e.Output)
+		case provider.LoginStepPending, provider.LoginStepStarted, provider.LoginStepDone, provider.LoginStepFailed:
+			steps = append(steps, string(e.Kind)+" "+e.Step)
+		}
+	}
+	joined := strings.Join(output, "\n")
+	if !strings.Contains(joined, "enter the code FAKECODE") || !strings.Contains(joined, "fake-az: waiting") {
+		t.Errorf("output lines %q", output)
+	}
+	wantSteps := []string{
+		"step-pending isolate config",
+		"step-pending az login --use-device-code",
+		"step-pending az account set --subscription " + subscription,
+		"step-pending verify az account get-access-token",
+		"step-started isolate config", "step-done isolate config",
+		"step-started az login --use-device-code", "step-done az login --use-device-code",
+		"step-started az account set --subscription " + subscription, "step-done az account set --subscription " + subscription,
+		"step-started verify az account get-access-token", "step-done verify az account get-access-token",
+	}
+	if strings.Join(steps, "|") != strings.Join(wantSteps, "|") {
+		t.Errorf("steps\n%s\nwant\n%s", strings.Join(steps, "\n"), strings.Join(wantSteps, "\n"))
+	}
+}
+
+func TestAzureLoginFailureMarksStepFailed(t *testing.T) {
+	h := newHarness(t, "FAKE_AZ_LOGIN_FAIL=1")
+	acct := h.created(t, "work")
+	var failed []string
+	_, err := h.provider.Login(context.Background(), acct, provider.LoginIO{
+		Progress: func(e provider.LoginEvent) {
+			if e.Kind == provider.LoginStepFailed {
+				failed = append(failed, e.Step)
+			}
+		},
+	})
+	if err == nil || len(failed) != 1 || failed[0] != "az login --use-device-code" {
+		t.Fatalf("err %v failed %v", err, failed)
+	}
+}
+
+func TestAzureLoginCLIModeStillWritesToStdout(t *testing.T) {
+	h := newHarness(t)
+	acct := h.created(t, "work")
+	var stdout, stderr bytes.Buffer
+	_, err := h.provider.Login(context.Background(), acct, provider.LoginIO{
+		Stdout: &stdout, Stderr: &stderr,
+		Progress: func(provider.LoginEvent) {},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout.String(), "enter the code FAKECODE") {
+		t.Errorf("stdout %q lacks the device code message", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "fake-az: waiting") {
+		t.Errorf("stderr %q lacks the stderr line", stderr.String())
 	}
 }

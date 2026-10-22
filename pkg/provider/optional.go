@@ -95,3 +95,10 @@ type Installer interface {
 type LoginCapable interface {
 	HasLogin() bool
 }
+
+// StreamingLogin marks a provider whose Login reports its steps, device code
+// and CLI output through LoginIO.Progress, so a UI can show them itself
+// instead of handing over the terminal.
+type StreamingLogin interface {
+	StreamsLogin() bool
+}

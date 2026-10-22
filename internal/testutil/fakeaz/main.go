@@ -67,6 +67,7 @@ func login() int {
 		return 1
 	}
 	fmt.Println("fake-az: To sign in, use a web browser to open https://microsoft.com/devicelogin and enter the code FAKECODE")
+	fmt.Fprintln(os.Stderr, "fake-az: waiting for authentication")
 	return 0
 }
 

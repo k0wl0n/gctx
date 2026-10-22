@@ -223,12 +223,25 @@ const (
 	LoginADCStarted       LoginEventKind = "adc-started"
 	LoginSetProjectFailed LoginEventKind = "set-project-failed"
 	LoginVerifyingADC     LoginEventKind = "verifying-adc"
+
+	// Streaming providers (StreamingLogin) also report their steps, the
+	// device code and every output line of the CLI.
+	LoginStepPending LoginEventKind = "step-pending"
+	LoginStepStarted LoginEventKind = "step-started"
+	LoginStepDone    LoginEventKind = "step-done"
+	LoginStepFailed  LoginEventKind = "step-failed"
+	LoginDeviceCode  LoginEventKind = "device-code"
+	LoginOutput      LoginEventKind = "output"
 )
 
 // LoginEvent is one ordered progress notification.
 type LoginEvent struct {
 	Kind    LoginEventKind
-	Message string // detail for LoginSetProjectFailed
+	Message string // detail for LoginSetProjectFailed and the step events
+	Step    string // step label of the step events
+	Code    string // device code of LoginDeviceCode
+	URL     string // verification page of LoginDeviceCode
+	Output  string // one CLI output line of LoginOutput
 }
 
 // LoginIO is the terminal handed to the interactive login steps. Progress is
@@ -294,6 +307,18 @@ type Runner interface {
 	Interactive(ctx context.Context, stdio Stdio, env []string, args ...string) error
 	// WithEnv returns a Runner whose every child process also gets extra.
 	WithEnv(extra []string) Runner
+}
+
+// Output streams of StreamingRunner.Stream.
+const (
+	StreamStdout = "stdout"
+	StreamStderr = "stderr"
+)
+
+// StreamingRunner is an optional Runner capability: it runs a command with
+// piped output and reports each line as it arrives. Callers type-assert for it.
+type StreamingRunner interface {
+	Stream(ctx context.Context, env []string, onLine func(stream, line string), args ...string) error
 }
 
 // CommandError describes a failed CLI invocation. Its message is the
