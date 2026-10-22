@@ -192,7 +192,7 @@ func (m *Manager) Switch(ctx context.Context, name string) (SwitchResult, error)
 	if err != nil {
 		return SwitchResult{}, err
 	}
-	result := SwitchResult{Account: name, ProjectID: account.ProjectID}
+	result := SwitchResult{Account: name, ProjectID: account.ProjectID, Slot: p.Slot()}
 
 	activated, err := p.Activate(ctx, account)
 	result.Warnings, result.ApplyHint = activated.Warnings, activated.ApplyHint
@@ -206,7 +206,10 @@ func (m *Manager) Switch(ctx context.Context, name string) (SwitchResult, error)
 	}
 
 	err = m.mutate(func(cfg *config.Config) error {
-		if err := cfg.SetActive(name); err != nil {
+		if previous := cfg.ActiveBySlot[result.Slot]; previous != name {
+			result.Replaced = previous
+		}
+		if err := cfg.SetActiveSlot(result.Slot, name); err != nil {
 			return notFoundError{name}
 		}
 		return nil

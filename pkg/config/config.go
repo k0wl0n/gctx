@@ -12,9 +12,34 @@ import (
 type Config struct {
 	Accounts      map[string]*Account `json:"accounts"`
 	ActiveAccount string              `json:"active_account,omitempty"`
+	// ActiveBySlot maps a slot (gcp, aws, ...) to its active account.
+	ActiveBySlot map[string]string `json:"active_by_slot,omitempty"`
 
 	// path is the file this config was loaded from and is saved to.
 	path string
+}
+
+// gcpSlot is the slot mirrored into the legacy active_account field.
+const gcpSlot = "gcp"
+
+// MarshalJSON keeps the gcp slot only in active_account, so an older binary
+// that rewrites that field never leaves a stale copy in active_by_slot, and
+// GCP-only files stay byte-identical to the previous schema.
+func (c Config) MarshalJSON() ([]byte, error) {
+	type plain Config
+	out := plain(c)
+	out.ActiveAccount = c.ActiveBySlot[gcpSlot]
+	out.ActiveBySlot = nil
+	for slot, name := range c.ActiveBySlot {
+		if slot == gcpSlot || name == "" {
+			continue
+		}
+		if out.ActiveBySlot == nil {
+			out.ActiveBySlot = map[string]string{}
+		}
+		out.ActiveBySlot[slot] = name
+	}
+	return json.Marshal(out)
 }
 
 // AppName names the config directory under ~/.config.
@@ -96,6 +121,14 @@ func LoadFrom(path string) (*Config, error) {
 	if config.Accounts == nil {
 		config.Accounts = make(map[string]*Account)
 	}
+	if config.ActiveAccount != "" {
+		if config.ActiveBySlot == nil {
+			config.ActiveBySlot = map[string]string{}
+		}
+		if config.ActiveBySlot[gcpSlot] == "" {
+			config.ActiveBySlot[gcpSlot] = config.ActiveAccount
+		}
+	}
 	return config, nil
 }
 
@@ -171,6 +204,11 @@ func (c *Config) DeleteAccount(name string) error {
 		return fmt.Errorf("account '%s' not found", name)
 	}
 	delete(c.Accounts, name)
+	for slot, active := range c.ActiveBySlot {
+		if active == name {
+			delete(c.ActiveBySlot, slot)
+		}
+	}
 	if c.ActiveAccount == name {
 		c.ActiveAccount = ""
 	}
@@ -187,10 +225,22 @@ func (c *Config) ListAccounts() []*Account {
 	return accounts
 }
 
+// SetActive makes name the active account of the gcp slot.
 func (c *Config) SetActive(name string) error {
+	return c.SetActiveSlot(gcpSlot, name)
+}
+
+// SetActiveSlot makes name the active account of slot and saves.
+func (c *Config) SetActiveSlot(slot, name string) error {
 	if _, exists := c.Accounts[name]; !exists {
 		return fmt.Errorf("account '%s' not found", name)
 	}
-	c.ActiveAccount = name
+	if c.ActiveBySlot == nil {
+		c.ActiveBySlot = map[string]string{}
+	}
+	c.ActiveBySlot[slot] = name
+	if slot == gcpSlot {
+		c.ActiveAccount = name
+	}
 	return c.Save()
 }

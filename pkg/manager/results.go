@@ -79,6 +79,10 @@ type CreateResult struct {
 type SwitchResult struct {
 	Account   string
 	ProjectID string
+	// Slot is the slot the switch changed; Replaced is that slot's previously
+	// active account, empty when none or unchanged.
+	Slot     string
+	Replaced string
 	// ApplyHint tells the user how to apply an environment-based account to
 	// their shell; empty for providers with a global switch.
 	ApplyHint string
@@ -161,9 +165,10 @@ type Overview struct {
 	ConfigPath string
 	Accounts   []AccountStatus // sorted by name
 
-	ActiveAccount      string // gctx active account ("" when none)
-	ShellAccount       string // GCTX_ACCOUNT, when running inside `gctx shell`
-	GcloudActiveConfig string // globally active gcloud configuration
+	ActiveAccount      string            // gctx active account of the gcp slot ("" when none)
+	ActiveBySlot       map[string]string // slot -> active account name
+	ShellAccount       string            // GCTX_ACCOUNT, when running inside `gctx shell`
+	GcloudActiveConfig string            // globally active gcloud configuration
 
 	DefaultADC        ADCIndicator
 	DefaultADCPath    string
@@ -183,14 +188,12 @@ type ProviderInfo struct {
 	Count int // accounts using this provider
 }
 
-// Active returns the active account's status, if any.
+// Active returns the status of the gcp slot's active account, if any.
 func (o Overview) Active() (AccountStatus, bool) {
-	for _, account := range o.Accounts {
-		if account.Active {
-			return account, true
-		}
+	if o.ActiveAccount == "" {
+		return AccountStatus{}, false
 	}
-	return AccountStatus{}, false
+	return o.Account(o.ActiveAccount)
 }
 
 // Account returns the named account's status, if present.

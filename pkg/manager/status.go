@@ -20,10 +20,27 @@ func (m *Manager) ActiveAccount() string {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if cfg, err := m.loadConfig(); err == nil && cfg.ActiveAccount != "" {
-		return cfg.ActiveAccount
+	if cfg, err := m.loadConfig(); err == nil && cfg.ActiveBySlot["gcp"] != "" {
+		return cfg.ActiveBySlot["gcp"]
 	}
 	return "unknown"
+}
+
+// ActiveSlots returns the active account of every slot that has one. The
+// gcp slot honours GCTX_ACCOUNT like ActiveAccount does.
+func (m *Manager) ActiveSlots() map[string]string {
+	slots := map[string]string{}
+	m.mu.Lock()
+	if cfg, err := m.loadConfig(); err == nil {
+		for slot, name := range cfg.ActiveBySlot {
+			slots[slot] = name
+		}
+	}
+	m.mu.Unlock()
+	if name := m.opts.Getenv("GCTX_ACCOUNT"); name != "" {
+		slots["gcp"] = name
+	}
+	return slots
 }
 
 // Overview computes the local status of every account. It reads files and
@@ -42,7 +59,8 @@ func (m *Manager) Overview() (Overview, error) {
 	}
 	overview := Overview{
 		ConfigPath:      m.paths.ConfigPath(),
-		ActiveAccount:   cfg.ActiveAccount,
+		ActiveAccount:   cfg.ActiveBySlot["gcp"],
+		ActiveBySlot:    maps.Clone(cfg.ActiveBySlot),
 		ShellAccount:    m.opts.Getenv("GCTX_ACCOUNT"),
 		DefaultADCPath:  m.paths.DefaultADC,
 		GcloudAvailable: clis[provider.GCP].Found,
@@ -86,15 +104,16 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, cli
 		ProjectID:  account.ProjectID,
 		Email:      account.Email,
 		CreatedAt:  account.CreatedAt,
-		Active:     account.Name == cfg.ActiveAccount,
 		ADCPath:    account.ADCPath,
 	}
 	p, err := m.providerFor(*account)
 	if err != nil {
+		status.Active = cfg.ActiveBySlot[account.ProviderID()] == account.Name
 		status.Status = HealthError
 		status.Findings = []Finding{{Health: HealthError, Message: err.Error()}}
 		return status
 	}
+	status.Active = cfg.ActiveBySlot[p.Slot()] == account.Name
 	status.TargetLabel = p.TargetLabel()
 	status.Category = p.Category()
 

@@ -292,8 +292,8 @@ func TestSwitchEnvProviderReturnsApplyHint(t *testing.T) {
 		t.Errorf("result %+v", result)
 	}
 	cfg, err := config.LoadFrom(configPath)
-	if err != nil || cfg.ActiveAccount != "a-aws" {
-		t.Errorf("active account %q %v", cfg.ActiveAccount, err)
+	if err != nil || cfg.ActiveBySlot["aws"] != "a-aws" || cfg.ActiveAccount != "" {
+		t.Errorf("active slots %v account %q %v", cfg.ActiveBySlot, cfg.ActiveAccount, err)
 	}
 }
 

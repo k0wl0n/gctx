@@ -25,7 +25,7 @@ func (m *Manager) SelectAccountInteractive() (string, error) {
 		func(i int) string {
 			acc := accounts[i]
 			active := ""
-			if acc.Name == cfg.ActiveAccount {
+			if acc.Name == cfg.ActiveBySlot[acc.ProviderID()] {
 				active = " (active)"
 			}
 			return fmt.Sprintf("%s [%s]%s", acc.Name, acc.ProjectID, active)

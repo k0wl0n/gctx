@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
+	"sort"
 	"strings"
 
 	"github.com/k0wl0n/gctx/pkg/gcloud"
@@ -69,6 +71,24 @@ const providerColumnWidth = 8
 // Active prints `gctx active`.
 func Active(w io.Writer, name string) {
 	fmt.Fprintf(w, "Active account: %s\n", name)
+}
+
+// ActiveSlots prints `gctx active` for several slots: gcp, aws and azure
+// first, then the others sorted.
+func ActiveSlots(w io.Writer, slots map[string]string) {
+	order := []string{"gcp", "aws", "azure"}
+	var others []string
+	for slot := range slots {
+		if !slices.Contains(order, slot) {
+			others = append(others, slot)
+		}
+	}
+	sort.Strings(others)
+	for _, slot := range append(order, others...) {
+		if name, ok := slots[slot]; ok {
+			fmt.Fprintf(w, "%s: %s\n", slot, name)
+		}
+	}
 }
 
 // Info prints `gctx info`.
@@ -188,6 +208,9 @@ func Switch(w, errw io.Writer, result manager.SwitchResult) {
 		}
 	}
 	fmt.Fprintf(w, "Switched to account: %s (%s)\n", result.Account, result.ProjectID)
+	if result.Replaced != "" {
+		fmt.Fprintf(w, "Replaced %s in slot %s\n", result.Replaced, result.Slot)
+	}
 	if result.ApplyHint != "" {
 		fmt.Fprintln(w, result.ApplyHint)
 	}
