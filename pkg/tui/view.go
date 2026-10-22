@@ -6,40 +6,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"charm.land/lipgloss/v2"
 	"github.com/k0wl0n/gctx/pkg/manager"
 )
-
-// column widths and names for the three breakpoint tiers.
-// tier0: ≥120, tier1: 90–119, tier2: 60–89
-type columnSet struct {
-	marker, name, project, email, adc, status int
-	showEmail, showADC, showDetails           bool
-}
-
-func layoutColumns(width int) columnSet {
-	switch {
-	case width >= 160:
-		return columnSet{
-			marker: 2, name: 36, project: 36, email: 32, adc: 5, status: 15,
-			showEmail: true, showADC: true, showDetails: true,
-		}
-	case width >= 120:
-		return columnSet{
-			marker: 2, name: 30, project: 30, email: 26, adc: 5, status: 15,
-			showEmail: true, showADC: true, showDetails: true,
-		}
-	case width >= 90:
-		return columnSet{
-			marker: 2, name: 28, project: 28, email: 20, status: 16,
-			showEmail: true,
-		}
-	default: // 60–89
-		return columnSet{
-			marker: 2, name: 30, project: 26, status: 12,
-		}
-	}
-}
 
 func truncate(s string, n int) string {
 	if n <= 0 {
@@ -80,7 +48,8 @@ func (m Model) viewMain() string {
 			minWidth, minHeight, m.width, m.height)
 	}
 
-	cols := layoutColumns(m.width)
+	st = newStylesFor(m.profile)
+	cols := m.tableColumns(m.width - markerWidth)
 	var out strings.Builder
 
 	// Header line
@@ -90,11 +59,11 @@ func (m Model) viewMain() string {
 	out.WriteByte('\n')
 
 	// Table title line (filter or account count)
-	out.WriteString(renderTableTitle(m, cols, g, st))
+	out.WriteString(renderTableTitle(m, g, st))
 	out.WriteByte('\n')
 
 	// Column headers
-	out.WriteString(renderColumnHeaders(cols, st))
+	out.WriteString(renderColumnHeaders(cols, g, st))
 	out.WriteByte('\n')
 
 	// Body rows — subtract 2 extra for the two separator lines
@@ -128,7 +97,7 @@ func (m Model) viewMain() string {
 		rendered := 0
 		for row := offset; row < len(m.visible) && rendered < bodyLines; row++ {
 			acct := m.overview.Accounts[m.visible[row]]
-			line := renderRow(acct, cols, g, st, acct.Name == m.selected)
+			line := m.renderRow(acct, cols, g, st, acct.Name == m.selected)
 			out.WriteString(line)
 			out.WriteByte('\n')
 			rendered++
@@ -149,7 +118,7 @@ func (m Model) viewMain() string {
 	out.WriteByte('\n')
 
 	// Key-hint line
-	out.WriteString(renderHints(m, cols, st))
+	out.WriteString(renderHints(m, m.width, st))
 
 	return out.String()
 }
@@ -209,105 +178,13 @@ func renderADCIndicator(ind manager.ADCIndicator, g glyphs, st styles) string {
 	}
 }
 
-func renderTableTitle(m Model, cols columnSet, g glyphs, st styles) string {
+func renderTableTitle(m Model, g glyphs, st styles) string {
 	total := len(m.overview.Accounts)
 	if m.filter.query != "" {
 		matches := len(m.visible)
 		return fmt.Sprintf("filter: %s (%d/%d)", m.filter.query, matches, total)
 	}
 	return st.Header.Render("Accounts") + fmt.Sprintf(" (%d)", total)
-}
-
-func renderColumnHeaders(cols columnSet, st styles) string {
-	var b strings.Builder
-	b.WriteString(pad("", cols.marker))
-	b.WriteString(st.Header.Render(pad("NAME", cols.name)))
-	b.WriteString(" ")
-	b.WriteString(st.Header.Render(pad("PROJECT", cols.project)))
-	if cols.showEmail {
-		b.WriteString(" ")
-		b.WriteString(st.Header.Render(pad("EMAIL", cols.email)))
-	}
-	if cols.showADC {
-		b.WriteString(" ")
-		b.WriteString(st.Header.Render(pad("ADC", cols.adc)))
-	}
-	b.WriteString(" ")
-	b.WriteString(st.Header.Render("STATUS"))
-	return b.String()
-}
-
-func renderRow(acct manager.AccountStatus, cols columnSet, g glyphs, st styles, selected bool) string {
-	// Active marker — colored green
-	marker := " "
-	if acct.Active {
-		marker = st.OK.Render(g.Active)
-	}
-
-	// Name — bold+green for active account
-	name := truncate(acct.Name, cols.name)
-	if acct.Active {
-		name = st.ActiveName.Render(pad(name, cols.name))
-	} else {
-		name = pad(name, cols.name)
-	}
-
-	proj := acct.ProjectID
-	if proj == "" {
-		proj = st.Dim.Render("-")
-	} else {
-		proj = truncate(proj, cols.project)
-	}
-
-	statusText := string(acct.Status)
-	statusStyle := healthStyle(acct.Status, st)
-
-	var b strings.Builder
-	b.WriteString(pad(marker, cols.marker))
-	b.WriteString(name)
-	b.WriteString(" ")
-	b.WriteString(pad(proj, cols.project))
-
-	if cols.showEmail {
-		email := acct.Email
-		if email == "" {
-			email = st.Dim.Render("-")
-		} else {
-			email = truncate(email, cols.email)
-		}
-		b.WriteString(" ")
-		b.WriteString(pad(email, cols.email))
-	}
-	if cols.showADC {
-		var adcGlyph string
-		if acct.ADCExists {
-			adcGlyph = st.OK.Render(g.Yes)
-		} else {
-			adcGlyph = st.Error.Render(g.No)
-		}
-		b.WriteString(" ")
-		b.WriteString(pad(adcGlyph, cols.adc))
-	}
-	b.WriteString(" ")
-	b.WriteString(statusStyle.Render(truncate(statusText, cols.status)))
-
-	line := b.String()
-	if selected {
-		line = st.Selected.Render(line)
-	}
-	return line
-}
-
-func healthStyle(h manager.Health, st styles) lipgloss.Style {
-	switch h {
-	case manager.HealthReady:
-		return st.OK
-	case manager.HealthError, manager.HealthConfigMissing:
-		return st.Error
-	case manager.HealthADCMissing, manager.HealthAuthRequired, manager.HealthProjectMismatch:
-		return st.Warn
-	}
-	return lipgloss.NewStyle()
 }
 
 func renderStatus(m Model, st styles, g glyphs) string {
@@ -331,8 +208,8 @@ func renderStatus(m Model, st styles, g glyphs) string {
 	}
 }
 
-func renderHints(m Model, cols columnSet, st styles) string {
-	if !cols.showEmail {
+func renderHints(m Model, width int, st styles) string {
+	if tierFor(width) == tierNarrow {
 		return st.Dim.Render("↵ switch  ? help  q quit")
 	}
 	return st.Dim.Render("j/k move  ↵ switch  / filter  d details  l login  c create  s shell  r run  ? help  q quit")

@@ -9,6 +9,7 @@ import (
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/k0wl0n/gctx/pkg/manager"
 )
 
@@ -141,7 +142,8 @@ type Model struct {
 	status        statusMsg
 	statusSeq     int
 	width, height int
-	history       []string // run prompt history, memory only
+	profile       colorprofile.Profile // from tea.ColorProfileMsg; TrueColor until then
+	history       []string             // run prompt history, memory only
 }
 
 // New builds the model and loads the local overview synchronously: it is a few
@@ -163,6 +165,7 @@ func NewWithGOOS(svc Service, opts Options, goos string) Model {
 		goos:     goos,
 		spin:     spinner.New(spinner.WithSpinner(spinner.Dot)),
 		filter:   filterState{input: newLineInput("/")},
+		profile:  colorprofile.TrueColor,
 	}
 	m.reload()
 	return m
@@ -289,6 +292,9 @@ func (m Model) dispatch(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		return m, nil
+	case tea.ColorProfileMsg:
+		m.profile = msg.Profile
 		return m, nil
 	case startCredsMsg:
 		return m, m.startCredsCheck()

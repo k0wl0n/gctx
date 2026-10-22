@@ -16,40 +16,57 @@ func TestTooSmallMessage(t *testing.T) {
 	}
 }
 
-// TestBreakpointsWidthBoundaries exercises the column-set selection at each boundary.
+// TestBreakpointsWidthBoundaries exercises the tier selection at each boundary
+// (≥150 wide, 100-149 standard, 60-99 narrow) and the columns each tier shows.
 func TestBreakpointsWidthBoundaries(t *testing.T) {
 	cases := []struct {
-		width    int
-		height   int
-		wantADC  bool
-		wantEmail bool
-		tooSmall bool
+		width        int
+		height       int
+		tier         tier
+		wantADC      bool
+		wantIdentity bool
+		tooSmall     bool
 	}{
-		{59, 12, false, false, true},  // too small
-		{60, 12, false, false, false}, // tier2 minimum
-		{89, 12, false, false, false}, // tier2 maximum
-		{90, 12, false, true, false},  // tier1 minimum
-		{119, 12, false, true, false}, // tier1 maximum
-		{120, 12, true, true, false},  // tier0 minimum
-		{60, 11, false, false, true},  // height too small
+		{59, 12, tierNarrow, false, false, true},   // too small
+		{60, 12, tierNarrow, true, false, false},   // narrow minimum: IDENTITY drops before ADC
+		{99, 12, tierNarrow, true, true, false},    // narrow maximum
+		{100, 12, tierStandard, true, true, false}, // standard minimum
+		{149, 12, tierStandard, true, true, false}, // standard maximum
+		{150, 12, tierWide, true, true, false},     // wide minimum
+		{60, 11, tierNarrow, false, false, true},   // height too small
 	}
 	svc := newFakeService(sampleOverview("work", "personal", "work"))
 	for _, c := range cases {
 		m := newTestModel(t, svc, c.width, c.height)
-		col := layoutColumns(c.width)
 		if c.tooSmall {
 			if !m.tooSmall() {
 				t.Errorf("%dx%d: expected too small", c.width, c.height)
 			}
 			continue
 		}
-		if col.showADC != c.wantADC {
-			t.Errorf("%dx%d: showADC=%v want %v", c.width, c.height, col.showADC, c.wantADC)
+		if got := tierFor(c.width); got != c.tier {
+			t.Errorf("%d: tier %v want %v", c.width, got, c.tier)
 		}
-		if col.showEmail != c.wantEmail {
-			t.Errorf("%dx%d: showEmail=%v want %v", c.width, c.height, col.showEmail, c.wantEmail)
+		head := columnHeaderLine(t, screen(m))
+		if got := strings.Contains(head, "ADC"); got != c.wantADC {
+			t.Errorf("%dx%d: ADC shown=%v want %v in %q", c.width, c.height, got, c.wantADC, head)
+		}
+		if got := strings.Contains(head, "IDENTITY"); got != c.wantIdentity {
+			t.Errorf("%dx%d: IDENTITY shown=%v want %v in %q", c.width, c.height, got, c.wantIdentity, head)
 		}
 	}
+}
+
+// columnHeaderLine returns the rendered line holding the NAME column header.
+func columnHeaderLine(t testing.TB, out string) string {
+	t.Helper()
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Contains(line, "NAME") && strings.Contains(line, "STATUS") {
+			return line
+		}
+	}
+	t.Fatalf("no column header line in:\n%s", out)
+	return ""
 }
 
 // TestActiveHighlightAndOrder checks the active marker and sorted order.
@@ -72,11 +89,20 @@ func TestActiveHighlightAndOrder(t *testing.T) {
 	if m.selected != "work" {
 		t.Errorf("selected %q, want work", m.selected)
 	}
-	// work row shows active marker
+	// work row shows active marker; the others do not
 	g := newGlyphs(asciiRequested())
-	out := renderRow(m.overview.Accounts[m.visible[2]], layoutColumns(100), g, newStyles(), false)
-	if !strings.Contains(out, g.Active) {
-		t.Errorf("active marker %q not in row: %q", g.Active, out)
+	for _, line := range strings.Split(screen(m), "\n") {
+		marker := string([]rune(line + "  ")[:markerWidth])
+		switch {
+		case strings.Contains(line, "work@example.com"):
+			if !strings.Contains(marker, g.Active) {
+				t.Errorf("active marker %q not in row: %q", g.Active, line)
+			}
+		case strings.Contains(line, "personal@example.com"), strings.Contains(line, "sandbox@example.com"):
+			if strings.Contains(marker, g.Active) {
+				t.Errorf("inactive row has active marker: %q", line)
+			}
+		}
 	}
 }
 
@@ -301,11 +327,31 @@ func TestDetailsViewFindings(t *testing.T) {
 	}
 }
 
-// TestASCIIMode verifies GCTX_ASCII replaces unicode glyphs.
+// TestASCIIGlyphs verifies GCTX_ASCII=1 replaces every unicode glyph.
 func TestASCIIGlyphs(t *testing.T) {
-	g := newGlyphs(true)
+	t.Setenv("GCTX_ASCII", "1")
+	g := newGlyphs(asciiRequested())
 	if g.Active != "*" || g.Yes != "+" || g.No != "x" || g.Warn != "!" || g.Ellipsis != "..." {
 		t.Errorf("unexpected ASCII glyphs: %+v", g)
+	}
+	if g.Unverified != "?" || g.Missing != "-" || g.Linked != "->" {
+		t.Errorf("unexpected ASCII health glyphs: %+v", g)
+	}
+	all := append([]string{g.Active, g.Yes, g.No, g.Warn, g.Ellipsis, g.HRule, g.Unverified, g.Missing, g.Linked,
+		g.Bar, g.VSep, g.Dot, g.Enter}, g.Spinner...)
+	if len(g.Spinner) < 2 {
+		t.Errorf("spinner frames %v", g.Spinner)
+	}
+	for _, glyph := range all {
+		for _, r := range glyph {
+			if r > 127 {
+				t.Errorf("non-ASCII glyph %q in ASCII set", glyph)
+			}
+		}
+	}
+	t.Setenv("GCTX_ASCII", "")
+	if g := newGlyphs(asciiRequested()); g.Unverified != "?" || g.Missing != "○" || g.Linked != "↳" {
+		t.Errorf("unicode glyphs: %+v", g)
 	}
 }
 
@@ -329,7 +375,7 @@ func TestRandomResizeNoPanic(t *testing.T) {
 
 // TestHintLineNarrow verifies shortened hints at narrow width.
 func TestHintLineNarrow(t *testing.T) {
-	hints := renderHints(Model{}, layoutColumns(70), newStyles())
+	hints := renderHints(Model{}, 70, newStyles())
 	if strings.Contains(hints, "filter") {
 		t.Errorf("narrow hints should not mention filter: %q", hints)
 	}
@@ -337,7 +383,7 @@ func TestHintLineNarrow(t *testing.T) {
 
 // TestHintLineWide verifies full hints at wide width.
 func TestHintLineWide(t *testing.T) {
-	hints := renderHints(Model{}, layoutColumns(100), newStyles())
+	hints := renderHints(Model{}, 100, newStyles())
 	if !strings.Contains(hints, "filter") {
 		t.Errorf("wide hints should mention filter: %q", hints)
 	}
