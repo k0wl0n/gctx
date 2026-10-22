@@ -248,6 +248,9 @@ func renderHelp(m Model) string {
 		for _, binding := range group.Bindings {
 			h := binding.Help()
 			line := fmt.Sprintf("    %-20s %s\n", h.Key, h.Desc)
+			if cli := cliEquivalent(binding, "<name>"); cli != "" {
+				line = fmt.Sprintf("    %-20s %s  (%s)\n", h.Key, h.Desc, cli)
+			}
 			b.WriteString(line)
 		}
 		b.WriteByte('\n')

@@ -141,13 +141,14 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `r` | run a gcloud command as the selected account |
 | `c` | create an account: pick provider, name and the provider's fields; shows what is written and the CLI install hint when it is missing |
 | `e` | edit the selected account: rename and change editable settings (identity fields are read-only) |
-| `ctrl+d` | delete (confirmation defaults to Cancel) |
+| `ctrl+d` | delete: lists what is removed (isolated Azure dir, optional provider logout first, gcloud configuration) and what is kept, asks you to type the account name, defaults to Cancel; refused while other accounts link to it |
 | `a` | save the current ADC to the selected account |
 | `p` | toggle the detail pane (150+ columns) |
 | `z` | fold or unfold a provider group |
 | `!` | only rows needing action |
 | `o` | cycle sort: name, status, expiry |
 | `R` | reload |
+| `:` | command palette: fuzzy search over every action and account; the right column is the CLI equivalent, `enter` runs, `tab` completes |
 | `?` | help |
 | `q` / `ctrl+c` | quit |
 

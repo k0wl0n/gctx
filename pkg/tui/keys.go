@@ -1,6 +1,11 @@
 package tui
 
-import "charm.land/bubbles/v2/key"
+import (
+	"strings"
+
+	"charm.land/bubbles/v2/key"
+	"github.com/k0wl0n/gctx/pkg/config"
+)
 
 // keyMap is the single source for dispatch, the hint line and the help screen.
 type keyMap struct {
@@ -56,7 +61,7 @@ var keys = keyMap{
 	Reload:  key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "reload")),
 	Help:    key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
 	Quit:    key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q/ctrl+c", "quit")),
-	Command: key.NewBinding(key.WithKeys(":"), key.WithHelp(":", "reserved: command mode")),
+	Command: key.NewBinding(key.WithKeys(":"), key.WithHelp(":", "command palette")),
 }
 
 // groups returns the bindings by help-screen section.
@@ -115,4 +120,30 @@ func (k keyMap) hints(t tier, allTab bool, g glyphs) []hint {
 	return append(out,
 		hint{first(k.NeedsAction), "needs action", 14}, hint{first(k.Sort), "sort", 15}, hint{first(k.Reload), "recheck", 12},
 		help, quit)
+}
+
+// bindingCLI maps a binding's first key to its CLI equivalent, "<name>"
+// standing for the account. Only commands that exist belong here; a binding
+// without a command is a TUI-only action. The palette and the help screen
+// both read this table.
+var bindingCLI = map[string]string{
+	"enter":  "switch <name>",
+	"l":      "login <name>",
+	"S":      "shell <name>",
+	"y":      "env <name>",
+	"r":      "run <name> -- ...",
+	"d":      "info <name>",
+	"c":      "create ...",
+	"ctrl+d": "delete <name>",
+	"a":      "save <name>",
+}
+
+// cliEquivalent is the command line equivalent to binding for account, or ""
+// when the binding has none.
+func cliEquivalent(binding key.Binding, account string) string {
+	template, ok := bindingCLI[binding.Keys()[0]]
+	if !ok {
+		return ""
+	}
+	return config.AppName + " " + strings.ReplaceAll(template, "<name>", account)
 }

@@ -244,17 +244,13 @@ func TestFilterNoMatchEmptyState(t *testing.T) {
 	}
 }
 
-// TestReservedColon verifies the ':' reserved message.
-func TestReservedColon(t *testing.T) {
+// TestColonOpensPalette verifies ':' opens the command palette.
+func TestColonOpensPalette(t *testing.T) {
 	svc := newFakeService(sampleOverview("a", "a"))
 	m := newTestModel(t, svc, 100, 24)
-	// Use dispatch directly to avoid running the status-expiry timer in drain.
 	m, _ = m.dispatch(keyMsg(":"))
-	if m.status.text == "" {
-		t.Error("expected status message after :")
-	}
-	if !strings.Contains(m.status.text, "Command mode") {
-		t.Errorf("wrong status: %q", m.status.text)
+	if _, ok := m.modal.(*palette); !ok {
+		t.Errorf("modal %T, want the palette", m.modal)
 	}
 }
 

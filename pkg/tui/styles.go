@@ -16,6 +16,7 @@ type glyphs struct {
 	Bar, VSep, Dot, Enter           string // cursor bar, column separator, middle dot, enter key
 	RadioOn, RadioOff, Caret        string // form radio choices and the focused-row marker
 	Arrow                           string
+	UpDown, Tab                     string    // palette hint keys
 	Box                             [6]string // corners TL, TR, BL, BR, then horizontal and vertical lines
 	Spinner                         []string
 }
@@ -27,7 +28,7 @@ func newGlyphs(ascii bool) glyphs {
 			Unverified: "?", Missing: "-", Linked: "->",
 			Bar: "|", VSep: "|", Dot: ".", Enter: "enter",
 			RadioOn: "(*)", RadioOff: "( )", Caret: ">",
-			Arrow: "->", Box: [6]string{"+", "+", "+", "+", "-", "|"},
+			Arrow: "->", UpDown: "up/down", Tab: "tab", Box: [6]string{"+", "+", "+", "+", "-", "|"},
 			Spinner: []string{"|", "/", "-", "\\"},
 		}
 	}
@@ -36,7 +37,7 @@ func newGlyphs(ascii bool) glyphs {
 		Unverified: "?", Missing: "○", Linked: "↳",
 		Bar: "▌", VSep: "│", Dot: "·", Enter: "↵",
 		RadioOn: "◉", RadioOff: "○", Caret: "›",
-		Arrow: "→", Box: [6]string{"┌", "┐", "└", "┘", "─", "│"},
+		Arrow: "→", UpDown: "↑↓", Tab: "⇥", Box: [6]string{"┌", "┐", "└", "┘", "─", "│"},
 		Spinner: []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 	}
 }

@@ -111,7 +111,8 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		cmd := m.startCredsCheck()
 		return m, tea.Batch(cmd, m.loadEnvCmd())
 	case matches(msg, keys.Command.Keys()):
-		return m, m.setStatus("Command mode is not available yet", levelInfo)
+		m.modal = newPalette(m)
+		return m, nil
 	}
 
 	if _, ok := m.selectedPlaceholder(); ok && accountKeys[k] {
@@ -138,8 +139,8 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		acct.Name = m.feedback.account // the panel's keys act on what it shows
 	}
 	if cliGated[k] && hasSelection {
-		if info, known := m.knownProvider(acct.Provider); known && !info.CLI.Found {
-			return m, m.setStatus(cliMissingText(info), levelError)
+		if why := m.actionBlock(k, acct); why != "" {
+			return m, m.setStatus(why, levelError)
 		}
 	}
 
@@ -157,7 +158,7 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		if !hasSelection {
 			return m, m.setStatus("No account selected", levelInfo)
 		}
-		if !adcApplies(acct) {
+		if m.actionBlock(k, acct) != "" {
 			return m, nil // saving ADC exists only for accounts with ADC
 		}
 		return m.openSave(acct.Name)
@@ -258,6 +259,21 @@ func (m Model) knownProvider(id provider.ID) (manager.ProviderInfo, bool) {
 		}
 	}
 	return manager.ProviderInfo{}, false
+}
+
+// actionBlock says why the action bound to key k cannot act on acct, or ""
+// when it can. The key handler and the palette both ask it.
+func (m Model) actionBlock(k string, acct manager.AccountStatus) string {
+	info, known := m.knownProvider(acct.Provider)
+	switch {
+	case cliGated[k] && known && !info.CLI.Found:
+		return cliMissingText(info)
+	case k == "a" && !adcApplies(acct):
+		return "no ADC for this account"
+	case k == "y" && !m.providerInfo(acct.Provider).EnvBased:
+		return m.providerInfo(acct.Provider).Label + " switches globally; nothing to copy"
+	}
+	return ""
 }
 
 func cliMissingText(info manager.ProviderInfo) string {
@@ -415,8 +431,8 @@ func (m Model) copyEnvLine() (Model, tea.Cmd) {
 	if m.feedback != nil {
 		acct.Name = m.feedback.account
 	}
-	if info := m.providerInfo(acct.Provider); !info.EnvBased {
-		return m, m.setStatus(info.Label+" switches globally; nothing to copy", levelInfo)
+	if why := m.actionBlock("y", acct); why != "" {
+		return m, m.setStatus(why, levelInfo)
 	}
 	line := envEvalLine(acct.Name)
 	return m, tea.Batch(tea.SetClipboard(line), m.setStatus("copied: "+line, levelInfo))
