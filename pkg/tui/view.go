@@ -335,7 +335,7 @@ func renderHints(m Model, cols columnSet, st styles) string {
 	if !cols.showEmail {
 		return st.Dim.Render("↵ switch  ? help  q quit")
 	}
-	return st.Dim.Render("j/k move  ↵ switch  / filter  d details  l login  s shell  r run  ? help  q quit")
+	return st.Dim.Render("j/k move  ↵ switch  / filter  d details  l login  c create  s shell  r run  ? help  q quit")
 }
 
 // viewOverlay draws the help or details screen.
