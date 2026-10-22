@@ -648,3 +648,24 @@ func TestAzureDeleteItems(t *testing.T) {
 		t.Errorf("kept %q", h.provider.Kept(acct))
 	}
 }
+
+func TestAzureDeleteLogoutTimeoutIsWarning(t *testing.T) {
+	defer azure.SetLogoutTimeout(300 * time.Millisecond)()
+	h := newHarness(t, "FAKE_AZ_LOGOUT_HANG=1")
+	acct := h.created(t, "work")
+	dir := acct.Settings["dir"]
+	start := time.Now()
+	result, err := h.provider.Delete(context.Background(), acct, provider.DeleteOptions{Logout: true, RemoveDir: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if elapsed := time.Since(start); elapsed > 10*time.Second {
+		t.Fatalf("Delete took %s with a 300ms logout bound", elapsed)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Error("deletion must continue after a logout timeout")
+	}
+	if len(result.Warnings) != 1 || result.Warnings[0].Code != provider.WarnLogoutFailed || !strings.Contains(result.Warnings[0].Message, "work") {
+		t.Errorf("warnings %+v", result.Warnings)
+	}
+}

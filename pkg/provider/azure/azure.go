@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/k0wl0n/gctx/pkg/config"
@@ -446,7 +447,12 @@ func (p *Provider) Details(acct config.Account) []provider.Field {
 	return fields
 }
 
+// logoutTimeout bounds `az logout`, which talks to the network; a variable so tests can shorten it.
+var logoutTimeout = 20 * time.Second
+
 func (p *Provider) logout(ctx context.Context, account, dir string) *provider.Warning {
+	ctx, cancel := context.WithTimeout(ctx, logoutTimeout)
+	defer cancel()
 	runner, err := p.runner()
 	if err == nil {
 		_, err = runner.Query(ctx, []string{envConfDir + "=" + dir}, "logout")
@@ -454,7 +460,7 @@ func (p *Provider) logout(ctx context.Context, account, dir string) *provider.Wa
 	if err == nil {
 		return nil
 	}
-	return &provider.Warning{Code: provider.WarnLogoutFailed, Account: account, Message: "az logout failed: " + err.Error()}
+	return &provider.Warning{Code: provider.WarnLogoutFailed, Account: account, Message: "az logout failed for " + account + ": " + err.Error()}
 }
 
 var _ provider.DeleteDescriber = (*Provider)(nil)

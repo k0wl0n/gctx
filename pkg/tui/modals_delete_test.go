@@ -162,7 +162,7 @@ func TestDeleteActiveWarns(t *testing.T) {
 func TestDeleteRefusedWhenLinked(t *testing.T) {
 	svc := newMultiService()
 	svc.deletePlans = map[string]manager.DeletePlan{"cloudsuite": {Dependants: []string{"claude-vertex", "claude-work"}}}
-	m, d := openDeleteFor(t, svc, "cloudsuite", 120, 40)
+	m, _ := openDeleteFor(t, svc, "cloudsuite", 120, 40)
 	out := screen(m)
 	for _, want := range []string{"cannot delete cloudsuite", "claude-vertex", "claude-work", "link"} {
 		if !strings.Contains(out, want) {
@@ -176,7 +176,6 @@ func TestDeleteRefusedWhenLinked(t *testing.T) {
 	if len(svc.deleteOpts) != 0 || m.op != nil || m.modal == nil {
 		t.Fatal("a refused delete must stay a refusal")
 	}
-	_ = d
 	m = press(t, m, "enter")
 	if m.modal != nil {
 		t.Error("enter must close the refusal")
@@ -202,5 +201,50 @@ func TestDeleteDialogLayoutAt120And70(t *testing.T) {
 				t.Errorf("%dx%d lacks %q:\n%s", size.width, size.height, want, out)
 			}
 		}
+	}
+}
+
+// activeConfigPlan is what a provider offers for gcloud's active configuration:
+// off and locked.
+func activeConfigPlan() manager.DeletePlan {
+	return manager.DeletePlan{
+		Items: []provider.DeleteItem{{Key: provider.DeleteKeyGcloudConfig, Label: "gcloud configuration cloudsuite", Detail: "gcloud's active configuration", Locked: true}},
+		Kept:  "the GCP project",
+	}
+}
+
+func TestDeleteLockedItemNeverToggles(t *testing.T) {
+	svc := newMultiService()
+	svc.deletePlans = map[string]manager.DeletePlan{"cloudsuite": activeConfigPlan()}
+	m, d := openDeleteFor(t, svc, "cloudsuite", 120, 40)
+	for _, stop := range d.stops() {
+		if stop.kind == stopItem {
+			t.Fatalf("a locked item is a focus stop: %+v", d.stops())
+		}
+	}
+	// space at every stop, forwards and backwards: it must never reach the item.
+	for _, k := range []string{"space", "tab", "space", "tab", "space", "tab", "shift+tab", "space", "shift+tab", "space"} {
+		m = press(t, m, k)
+		if d.rows[1].checked {
+			t.Fatalf("%s toggled the locked item", k)
+		}
+	}
+	d.input.Reset() // the spaces above were typed into the name field
+	m = tabTo(t, m, stopInput, 0)
+	m = typeInto(t, m, "cloudsuite")
+	m = tabTo(t, m, stopDelete, 0)
+	confirmDelete(t, m)
+	if len(svc.deleteOpts) != 1 || svc.deleteOpts[0].GcloudConfig {
+		t.Errorf("options %+v: the active gcloud configuration must not be deleted", svc.deleteOpts)
+	}
+}
+
+func TestDeleteActiveGcloudConfigStaysUnchecked(t *testing.T) {
+	svc := newMultiService()
+	svc.deletePlans = map[string]manager.DeletePlan{"cloudsuite": activeConfigPlan()}
+	m, _ := openDeleteFor(t, svc, "cloudsuite", 120, 40)
+	line := lineWith(t, screen(m), "gcloud configuration cloudsuite")
+	if !strings.Contains(line, "[ ]") || !strings.Contains(line, "active") {
+		t.Errorf("active config row: %q", line)
 	}
 }

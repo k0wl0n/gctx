@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -128,5 +127,4 @@ func TestDeleteRefusedWhenLinked(t *testing.T) {
 	if _, err := m.Delete(context.Background(), "alpha", manager.DeleteOptions{}); err != nil {
 		t.Errorf("deleting a dependant must work: %v", err)
 	}
-	_ = fmt.Sprint
 }

@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/provider"
@@ -28,6 +29,9 @@ const (
 )
 
 // ErrCLINotFound reports that the aws CLI is not on PATH.
+// logoutTimeout bounds `aws sso logout`, which talks to the network; a variable so tests can shorten it.
+var logoutTimeout = 20 * time.Second
+
 var ErrCLINotFound = errors.New("aws CLI not found; install AWS CLI v2")
 
 var profilePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,64}$`)
@@ -325,13 +329,15 @@ func (p *Provider) Delete(ctx context.Context, acct config.Account, opt provider
 	if !opt.Logout {
 		return result, nil
 	}
+	ctx, cancel := context.WithTimeout(ctx, logoutTimeout)
+	defer cancel()
 	runner, err := p.runner()
 	if err == nil {
 		_, err = runner.Query(ctx, p.childEnv(), "sso", "logout", "--profile", acct.Target())
 	}
 	if err != nil {
 		result.Warnings = append(result.Warnings, provider.Warning{
-			Code: provider.WarnLogoutFailed, Account: acct.Name, Message: "aws sso logout failed: " + err.Error(),
+			Code: provider.WarnLogoutFailed, Account: acct.Name, Message: "aws sso logout failed for " + acct.Name + ": " + err.Error(),
 		})
 	}
 	return result, nil

@@ -8,6 +8,7 @@
 //	FAKE_AZ_TOKEN_FAIL=1   account get-access-token exits 1 with an expiry error
 //	FAKE_AZ_TOKEN_HANG=1   account get-access-token blocks until killed
 //	FAKE_AZ_LOGOUT_FAIL=1  logout exits 1
+//	FAKE_AZ_LOGOUT_HANG=1  logout blocks until killed
 //	FAKE_AZ_TOKEN_NETFAIL=1 account get-access-token exits 1 with a network error
 //
 // get-access-token prints a token-looking value only when --query is absent,
@@ -48,6 +49,9 @@ func run(args []string) int {
 	case strings.HasPrefix(joined, "login"):
 		code = login()
 	case joined == "logout":
+		if os.Getenv("FAKE_AZ_LOGOUT_HANG") != "" {
+			time.Sleep(time.Minute)
+		}
 		if os.Getenv("FAKE_AZ_LOGOUT_FAIL") != "" {
 			fmt.Fprintln(os.Stderr, "ERROR: logout failed")
 			code = 1

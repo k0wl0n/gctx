@@ -457,3 +457,19 @@ func TestAWSDeleteItems(t *testing.T) {
 		t.Errorf("kept %q", h.provider.Kept(acct))
 	}
 }
+
+func TestAWSDeleteLogoutTimeoutIsWarning(t *testing.T) {
+	defer aws.SetLogoutTimeout(300 * time.Millisecond)()
+	h := newHarness(t, ssoConfig, "FAKE_AWS_LOGOUT_HANG=1")
+	start := time.Now()
+	result, err := h.provider.Delete(context.Background(), account("work", "work"), provider.DeleteOptions{Logout: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if elapsed := time.Since(start); elapsed > 10*time.Second {
+		t.Fatalf("Delete took %s with a 300ms logout bound", elapsed)
+	}
+	if len(result.Warnings) != 1 || result.Warnings[0].Code != provider.WarnLogoutFailed || !strings.Contains(result.Warnings[0].Message, "work") {
+		t.Errorf("warnings %+v", result.Warnings)
+	}
+}

@@ -173,12 +173,11 @@ func TestPaletteEscCloses(t *testing.T) {
 }
 
 func TestPaletteTabCompletes(t *testing.T) {
-	m, p := openPalette(t, newMultiService(), "cloudsuite", 150, 50)
+	m, _ := openPalette(t, newMultiService(), "cloudsuite", 150, 50)
 	m = press(t, m, "l", "o", "g", "i", "n", " ", "a", "tab")
 	if got := m.modal.(*palette).input.Value(); got != "Login all stale accounts" {
 		t.Errorf("tab completed to %q", got)
 	}
-	_ = p
 }
 
 func TestEveryKeyBindingHasPaletteEntry(t *testing.T) {
