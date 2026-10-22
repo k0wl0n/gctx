@@ -18,6 +18,10 @@ pkg/
     isolate.go     # run and shell commands, shell resolution
     validate.go    # account name and project validation
     results.go     # warnings, result structs, StepError
+  provider/
+    provider.go    # Provider contract, Runner, shared result types
+    registry.go    # provider registry
+    gcp/           # GCP provider over gcloud, adc and gcloudconfig
   present/
     text.go        # CLI text output and login progress
   config/          # config.json (atomic save, sorted listing)
@@ -71,7 +75,7 @@ flowchart TB
   model -->|tea.Exec| child[(login / gcloud run / shell<br/>owns the terminal)]
 ```
 
-`pkg/tui` and `cmd` depend on `pkg/manager` and `pkg/present`. `pkg/manager` depends on `config`, `adc`, `gcloud` and `gcloudconfig`, and never on the TUI, presenters, Cobra or Bubble Tea. See the [TUI guide](tui.md) for behavior.
+`pkg/tui` and `cmd` depend on `pkg/manager` and `pkg/present`. `pkg/manager` owns `config.json` and session state and delegates cloud-specific work to a provider (`pkg/provider`); the GCP provider (`pkg/provider/gcp`) wraps `adc`, `gcloud` and `gcloudconfig`. `pkg/manager` never depends on the TUI, presenters, Cobra or Bubble Tea. See the [TUI guide](tui.md) for behavior.
 
 ## Core Components
 

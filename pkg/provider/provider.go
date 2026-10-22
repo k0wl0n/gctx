@@ -175,3 +175,19 @@ type DeleteResult struct {
 	Removed  []string
 	Warnings []Warning
 }
+
+// Stdio is the terminal handed to an interactive child process.
+type Stdio struct {
+	Stdin          io.Reader
+	Stdout, Stderr io.Writer
+}
+
+// Runner runs a provider CLI. Implementations own per-call timeouts.
+type Runner interface {
+	// Query runs a non-interactive command and returns its trimmed stdout.
+	Query(ctx context.Context, env []string, args ...string) (string, error)
+	// Interactive runs a command attached to the given terminal.
+	Interactive(ctx context.Context, stdio Stdio, env []string, args ...string) error
+	// WithEnv returns a Runner whose every child process also gets extra.
+	WithEnv(extra []string) Runner
+}

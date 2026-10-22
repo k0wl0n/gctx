@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/k0wl0n/gctx/pkg/adc"
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/gcloudconfig"
+	"github.com/k0wl0n/gctx/pkg/provider/gcp"
 )
 
 // Paths are the filesystem roots gctx reads and writes.
@@ -66,11 +66,9 @@ func DefaultOptions() (Options, error) {
 // Manager implements every account operation. It returns data and warnings and
 // never prints; presenters render the results.
 type Manager struct {
-	opts       Options
-	paths      Paths
-	store      adc.Store
-	gcloud     *gcloud.Client
-	autoGcloud bool
+	opts  Options
+	paths Paths
+	gcp   *gcp.Provider
 
 	// mu serialises every read and write of config.json.
 	mu sync.Mutex
@@ -120,49 +118,30 @@ func NewWithOptions(opts Options) (*Manager, error) {
 		return nil, fmt.Errorf("manager: Options.Paths is required")
 	}
 	m := &Manager{
-		opts:         opts,
-		paths:        opts.Paths,
-		store:        adc.Store{Dir: opts.Paths.ADCDir, DefaultPath: opts.Paths.DefaultADC},
-		gcloud:       opts.Gcloud,
+		opts:  opts,
+		paths: opts.Paths,
+		gcp: gcp.New(gcp.Options{
+			GcloudDir:  opts.Paths.GcloudDir,
+			ADCDir:     opts.Paths.ADCDir,
+			DefaultADC: opts.Paths.DefaultADC,
+			Client:     opts.Gcloud,
+			LookPath:   opts.LookPath,
+			Getenv:     opts.Getenv,
+		}),
 		credentialed: map[string]bool{},
 		reauth:       map[string]bool{},
 	}
-	if m.gcloud == nil {
-		m.autoGcloud = true
-		m.locateGcloud()
-	}
 	return m, nil
-}
-
-// locateGcloud looks gcloud up on PATH when the client was not injected.
-func (m *Manager) locateGcloud() {
-	if !m.autoGcloud {
-		return
-	}
-	client := &gcloud.Client{}
-	if bin, err := m.opts.LookPath("gcloud"); err == nil {
-		client.Bin = bin
-	}
-	m.stateMu.Lock()
-	m.gcloud = client
-	m.stateMu.Unlock()
-}
-
-// client returns the current gcloud client.
-func (m *Manager) client() *gcloud.Client {
-	m.stateMu.Lock()
-	defer m.stateMu.Unlock()
-	return m.gcloud
 }
 
 // Paths returns the resolved filesystem roots.
 func (m *Manager) Paths() Paths { return m.paths }
 
 // GcloudBin returns the gcloud executable, or "" when it is not installed.
-func (m *Manager) GcloudBin() string { return m.client().Bin }
+func (m *Manager) GcloudBin() string { return m.gcp.CLI().Bin }
 
 // GcloudAvailable reports whether a gcloud executable is installed.
-func (m *Manager) GcloudAvailable() bool { return m.client().Available() }
+func (m *Manager) GcloudAvailable() bool { return m.gcp.CLI().Found }
 
 func (m *Manager) loadConfig() (*config.Config, error) {
 	return config.LoadFrom(m.paths.ConfigPath())

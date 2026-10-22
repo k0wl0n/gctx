@@ -2,19 +2,13 @@ package manager
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/k0wl0n/gctx/pkg/adc"
 	"github.com/k0wl0n/gctx/pkg/config"
-	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/gcloudconfig"
 )
-
-const credentialCheckTimeout = 15 * time.Second
 
 // ActiveAccount returns GCTX_ACCOUNT inside `gctx shell`, then the recorded
 // active account, then "unknown".
@@ -33,7 +27,7 @@ func (m *Manager) ActiveAccount() string {
 // Overview computes the local status of every account. It reads files only:
 // no subprocess, no network, and no writes.
 func (m *Manager) Overview() (Overview, error) {
-	m.locateGcloud()
+	m.gcp.Locate()
 	m.mu.Lock()
 	cfg, err := m.loadConfig()
 	m.mu.Unlock()
@@ -72,62 +66,26 @@ func (m *Manager) Info(name string) (AccountStatus, error) {
 }
 
 func (m *Manager) accountStatus(cfg *config.Config, account *config.Account) AccountStatus {
+	inspected := m.gcp.Inspect(*account)
 	status := AccountStatus{
-		Name:       account.Name,
-		ConfigName: account.ConfigName,
-		ProjectID:  account.ProjectID,
-		Email:      account.Email,
-		CreatedAt:  account.CreatedAt,
-		Active:     account.Name == cfg.ActiveAccount,
-		ADCPath:    account.ADCPath,
+		Name:               account.Name,
+		ConfigName:         account.ConfigName,
+		ProjectID:          account.ProjectID,
+		Email:              account.Email,
+		CreatedAt:          account.CreatedAt,
+		Active:             account.Name == cfg.ActiveAccount,
+		ADCPath:            account.ADCPath,
+		StoredADCPath:      inspected.StoredADCPath,
+		ADCExists:          inspected.ADCExists,
+		ADCModTime:         inspected.ADCModTime,
+		RecordedADCModTime: inspected.RecordedADCModTime,
+		GcloudConfigExists: inspected.ConfigExists,
+		GcloudAccount:      inspected.ConfigAccount,
+		GcloudProject:      inspected.ConfigProject,
+		Findings:           inspected.Local.Findings,
 	}
-	if account.ADCPath != "" {
-		if info, err := os.Stat(account.ADCPath); err == nil {
-			status.RecordedADCModTime = info.ModTime()
-		}
-	}
-
-	var errorFindings []Finding
-	for _, candidate := range []string{m.store.StoragePath(account.Name), account.ADCPath} {
-		if candidate == "" || (candidate == account.ADCPath && !m.store.Contains(candidate)) {
-			continue
-		}
-		info, err := os.Stat(candidate)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				errorFindings = append(errorFindings, Finding{HealthError, "cannot read saved ADC file: " + err.Error()})
-			}
-			continue
-		}
-		if info.IsDir() {
-			continue
-		}
-		status.StoredADCPath, status.ADCExists, status.ADCModTime = candidate, true, info.ModTime()
-		if err := adc.Validate(candidate); err != nil {
-			errorFindings = append(errorFindings, Finding{HealthError, "saved ADC file is invalid: " + err.Error()})
-		}
-		break
-	}
-
-	gcfg, err := gcloudconfig.Read(m.paths.GcloudDir, account.ConfigName)
-	if err != nil {
-		errorFindings = append(errorFindings, Finding{HealthError, err.Error()})
-	}
-	status.GcloudConfigExists = gcfg.Exists
-	status.GcloudAccount, status.GcloudProject = gcfg.Account, gcfg.Project
-
-	status.Findings = append(status.Findings, errorFindings...)
-	if err == nil && !gcfg.Exists {
-		status.Findings = append(status.Findings, Finding{Health: HealthConfigMissing})
-	}
-	if gcfg.Exists && m.authRequired(account.Name, gcfg.Account) {
-		status.Findings = append(status.Findings, Finding{Health: HealthAuthRequired})
-	}
-	if !status.ADCExists && len(errorFindings) == 0 {
-		status.Findings = append(status.Findings, Finding{Health: HealthADCMissing})
-	}
-	if gcfg.Project != "" && gcfg.Project != account.ProjectID {
-		status.Findings = append(status.Findings, Finding{Health: HealthProjectMismatch})
+	if inspected.ConfigExists && inspected.Local.Identity != "" && m.authRequired(account.Name, inspected.Local.Identity) {
+		status.Findings = insertFinding(status.Findings, Finding{Health: HealthAuthRequired})
 	}
 	status.Status = HealthReady
 	if len(status.Findings) > 0 {
@@ -136,13 +94,36 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account) Acc
 	return status
 }
 
+// findingOrder ranks findings; the first finding is the account's status.
+var findingOrder = []Health{HealthError, HealthConfigMissing, HealthAuthRequired, HealthADCMissing, HealthProjectMismatch}
+
+func findingRank(h Health) int {
+	for rank, candidate := range findingOrder {
+		if candidate == h {
+			return rank
+		}
+	}
+	return len(findingOrder)
+}
+
+// insertFinding places finding after every finding of equal or higher priority.
+func insertFinding(findings []Finding, finding Finding) []Finding {
+	position := len(findings)
+	for i, existing := range findings {
+		if findingRank(existing.Health) > findingRank(finding.Health) {
+			position = i
+			break
+		}
+	}
+	return append(findings[:position:position], append([]Finding{finding}, findings[position:]...)...)
+}
+
+// authRequired applies the session state: a failed re-authentication or a
+// completed credential check that did not list the gcloud account.
 func (m *Manager) authRequired(name, gcloudAccount string) bool {
 	m.stateMu.Lock()
 	defer m.stateMu.Unlock()
-	if gcloudAccount == "" || m.reauth[name] {
-		return true
-	}
-	return m.credChecked && !m.credentialed[strings.ToLower(gcloudAccount)]
+	return m.reauth[name] || (m.credChecked && !m.credentialed[strings.ToLower(gcloudAccount)])
 }
 
 // fillDefaultADC compares the default ADC with the active account's stored ADC
@@ -173,35 +154,12 @@ func (m *Manager) fillDefaultADC(overview *Overview) {
 // network access and without printing or refreshing any token. A failure is
 // reported as a warning and leaves statuses unchanged.
 func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error) {
-	m.locateGcloud()
-	client := m.client()
-	if !client.Available() {
-		return CredentialReport{Warnings: []Warning{{Code: WarnGcloudNotFound, Message: gcloud.ErrNotFound.Error()}}}, nil
-	}
-	out, err := client.Query(ctx, credentialCheckTimeout, nil, "auth", "list", "--format=json")
-	if err != nil {
-		return CredentialReport{Warnings: []Warning{{Code: WarnCredentialCheck, Message: err.Error()}}}, nil
-	}
-	var entries []struct {
-		Account string `json:"account"`
-		Status  string `json:"status"`
-	}
-	if err := json.Unmarshal([]byte(out), &entries); err != nil {
-		return CredentialReport{Warnings: []Warning{{Code: WarnCredentialCheck, Message: fmt.Sprintf("unexpected gcloud auth list output: %v", err)}}}, nil
-	}
-	report := CredentialReport{}
-	credentialed := map[string]bool{}
-	for _, entry := range entries {
-		report.Accounts = append(report.Accounts, entry.Account)
-		// ACTIVE = currently active account with a usable token.
-		// CREDENTIALED = has stored credentials (gcloud auth list still includes it).
-		// Both mean gcloud has credentials on file; exclude anything else (e.g. empty).
-		if strings.EqualFold(entry.Status, "ACTIVE") || strings.EqualFold(entry.Status, "CREDENTIALED") {
-			credentialed[strings.ToLower(entry.Account)] = true
-		}
+	accounts, auth := m.gcp.ListAuth(ctx)
+	if len(auth.Warnings) > 0 {
+		return CredentialReport{Warnings: auth.Warnings}, nil
 	}
 	m.stateMu.Lock()
-	m.credentialed, m.credChecked = credentialed, true
+	m.credentialed, m.credChecked = auth.Credentialed, true
 	m.stateMu.Unlock()
-	return report, nil
+	return CredentialReport{Accounts: accounts}, nil
 }

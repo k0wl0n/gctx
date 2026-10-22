@@ -1,39 +1,52 @@
 package manager
 
 import (
-	"strings"
 	"time"
+
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
-// WarningCode identifies a non-fatal condition reported by an operation.
-type WarningCode string
+// Shared result types live in pkg/provider; these aliases keep callers unchanged.
+type (
+	WarningCode    = provider.WarningCode
+	Warning        = provider.Warning
+	Health         = provider.Health
+	Finding        = provider.Finding
+	LoginIO        = provider.LoginIO
+	LoginEvent     = provider.LoginEvent
+	LoginEventKind = provider.LoginEventKind
+	LoginResult    = provider.LoginResult
+)
 
 const (
-	WarnADCMissing          WarningCode = "adc-missing"
-	WarnReauthRequired      WarningCode = "reauth-required"
-	WarnSetProjectFailed    WarningCode = "set-project-failed"
-	WarnConfigReused        WarningCode = "config-reused"
-	WarnConfigDeleteFailed  WarningCode = "config-delete-failed"
-	WarnADCRemoveFailed     WarningCode = "adc-remove-failed"
-	WarnADCPathOutsideStore WarningCode = "adc-path-outside-store"
-	WarnADCNotRefreshed     WarningCode = "adc-not-refreshed"
-	WarnGcloudNotFound      WarningCode = "gcloud-not-found"
-	WarnCredentialCheck     WarningCode = "credential-check-failed"
+	WarnADCMissing          = provider.WarnADCMissing
+	WarnReauthRequired      = provider.WarnReauthRequired
+	WarnSetProjectFailed    = provider.WarnSetProjectFailed
+	WarnConfigReused        = provider.WarnConfigReused
+	WarnConfigDeleteFailed  = provider.WarnConfigDeleteFailed
+	WarnADCRemoveFailed     = provider.WarnADCRemoveFailed
+	WarnADCPathOutsideStore = provider.WarnADCPathOutsideStore
+	WarnADCNotRefreshed     = provider.WarnADCNotRefreshed
+	WarnGcloudNotFound      = provider.WarnGcloudNotFound
+	WarnCredentialCheck     = provider.WarnCredentialCheck
 )
 
-// Warning is a non-fatal condition. Message holds the underlying detail and
-// can span several lines; use Summary for a one-line form.
-type Warning struct {
-	Code    WarningCode
-	Account string
-	Message string
-}
+const (
+	LoginAuthStarted      = provider.LoginAuthStarted
+	LoginAuthDone         = provider.LoginAuthDone
+	LoginADCStarted       = provider.LoginADCStarted
+	LoginSetProjectFailed = provider.LoginSetProjectFailed
+	LoginVerifyingADC     = provider.LoginVerifyingADC
+)
 
-// Summary returns the last non-empty line of the message.
-func (w Warning) Summary() string {
-	lines := strings.Split(strings.TrimSpace(w.Message), "\n")
-	return strings.TrimSpace(lines[len(lines)-1])
-}
+const (
+	HealthError           = provider.HealthError
+	HealthConfigMissing   = provider.HealthConfigMissing
+	HealthAuthRequired    = provider.HealthAuthRequired
+	HealthADCMissing      = provider.HealthADCMissing
+	HealthProjectMismatch = provider.HealthProjectMismatch
+	HealthReady           = provider.HealthReady
+)
 
 // gcloud steps reported by login errors (gcloud.StepError.Step).
 const (
@@ -69,52 +82,6 @@ type DeleteResult struct {
 	Account       string
 	ConfigDeleted bool
 	Warnings      []Warning
-}
-
-// LoginResult is returned even when login fails part-way, so callers can tell
-// which steps completed.
-type LoginResult struct {
-	Account        string
-	ADCPath        string
-	Email          string
-	GcloudLoggedIn bool // `auth login` succeeded; gcloud CLI credentials were updated
-	ADCSaved       bool
-	Warnings       []Warning
-}
-
-// LoginEventKind names a progress point in the login flow.
-type LoginEventKind string
-
-const (
-	LoginAuthStarted      LoginEventKind = "auth-started"
-	LoginAuthDone         LoginEventKind = "auth-done"
-	LoginADCStarted       LoginEventKind = "adc-started"
-	LoginSetProjectFailed LoginEventKind = "set-project-failed"
-	LoginVerifyingADC     LoginEventKind = "verifying-adc"
-)
-
-// LoginEvent is one ordered progress notification.
-type LoginEvent struct {
-	Kind    LoginEventKind
-	Message string // detail for LoginSetProjectFailed
-}
-
-// Health is an account's primary status.
-type Health string
-
-const (
-	HealthError           Health = "ERROR"
-	HealthConfigMissing   Health = "CONFIG MISSING"
-	HealthAuthRequired    Health = "AUTH REQUIRED"
-	HealthADCMissing      Health = "ADC MISSING"
-	HealthProjectMismatch Health = "PROJECT MISMATCH"
-	HealthReady           Health = "READY"
-)
-
-// Finding is one health finding. Message is set for ERROR findings.
-type Finding struct {
-	Health  Health
-	Message string
 }
 
 // AccountStatus is the local view of one account.
