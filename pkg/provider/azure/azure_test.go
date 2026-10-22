@@ -450,12 +450,17 @@ func TestParseDeviceCode(t *testing.T) {
 		ok                    bool
 	}{
 		{"real az text", "To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code F7K2Q9XM to authenticate.", "https://microsoft.com/devicelogin", "F7K2Q9XM", true},
-		{"hyphenated code", "To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code F7K2-Q9XM to authenticate.", "https://microsoft.com/devicelogin", "F7K2-Q9XM", true},
+		{"nine letters", "To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code FDMRYGZTK to authenticate.", "https://microsoft.com/devicelogin", "FDMRYGZTK", true},
+		{"ansi and carriage return", "\x1b[33mTo sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code F7K2Q9XM to authenticate.\x1b[0m\r", "https://microsoft.com/devicelogin", "F7K2Q9XM", true},
+		{"lowercase prose", "Please enter the code below to continue", "", "", false},
+		{"lowercase after the phrase", "enter the code below", "", "", false},
+		{"too short", "enter the code ZZ99", "", "", false},
+		{"code shaped word without context", "Retrieving tenants and subscriptions ABCDEFGH for the selection", "", "", false},
 		{"extra whitespace and prefix", "  WARNING:   open https://login.microsoft.com/device   and  enter   the  code   AB12CD34 ", "https://login.microsoft.com/device", "AB12CD34", true},
 		{"fake az line", "fake-az: To sign in, use a web browser to open https://microsoft.com/devicelogin and enter the code FAKECODE", "https://microsoft.com/devicelogin", "FAKECODE", true},
 		{"url without code", "To sign in, use a web browser to open the page https://microsoft.com/devicelogin", "", "", false},
 		{"unrelated line", "Retrieving tenants and subscriptions for the selection...", "", "", false},
-		{"code without url uses the default page", "enter the code ZZ99", "https://microsoft.com/devicelogin", "ZZ99", true},
+		{"code without url uses the default page", "enter the code ZZ99ZZ99", "https://microsoft.com/devicelogin", "ZZ99ZZ99", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -557,5 +562,36 @@ func TestAzureLoginCLIModeStillWritesToStdout(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "fake-az: waiting") {
 		t.Errorf("stderr %q lacks the stderr line", stderr.String())
+	}
+}
+
+func TestDeviceCodeScannerIgnoresProseAndFindsCodeOnNextLine(t *testing.T) {
+	scanner := azure.NewDeviceCodeScanner()
+	for _, line := range []string{"Please enter the code below to continue", "open https://microsoft.com/devicelogin", "and enter the code"} {
+		if _, _, ok := scanner.Scan(line); ok {
+			t.Fatalf("line %q matched", line)
+		}
+	}
+	url, code, ok := scanner.Scan("  F7K2Q9XM ")
+	if !ok || code != "F7K2Q9XM" || url != "https://microsoft.com/devicelogin" {
+		t.Errorf("got (%q, %q, %v)", url, code, ok)
+	}
+}
+
+func TestAzureLoginStrayLineDoesNotHideTheCode(t *testing.T) {
+	h := newHarness(t, "FAKE_AZ_LOGIN_PROSE=1")
+	acct := h.created(t, "work")
+	var codes []string
+	if _, err := h.provider.Login(context.Background(), acct, provider.LoginIO{
+		Progress: func(e provider.LoginEvent) {
+			if e.Kind == provider.LoginDeviceCode {
+				codes = append(codes, e.Code)
+			}
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(codes) != 1 || codes[0] != "FAKECODE" {
+		t.Errorf("codes %v, want [FAKECODE]", codes)
 	}
 }

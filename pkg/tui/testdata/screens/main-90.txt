@@ -27,4 +27,4 @@ gctx ● ● ○ ● ● ●  5 active                                          
 
 ──────────────────────────────────────────────────────────────────────────────────────────
 ✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)                      19 accounts · 5 need action
-↵ activate  / filter  d details  tab provider  ? help
+tab provider  ↵ activate  / filter  ? help  q quit

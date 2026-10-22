@@ -4,6 +4,7 @@
 // Behavior knobs (all optional):
 //
 //	FAKE_AZ_LOGIN_FAIL=1   login exits 1
+//	FAKE_AZ_LOGIN_PROSE=1  login first prints a line that mentions entering a code without one
 //	FAKE_AZ_TOKEN_FAIL=1   account get-access-token exits 1 with an expiry error
 //	FAKE_AZ_TOKEN_HANG=1   account get-access-token blocks until killed
 //	FAKE_AZ_TOKEN_NETFAIL=1 account get-access-token exits 1 with a network error
@@ -65,6 +66,9 @@ func login() int {
 	if err := os.WriteFile(filepath.Join(dir, "azureProfile.json"), []byte(profile), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
+	}
+	if os.Getenv("FAKE_AZ_LOGIN_PROSE") != "" {
+		fmt.Println("fake-az: Please enter the code below to continue")
 	}
 	fmt.Println("fake-az: To sign in, use a web browser to open https://microsoft.com/devicelogin and enter the code FAKECODE")
 	fmt.Fprintln(os.Stderr, "fake-az: waiting for authentication")

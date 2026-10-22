@@ -37,4 +37,4 @@ OPENROUTER · base url ───────────────────
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)                          19 accounts · 1 expired · 3 need login · 1 low budget
-tab provider  j/k move  ↵ activate  / filter  d details  l login  L login all stale  c create  s shell  y copy env
+tab provider  j/k move  ↵ activate  / filter  d details  l login  L login all stale  c create  s shell  ? help  q quit

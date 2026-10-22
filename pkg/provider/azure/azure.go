@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/provider"
 	"github.com/k0wl0n/gctx/pkg/provider/providerutil"
@@ -178,13 +179,23 @@ const (
 const deviceCodePage = "https://microsoft.com/devicelogin"
 
 var (
-	urlPattern        = regexp.MustCompile(`https?://[^\s]+`)
-	deviceCodePattern = regexp.MustCompile(`(?i)enter\s+the\s+code\s+([A-Z0-9][A-Z0-9-]*)`)
+	urlPattern = regexp.MustCompile(`https?://[^\s]+`)
+	// Device codes are 8 to 12 upper-case letters or digits. Only the phrase
+	// is case-insensitive, so prose such as "enter the code below" never matches.
+	deviceCodePattern = regexp.MustCompile(`(?i:enter\s+the\s+code)\s+([A-Z0-9]{8,12})\b`)
+	codeAlonePattern  = regexp.MustCompile(`^[A-Z0-9]{8,12}$`)
+	codeLeadPattern   = regexp.MustCompile(`(?i)enter\s+the\s+code\s*$`)
 )
+
+// cleanOutputLine drops escape sequences and carriage returns from az output.
+func cleanOutputLine(line string) string {
+	return strings.TrimSpace(strings.ReplaceAll(ansi.Strip(line), "\r", ""))
+}
 
 // parseDeviceCode extracts the verification page and the code from az's
 // "open the page ... and enter the code ABC123 to authenticate" message.
 func parseDeviceCode(line string) (url, code string, ok bool) {
+	line = cleanOutputLine(line)
 	match := deviceCodePattern.FindStringSubmatch(line)
 	if match == nil {
 		return "", "", false
@@ -194,6 +205,35 @@ func parseDeviceCode(line string) (url, code string, ok bool) {
 		url = deviceCodePage
 	}
 	return url, match[1], true
+}
+
+// deviceCodeScanner reads az output line by line. It also accepts a code on
+// the line directly after one that ends with "enter the code".
+type deviceCodeScanner struct {
+	url           string // last page seen
+	codeComesNext bool
+}
+
+func (s *deviceCodeScanner) scan(line string) (url, code string, ok bool) {
+	line = cleanOutputLine(line)
+	if found := strings.TrimRight(urlPattern.FindString(line), ".,;)"); found != "" {
+		s.url = found
+	}
+	if url, code, ok := parseDeviceCode(line); ok {
+		s.codeComesNext = false
+		return url, code, true
+	}
+	expected := s.codeComesNext
+	s.codeComesNext = codeLeadPattern.MatchString(line)
+	if expected && codeAlonePattern.MatchString(line) {
+		s.codeComesNext = false
+		url := s.url
+		if url == "" {
+			url = deviceCodePage
+		}
+		return url, line, true
+	}
+	return "", "", false
 }
 
 func (p *Provider) StreamsLogin() bool { return true }
@@ -281,11 +321,12 @@ func (p *Provider) runLogin(ctx context.Context, runner provider.Runner, env, ar
 		return runner.Interactive(ctx, stdio, env, args...)
 	}
 	report.emit(provider.LoginEvent{Kind: provider.LoginOutput, Output: "$ " + cliName + " " + strings.Join(args, " ")})
+	var scanner deviceCodeScanner
 	codeReported := false
 	return streamer.Stream(ctx, env, func(stream, line string) {
 		report.emit(provider.LoginEvent{Kind: provider.LoginOutput, Output: line})
 		if !codeReported {
-			if url, code, ok := parseDeviceCode(line); ok {
+			if url, code, ok := scanner.scan(line); ok {
 				codeReported = true
 				report.emit(provider.LoginEvent{Kind: provider.LoginDeviceCode, URL: url, Code: code})
 			}

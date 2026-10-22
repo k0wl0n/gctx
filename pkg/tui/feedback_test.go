@@ -140,7 +140,7 @@ func TestHintAndHelpListCopyAndSubshellKeys(t *testing.T) {
 			t.Errorf("line is %d wide: %q", w, line)
 		}
 	}
-	if !strings.Contains(screen(multiModel(t, newMultiService(), 120, 24)), "y copy env") {
+	if !strings.Contains(screen(multiModel(t, newMultiService(), 160, 24)), "y copy env") {
 		t.Error("hint line lacks the copy key")
 	}
 	m.screen = screenHelp

@@ -70,13 +70,16 @@ func (k keyMap) groups() []keyGroup {
 }
 
 // hint is one hint-line entry: the binding's first key and a short label.
+// rank decides what goes first when the line does not fit: the highest rank
+// is dropped first, rank 0 is never dropped.
 type hint struct {
 	key   string
 	label string
+	rank  int
 }
 
-// hints lists the hint line in priority order for a tier; renderHints keeps
-// as many as fit.
+// hints lists the hint line in display order for a tier; renderHints drops
+// the lowest-priority entries until the rest fit.
 func (k keyMap) hints(t tier, allTab bool, g glyphs) []hint {
 	first := func(b key.Binding) string {
 		if b.Keys()[0] == "enter" {
@@ -84,29 +87,32 @@ func (k keyMap) hints(t tier, allTab bool, g glyphs) []hint {
 		}
 		return b.Keys()[0]
 	}
+	help, quit := hint{first(k.Help), "help", 0}, hint{first(k.Quit), "quit", 0}
 	if t == tierNarrow {
 		return []hint{
-			{first(k.Switch), "activate"}, {first(k.Filter), "filter"}, {first(k.Details), "details"},
-			{first(k.NextTab), "provider"}, {first(k.Help), "help"},
+			{first(k.NextTab), "provider", 1}, {first(k.Switch), "activate", 3}, {first(k.Filter), "filter", 4},
+			help, quit,
 		}
 	}
 	out := []hint{
-		{first(k.NextTab), "provider"},
-		{first(k.Down) + "/" + first(k.Up), "move"},
-		{first(k.Switch), "activate"},
-		{first(k.Filter), "filter"},
+		{first(k.NextTab), "provider", 1},
+		{first(k.Down) + "/" + first(k.Up), "move", 2},
+		{first(k.Switch), "activate", 3},
+		{first(k.Filter), "filter", 4},
 	}
 	if t != tierWide {
-		out = append(out, hint{first(k.Details), "details"})
+		out = append(out, hint{first(k.Details), "details", 9})
 	}
-	out = append(out, hint{first(k.Login), "login"}, hint{first(k.LoginStale), "login all stale"}, hint{first(k.Create), "create"}, hint{first(k.Shell), "shell"}, hint{first(k.CopyEnv), "copy env"})
+	out = append(out,
+		hint{first(k.Login), "login", 5}, hint{first(k.LoginStale), "login all stale", 8},
+		hint{first(k.Create), "create", 7}, hint{first(k.Shell), "shell", 6}, hint{first(k.CopyEnv), "copy env", 10})
 	if allTab {
-		out = append(out, hint{first(k.Fold), "fold group"})
+		out = append(out, hint{first(k.Fold), "fold group", 11})
 	}
 	if t == tierWide {
-		out = append(out, hint{first(k.TogglePane), "pane"})
+		out = append(out, hint{first(k.TogglePane), "pane", 13})
 	}
 	return append(out,
-		hint{first(k.NeedsAction), "needs action"}, hint{first(k.Sort), "sort"}, hint{first(k.Reload), "recheck"},
-		hint{first(k.Help), "help"}, hint{first(k.Quit), "quit"})
+		hint{first(k.NeedsAction), "needs action", 14}, hint{first(k.Sort), "sort", 15}, hint{first(k.Reload), "recheck", 12},
+		help, quit)
 }

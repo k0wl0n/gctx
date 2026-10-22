@@ -391,3 +391,16 @@ func TestHintLineWide(t *testing.T) {
 		t.Errorf("wide hints should mention filter: %q", hints)
 	}
 }
+
+func TestHintLineKeepsHelpAndQuit(t *testing.T) {
+	for _, width := range []int{160, 120, 100, 90, 70, 60} {
+		m := newTestModel(t, newMultiService(), width, 30)
+		line := ansi.Strip(renderHints(m, width, newStyles()))
+		if w := ansi.StringWidth(line); w > width {
+			t.Errorf("width %d: line is %d cells: %q", width, w, line)
+		}
+		if !strings.HasSuffix(line, "? help  q quit") {
+			t.Errorf("width %d: line does not end with help and quit: %q", width, line)
+		}
+	}
+}

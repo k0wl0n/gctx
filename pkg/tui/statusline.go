@@ -208,24 +208,37 @@ func categoryShort(c provider.Category) string {
 	return string(c)
 }
 
-// renderHints is the hint line generated from keyMap, keeping the entries
-// that fit width.
+// renderHints is the hint line generated from keyMap. When it does not fit
+// width, the highest-ranked entries are dropped first, so help and quit stay.
 func renderHints(m Model, width int, st styles) string {
 	g := newGlyphs(asciiRequested())
 	_, onTab := m.tabProvider()
-	var parts []string
-	used := 0
-	for _, h := range keys.hints(tierFor(width), !onTab, g) {
-		entry := h.key + " " + st.Dim.Render(h.label)
-		w := ansi.StringWidth(entry)
-		if len(parts) > 0 {
-			w += 2
+	hints := keys.hints(tierFor(width), !onTab, g)
+	entries := make([]string, len(hints))
+	total := -2
+	for i, h := range hints {
+		entries[i] = h.key + " " + st.Dim.Render(h.label)
+		total += ansi.StringWidth(entries[i]) + 2
+	}
+	dropped := make([]bool, len(hints))
+	for total > width {
+		drop := -1
+		for i, h := range hints {
+			if !dropped[i] && h.rank > 0 && (drop < 0 || h.rank > hints[drop].rank) {
+				drop = i
+			}
 		}
-		if used+w > width {
+		if drop < 0 {
 			break
 		}
-		parts = append(parts, entry)
-		used += w
+		dropped[drop] = true
+		total -= ansi.StringWidth(entries[drop]) + 2
+	}
+	var parts []string
+	for i, entry := range entries {
+		if !dropped[i] {
+			parts = append(parts, entry)
+		}
 	}
 	return strings.Join(parts, "  ")
 }
