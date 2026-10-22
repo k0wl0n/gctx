@@ -113,3 +113,66 @@ func TestInvalidJSON(t *testing.T) {
 		t.Error("expected error")
 	}
 }
+
+func TestLoadV1ConfigDefaultsToGCP(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	os.WriteFile(path, []byte(legacyFixture), 0644)
+
+	cfg, err := LoadFrom(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	account := cfg.Accounts["work"]
+	if account.Provider != "" {
+		t.Errorf("Provider = %q, want empty for a v1 config", account.Provider)
+	}
+	if got := account.ProviderID(); got != "gcp" {
+		t.Errorf("ProviderID() = %q, want gcp", got)
+	}
+}
+
+func TestRoundTripPreservesSettings(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	cfg, err := LoadFrom(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cfg.AddAccount(&Account{
+		Name:      "aws-prod",
+		Provider:  "aws",
+		ProjectID: "prod-profile",
+		Settings:  map[string]string{"region": "eu-west-1"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, err := LoadFrom(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	account := loaded.Accounts["aws-prod"]
+	if account.ProviderID() != "aws" {
+		t.Errorf("ProviderID() = %q, want aws", account.ProviderID())
+	}
+	if got := account.Settings["region"]; got != "eu-west-1" {
+		t.Errorf("Settings[region] = %q, want eu-west-1", got)
+	}
+}
+
+func TestTargetReturnsProjectID(t *testing.T) {
+	account := Account{ProjectID: "my-target"}
+	if got := account.Target(); got != "my-target" {
+		t.Errorf("Target() = %q, want my-target", got)
+	}
+}
+
+func TestConfigDirIsUnderAppName(t *testing.T) {
+	dir, err := GetConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(filepath.ToSlash(dir), "/.config/gctx") {
+		t.Errorf("GetConfigDir() = %q, want suffix /.config/gctx", dir)
+	}
+}

@@ -17,13 +17,38 @@ type Config struct {
 	path string
 }
 
+// AppName names the config directory under ~/.config.
+const AppName = "gctx"
+
+// defaultProvider applies to accounts written before multi-cloud support,
+// which have no provider field.
+const defaultProvider = "gcp"
+
 type Account struct {
-	Name       string    `json:"name"`
-	ConfigName string    `json:"config_name"`
-	ProjectID  string    `json:"project_id"`
-	ADCPath    string    `json:"adc_path"`
-	CreatedAt  time.Time `json:"created_at"`
-	Email      string    `json:"email,omitempty"`
+	Name       string `json:"name"`
+	ConfigName string `json:"config_name"`
+	// ProjectID holds the provider's target (GCP project, AWS profile, ...).
+	// The JSON key stays "project_id" for every provider so older gctx
+	// versions can still read the file.
+	ProjectID string            `json:"project_id"`
+	ADCPath   string            `json:"adc_path"`
+	CreatedAt time.Time         `json:"created_at"`
+	Email     string            `json:"email,omitempty"`
+	Provider  string            `json:"provider,omitempty"`
+	Settings  map[string]string `json:"settings,omitempty"`
+}
+
+// ProviderID returns the account's provider, defaulting to GCP for v1 configs.
+func (a Account) ProviderID() string {
+	if a.Provider == "" {
+		return defaultProvider
+	}
+	return a.Provider
+}
+
+// Target returns the provider-specific target the account points at.
+func (a Account) Target() string {
+	return a.ProjectID
 }
 
 func GetConfigDir() (string, error) {
@@ -31,7 +56,7 @@ func GetConfigDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".config", "gctx"), nil
+	return filepath.Join(home, ".config", AppName), nil
 }
 
 func GetConfigPath() (string, error) {
