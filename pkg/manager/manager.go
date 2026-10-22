@@ -61,6 +61,7 @@ type Options struct {
 	LookPath func(string) (string, error)
 	GOOS     string
 	Now      func() time.Time
+	Home     string // user home directory for discovery; "" means os.UserHomeDir
 
 	// Providers replaces the default provider set built from Paths.
 	Providers []provider.Provider
@@ -147,6 +148,9 @@ func NewWithOptions(opts Options) (*Manager, error) {
 	}
 	if opts.Paths.GctxDir == "" {
 		return nil, fmt.Errorf("manager: Options.Paths is required")
+	}
+	if opts.Home == "" {
+		opts.Home, _ = os.UserHomeDir()
 	}
 	if opts.CredentialTimeout <= 0 {
 		opts.CredentialTimeout = credentialCheckTimeout
