@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx main screen, wide</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.r>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1360px; height: 820px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 170×38</span>
+  </div>
+  <div style="flex: 1; display: flex; flex-direction: column; padding: 12px 16px; min-height: 0">
+
+    <div style="display: flex; align-items: center; gap: 2ch">
+      <span style="font-weight: 700">cctx</span>
+      <span style="color: #8b949e">v1.0</span>
+      <span style="color: #30363d">│</span>
+      <span style="color: #8b949e">active</span>
+      <span><span style="color: #6ea8fe; font-weight: 700">GCP</span> <span style="color: #6ea8fe">●</span> cloudsuite</span>
+      <span><span style="color: #ffa657; font-weight: 700">AWS</span> <span style="color: #ffa657">●</span> prod-aws</span>
+      <span><span style="color: #56d4dd; font-weight: 700">AZR</span> <span style="color: #8b949e">○ none</span></span>
+      <span style="color: #8b949e"><span style="font-weight: 700">TCT</span> ○ none</span>
+      <span style="flex: 1"></span>
+      <span style="color: #3fb950">✓ cfg</span>
+      <span style="color: #8b949e">auth checked 14s ago</span>
+    </div>
+    <div style="color: #8b949e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">env  CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite  AWS_PROFILE=prod-sso   <span style="color: #6e7681">· shells opened with s get the full set</span></div>
+
+    <div style="display: flex; align-items: center; gap: 2ch; margin-top: 10px; padding-bottom: 8px; border-bottom: 1px solid #21262d">
+      <span style="background: #e6edf3; color: #0d1117; font-weight: 700; padding: 0 1ch">All 12</span>
+      <span><span style="color: #6ea8fe">GCP</span> <span style="color: #8b949e">9</span></span>
+      <span><span style="color: #ffa657">AWS</span> <span style="color: #8b949e">2</span></span>
+      <span><span style="color: #56d4dd">Azure</span> <span style="color: #8b949e">1</span></span>
+      <span style="color: #6e7681">Tencent · not installed</span>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">group</span><span>cloud</span>
+      <span style="color: #8b949e">sort</span><span>name ↑</span>
+      <span style="color: #8b949e">filter</span><span style="border-bottom: 1px solid #6e7681; min-width: 14ch; color: #6e7681">/ type to filter</span>
+    </div>
+
+    <div style="flex: 1; display: flex; gap: 2ch; min-height: 0; padding-top: 8px">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch; color: #8b949e">
+          <span></span><span>CLOUD</span><span>NAME</span><span>TARGET</span><span>EMAIL / IDENTITY</span><span>ADC</span><span>STATUS</span><span>EXPIRES</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 6px"><span style="color: #6ea8fe; font-weight: 700">GCP</span><span>· project</span><span style="flex: 1; border-top: 1px solid #21262d"></span><span>9</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span style="color: #6ea8fe">●</span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span style="font-weight: 600">cloudsuite</span><span>sap-gap-cloud-asap-s</span><span>wahyu.anggana@emarsys.com</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">52m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>infra-hub-prd</span><span>emarsys-infra-hub-prd</span><span>wahyu.anggana@emarsys.com</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">52m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>infra-hub-stg</span><span>emarsys-infra-hub-stg</span><span>wahyu.anggana@emarsys.com</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">52m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>gap-dev</span><span>gap-platform-dev</span><span>wahyu.anggana@emarsys.com</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">52m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>hcp-agents</span><span>hcp-tf-agents-poc</span><span>wahyu.anggana@aliz.ai</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">7h</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>rca-poc</span><span>k8s-ai-rca-poc</span><span>wahyu.anggana@aliz.ai</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">7h</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>demo-ai</span><span>ai-builder-cup-demo</span><span>wahyu.anggana@aliz.ai</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">7h</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>sbx-aliz</span><span>sandbox-wahyu-anggana</span><span>wahyu.anggana@aliz.ai</span><span style="color: #f85149">✕</span><span style="color: #d29922">▲ AUTH REQUIRED</span><span style="color: #8b949e">—</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>byoip-lab</span><span>byoip-lab-eu-west</span><span>wahyu.anggana@emarsys.com</span><span style="color: #3fb950">✓</span><span style="color: #f85149">✕ EXPIRED</span><span style="color: #f85149">2d ago</span></div>
+
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 8px"><span style="color: #ffa657; font-weight: 700">AWS</span><span>· profile</span><span style="flex: 1; border-top: 1px solid #21262d"></span><span>2</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch; background: #1f2a3a; box-shadow: inset 2px 0 0 #e6edf3"><span style="color: #ffa657">●</span><span style="background: #ffa657; color: #0d1117; font-weight: 700; text-align: center">AWS</span><span style="font-weight: 600">prod-aws</span><span>prod-sso</span><span>…:assumed-role/PlatformDev</span><span style="color: #8b949e">–</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">3h 12m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #ffa657; color: #0d1117; font-weight: 700; text-align: center">AWS</span><span>legacy-aws</span><span>legacy</span><span style="color: #8b949e">–</span><span style="color: #8b949e">–</span><span style="color: #d29922">▲ AUTH REQUIRED</span><span style="color: #8b949e">—</span></div>
+
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 8px"><span style="color: #56d4dd; font-weight: 700">AZURE</span><span>· subscription</span><span style="flex: 1; border-top: 1px solid #21262d"></span><span>1</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #56d4dd; color: #0d1117; font-weight: 700; text-align: center">AZR</span><span>corp-azure</span><span>8c1f…e2a9</span><span>wahyu@corp.onmicrosoft.com</span><span style="color: #8b949e">–</span><span style="color: #8b949e">⠼ checking…</span><span style="color: #8b949e"></span></div>
+      </div>
+
+      <div style="width: 50ch; flex-shrink: 0; border-left: 1px solid #30363d; padding-left: 2ch; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 1ch">
+          <span style="background: #ffa657; color: #0d1117; font-weight: 700; padding: 0 1ch">AWS</span>
+          <span style="font-weight: 700">prod-aws</span>
+          <span style="flex: 1"></span>
+          <span style="color: #ffa657">● active</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 13ch 1fr; row-gap: 0">
+          <span style="color: #8b949e">profile</span><span>prod-sso</span>
+          <span style="color: #8b949e">account</span><span>1234 5678 9012</span>
+          <span style="color: #8b949e">role</span><span>PlatformDev</span>
+          <span style="color: #8b949e">sso start</span><span>https://emarsys.awsapps.com/start</span>
+          <span style="color: #8b949e">region</span><span>eu-west-1</span>
+          <span style="color: #8b949e">status</span><span style="color: #3fb950">● READY · sts ok in 412ms</span>
+          <span style="color: #8b949e">session</span><span>expires in 3h 12m (15:42)</span>
+          <span style="color: #8b949e">last login</span><span>today 07:30</span>
+          <span style="color: #8b949e">created</span><span>2026-09-02</span>
+        </div>
+        <div style="border: 1px solid #30363d; padding: 8px 1ch">
+          <div style="color: #8b949e">apply in this shell</div>
+          <div><span style="color: #8b949e">$</span> eval "$(cctx env prod-aws)"</div>
+          <div style="color: #8b949e">or <span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">s</span> for a subshell with every active cloud</div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px 2ch">
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">↵</span> activate</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">l</span> login</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">s</span> shell</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">r</span> run</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">y</span> copy env</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">x</span> delete</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 2ch; border-top: 1px solid #21262d; padding-top: 6px; color: #8b949e">
+      <span style="color: #3fb950">✓ AWS 2/2</span>
+      <span style="color: #3fb950">✓ GCP 9/9</span>
+      <span>⠼ Azure 0/1 (timeout 8s)</span>
+      <span style="flex: 1"></span>
+      <span>12 accounts · 1 expired · 2 need login</span>
+    </div>
+    <div style="display: flex; gap: 2ch; white-space: nowrap; overflow: hidden">
+      <span><span style="color: #e6edf3">tab</span> <span style="color: #8b949e">cloud</span></span>
+      <span><span style="color: #e6edf3">j/k</span> <span style="color: #8b949e">move</span></span>
+      <span><span style="color: #e6edf3">↵</span> <span style="color: #8b949e">activate</span></span>
+      <span><span style="color: #e6edf3">/</span> <span style="color: #8b949e">filter</span></span>
+      <span><span style="color: #e6edf3">l</span> <span style="color: #8b949e">login</span></span>
+      <span><span style="color: #e6edf3">L</span> <span style="color: #8b949e">login all stale</span></span>
+      <span><span style="color: #e6edf3">c</span> <span style="color: #8b949e">create</span></span>
+      <span><span style="color: #e6edf3">s</span> <span style="color: #8b949e">shell</span></span>
+      <span><span style="color: #e6edf3">R</span> <span style="color: #8b949e">recheck</span></span>
+      <span><span style="color: #e6edf3">:</span> <span style="color: #8b949e">commands</span></span>
+      <span><span style="color: #e6edf3">?</span> <span style="color: #8b949e">help</span></span>
+      <span><span style="color: #e6edf3">q</span> <span style="color: #8b949e">quit</span></span>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

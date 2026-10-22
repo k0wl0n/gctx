@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx v2 main screen with AI tools</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.r>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1360px; height: 820px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 170×38</span>
+  </div>
+  <div style="flex: 1; display: flex; flex-direction: column; padding: 12px 16px; min-height: 0">
+
+    <div style="display: flex; align-items: center; gap: 2ch">
+      <span style="font-weight: 700">cctx</span>
+      <span style="color: #8b949e">v2.0</span>
+      <span style="color: #30363d">│</span>
+      <span><span style="color: #6ea8fe; font-weight: 700">GCP</span> <span style="color: #6ea8fe">●</span> cloudsuite</span>
+      <span><span style="color: #ffa657; font-weight: 700">AWS</span> <span style="color: #ffa657">●</span> prod-aws</span>
+      <span style="color: #8b949e"><span style="color: #56d4dd; font-weight: 700">AZR</span> ○</span>
+      <span style="color: #8b949e"><span style="font-weight: 700">TCT</span> ○</span>
+      <span style="color: #30363d">│</span>
+      <span style="color: #8b949e">ai</span>
+      <span><span style="color: #e3b38c; font-weight: 700">CLD</span> <span style="color: #e3b38c">●</span> claude-work</span>
+      <span><span style="color: #b9c7d6; font-weight: 700">OAI</span> <span style="color: #b9c7d6">●</span> codex-work</span>
+      <span><span style="color: #e8a6c8; font-weight: 700">API</span> <span style="color: #e8a6c8">●</span> sumopod-dev</span>
+      <span style="flex: 1"></span>
+      <span style="color: #3fb950">✓ cfg</span>
+      <span style="color: #8b949e">14s</span>
+    </div>
+    <div style="color: #8b949e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">env  CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite  AWS_PROFILE=prod-sso  CLAUDE_CONFIG_DIR=~/.config/cctx/ai/claude-work  CODEX_HOME=~/.config/cctx/ai/codex-work  OPENAI_BASE_URL=https://ai.sumopod.com/v1  OPENAI_API_KEY=‹op://Private/sumopod-dev›</div>
+
+    <div style="display: flex; align-items: center; gap: 2ch; margin-top: 10px; padding-bottom: 8px; border-bottom: 1px solid #21262d">
+      <span style="background: #e6edf3; color: #0d1117; font-weight: 700; padding: 0 1ch">All 19</span>
+      <span><span style="color: #6ea8fe">GCP</span> <span style="color: #8b949e">9</span></span>
+      <span><span style="color: #ffa657">AWS</span> <span style="color: #8b949e">2</span></span>
+      <span><span style="color: #56d4dd">Azure</span> <span style="color: #8b949e">1</span></span>
+      <span style="color: #6e7681">Tencent · n/a</span>
+      <span style="color: #30363d">│</span>
+      <span><span style="color: #e3b38c">Claude</span> <span style="color: #8b949e">3</span></span>
+      <span><span style="color: #b9c7d6">OpenAI</span> <span style="color: #8b949e">1</span></span>
+      <span><span style="color: #a3b1ff">OpenRouter</span> <span style="color: #8b949e">1</span></span>
+      <span><span style="color: #e8a6c8">SumoPod</span> <span style="color: #8b949e">2</span></span>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">group</span><span>category › provider</span>
+      <span style="color: #8b949e">filter</span><span style="border-bottom: 1px solid #6e7681; min-width: 14ch; color: #6e7681">/ type to filter</span>
+    </div>
+
+    <div style="flex: 1; display: flex; gap: 2ch; min-height: 0; padding-top: 8px">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch; color: #8b949e">
+          <span></span><span>KIND</span><span>NAME</span><span>TARGET</span><span>EMAIL / IDENTITY</span><span>ADC</span><span>STATUS</span><span>EXPIRES</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 6px"><span style="color: #e6edf3; font-weight: 700">CLOUDS</span><span style="flex: 1; border-top: 1px solid #30363d"></span><span>12</span></div>
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 2px"><span style="color: #6ea8fe; font-weight: 700">GCP</span><span>· project</span><span style="flex: 1; border-top: 1px solid #21262d"></span><span>9 · 7 ready, 1 expired, 1 login</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span style="color: #6ea8fe">●</span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span style="font-weight: 600">cloudsuite</span><span>sap-gap-cloud-asap-s</span><span>wahyu.anggana@emarsys.com</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">52m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>infra-hub-prd</span><span>emarsys-infra-hub-prd</span><span>wahyu.anggana@emarsys.com</span><span style="color: #3fb950">✓</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">52m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>sbx-aliz</span><span>sandbox-wahyu-anggana</span><span>wahyu.anggana@aliz.ai</span><span style="color: #f85149">✕</span><span style="color: #d29922">▲ AUTH REQUIRED</span><span style="color: #8b949e">—</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; text-align: center">GCP</span><span>byoip-lab</span><span>byoip-lab-eu-west</span><span>wahyu.anggana@emarsys.com</span><span style="color: #3fb950">✓</span><span style="color: #f85149">✕ EXPIRED</span><span style="color: #f85149">2d ago</span></div>
+        <div style="color: #6e7681; padding-left: 3ch">… 5 more ready · z expand</div>
+
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 6px"><span style="color: #ffa657; font-weight: 700">AWS</span><span>· profile</span><span style="flex: 1; border-top: 1px solid #21262d"></span><span>2</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span style="color: #ffa657">●</span><span style="background: #ffa657; color: #0d1117; font-weight: 700; text-align: center">AWS</span><span style="font-weight: 600">prod-aws</span><span>prod-sso</span><span>…:assumed-role/PlatformDev</span><span style="color: #8b949e">–</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">3h 12m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #ffa657; color: #0d1117; font-weight: 700; text-align: center">AWS</span><span>legacy-aws</span><span>legacy</span><span style="color: #8b949e">–</span><span style="color: #8b949e">–</span><span style="color: #d29922">▲ AUTH REQUIRED</span><span style="color: #8b949e">—</span></div>
+
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 6px"><span style="color: #56d4dd; font-weight: 700">AZURE</span><span>· subscription</span><span style="flex: 1; border-top: 1px solid #21262d"></span><span>1</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="background: #56d4dd; color: #0d1117; font-weight: 700; text-align: center">AZR</span><span>corp-azure</span><span>8c1f…e2a9</span><span>wahyu@corp.onmicrosoft.com</span><span style="color: #8b949e">–</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">1h</span></div>
+
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 12px"><span style="color: #e6edf3; font-weight: 700">AI TOOLS</span><span style="flex: 1; border-top: 1px solid #30363d"></span><span>4</span></div>
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 2px"><span style="color: #e3b38c; font-weight: 700">CLAUDE CODE</span><span>· org or runs-on</span><span style="flex: 1; border-top: 1px solid #21262d"></span><span>3</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span style="color: #e3b38c">●</span><span style="box-shadow: inset 0 0 0 1px #e3b38c; color: #e3b38c; font-weight: 700; text-align: center">CLD</span><span style="font-weight: 600">claude-work</span><span>org Aliz Tech</span><span>wahyu.anggana@aliz.ai</span><span style="color: #8b949e">–</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">6d</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch; background: #1f2a3a; box-shadow: inset 2px 0 0 #e6edf3"><span></span><span style="box-shadow: inset 0 0 0 1px #e3b38c; color: #e3b38c; font-weight: 700; text-align: center">CLD</span><span style="font-weight: 600">claude-vertex</span><span>↳ <span style="color: #6ea8fe">GCP</span> cloudsuite</span><span>Vertex AI · us-east5</span><span style="color: #8b949e">–</span><span style="color: #3fb950">● READY <span style="color: #8b949e">↳</span></span><span style="color: #8b949e">52m</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="box-shadow: inset 0 0 0 1px #e3b38c; color: #e3b38c; font-weight: 700; text-align: center">CLD</span><span>claude-personal</span><span>personal</span><span style="color: #8b949e">–</span><span style="color: #8b949e">–</span><span style="color: #d29922">▲ AUTH REQUIRED</span><span style="color: #8b949e">—</span></div>
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 4px"><span style="color: #b9c7d6; font-weight: 700">CODEX</span><span>· workspace</span><span style="flex: 1; border-top: 1px solid #21262d"></span><span>1</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span style="color: #b9c7d6">●</span><span style="box-shadow: inset 0 0 0 1px #b9c7d6; color: #b9c7d6; font-weight: 700; text-align: center">OAI</span><span>codex-work</span><span>workspace Aliz</span><span>wahyu.anggana@aliz.ai</span><span style="color: #8b949e">–</span><span style="color: #8b949e">⠼ checking…</span><span style="color: #8b949e"></span></div>
+
+        <div style="display: flex; align-items: center; gap: 1ch; color: #8b949e; margin-top: 12px"><span style="color: #e6edf3; font-weight: 700">AI GATEWAYS</span><span>· base url · key ref · budget left</span><span style="flex: 1; border-top: 1px solid #30363d"></span><span>3 · share one OPENAI_* slot</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span style="color: #e8a6c8">●</span><span style="outline: 1px dashed #e8a6c8; outline-offset: -1px; color: #e8a6c8; font-weight: 700; text-align: center">SMP</span><span style="font-weight: 600">sumopod-dev</span><span>ai.sumopod.com</span><span>op://Private/sumopod-dev</span><span style="color: #8b949e">–</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">$3.15 left</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="outline: 1px dashed #e8a6c8; outline-offset: -1px; color: #e8a6c8; font-weight: 700; text-align: center">SMP</span><span>sumopod-prod</span><span>ai.sumopod.com</span><span>gcpsm://aliz-ai/sumopod-prod</span><span style="color: #8b949e">–</span><span style="color: #d29922">▲ BUDGET 92%</span><span style="color: #d29922">$1.60 left</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 2ch 5ch 18ch 22ch 30ch 4ch 17ch 1fr; column-gap: 1ch"><span></span><span style="outline: 1px dashed #a3b1ff; outline-offset: -1px; color: #a3b1ff; font-weight: 700; text-align: center">ORT</span><span>openrouter</span><span>openrouter.ai</span><span>keychain:openrouter</span><span style="color: #8b949e">–</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">$7.40 left</span></div>
+      </div>
+
+      <div style="width: 50ch; flex-shrink: 0; border-left: 1px solid #30363d; padding-left: 2ch; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; gap: 1ch">
+          <span style="box-shadow: inset 0 0 0 1px #e3b38c; color: #e3b38c; font-weight: 700; padding: 0 1ch">CLD</span>
+          <span style="font-weight: 700">claude-vertex</span>
+          <span style="flex: 1"></span>
+          <span style="color: #8b949e">○ not active</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 13ch 1fr">
+          <span style="color: #8b949e">tool</span><span>Claude Code</span>
+          <span style="color: #8b949e">auth</span><span>via cloud account</span>
+          <span style="color: #8b949e">runs on</span><span><span style="background: #6ea8fe; color: #0d1117; font-weight: 700; padding: 0 .5ch">GCP</span> cloudsuite <span style="color: #8b949e">→ g jump</span></span>
+          <span style="color: #8b949e">project</span><span>sap-gap-cloud-asap-s</span>
+          <span style="color: #8b949e">region</span><span>us-east5</span>
+          <span style="color: #8b949e">status</span><span style="color: #3fb950">● READY · inherited from cloudsuite</span>
+          <span style="color: #8b949e">config dir</span><span>~/.config/cctx/ai/claude-vertex</span>
+        </div>
+        <div style="color: #8b949e">If cloudsuite needs login, this row shows ▲ too, and l logs in cloudsuite.</div>
+        <div style="border: 1px solid #30363d; padding: 8px 1ch">
+          <div style="color: #8b949e">env applied on activate</div>
+          <div>CLAUDE_CONFIG_DIR=…/ai/claude-vertex</div>
+          <div>CLAUDE_CODE_USE_VERTEX=1</div>
+          <div>ANTHROPIC_VERTEX_PROJECT_ID=sap-gap-cloud-asap-s</div>
+          <div>CLOUD_ML_REGION=us-east5</div>
+          <div style="color: #8b949e">+ cloudsuite's gcloud env · no keys</div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px 2ch">
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">↵</span> activate</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">l</span> login</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">s</span> shell</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">g</span> go to cloud</span>
+          <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">x</span> delete</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 2ch; border-top: 1px solid #21262d; padding-top: 6px; color: #8b949e">
+      <span style="color: #3fb950">✓ clouds 11/12</span>
+      <span style="color: #3fb950">✓ Claude 3/3</span>
+      <span>⠼ Codex 0/1</span>
+      <span style="color: #3fb950">✓ gateways 3/3</span>
+      <span style="flex: 1"></span>
+      <span>19 accounts · 1 expired · 3 need login · 1 low budget</span>
+    </div>
+    <div style="display: flex; gap: 2ch; white-space: nowrap; overflow: hidden">
+      <span><span style="color: #e6edf3">tab</span> <span style="color: #8b949e">provider</span></span>
+      <span><span style="color: #e6edf3">j/k</span> <span style="color: #8b949e">move</span></span>
+      <span><span style="color: #e6edf3">↵</span> <span style="color: #8b949e">activate</span></span>
+      <span><span style="color: #e6edf3">/</span> <span style="color: #8b949e">filter</span></span>
+      <span><span style="color: #e6edf3">l</span> <span style="color: #8b949e">login</span></span>
+      <span><span style="color: #e6edf3">L</span> <span style="color: #8b949e">login all stale</span></span>
+      <span><span style="color: #e6edf3">c</span> <span style="color: #8b949e">create</span></span>
+      <span><span style="color: #e6edf3">s</span> <span style="color: #8b949e">shell</span></span>
+      <span><span style="color: #e6edf3">z</span> <span style="color: #8b949e">fold group</span></span>
+      <span><span style="color: #e6edf3">:</span> <span style="color: #8b949e">commands</span></span>
+      <span><span style="color: #e6edf3">?</span> <span style="color: #8b949e">help</span></span>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

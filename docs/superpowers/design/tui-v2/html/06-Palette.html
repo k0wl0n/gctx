@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx command palette</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.r>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1040px; height: 640px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d; position: relative">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 128×29</span>
+  </div>
+  <div aria-hidden="true" style="flex: 1; padding: 12px 16px; color: #3a414b; white-space: pre; overflow: hidden">cctx │ GCP cloudsuite  AWS prod-aws  AZR none                                        ✓ cfg  14s
+
+All 12   GCP 9   AWS 2   Azure 1   Tencent · n/a
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  CLOUD NAME               TARGET                 STATUS
+● GCP   cloudsuite         sap-gap-cloud-asap-s   ● READY
+  GCP   infra-hub-prd      emarsys-infra-hub-prd  ● READY
+  GCP   infra-hub-stg      emarsys-infra-hub-stg  ● READY
+  GCP   gap-dev            gap-platform-dev       ● READY
+  GCP   sbx-aliz           sandbox-wahyu-anggana  ▲ AUTH REQUIRED
+  GCP   byoip-lab          byoip-lab-eu-west      ✕ EXPIRED
+● AWS   prod-aws           prod-sso               ● READY
+  AWS   legacy-aws         legacy                 ▲ AUTH REQUIRED</div>
+
+  <div style="position: absolute; left: 50%; top: 56px; transform: translateX(-50%); width: 86ch; background: #11161d; border: 1px solid #8b949e; display: flex; flex-direction: column; box-shadow: 0 0 0 9999px rgba(13,17,23,.35)">
+    <div style="display: flex; gap: 1ch; padding: 10px 2ch; border-bottom: 1px solid #30363d">
+      <span style="color: #8b949e">:</span>
+      <span>log<span style="background: #e6edf3; color: #0d1117"> </span></span>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">7 matches</span>
+    </div>
+    <div style="padding: 8px 0; display: flex; flex-direction: column">
+      <div style="color: #8b949e; padding: 0 2ch 4px">actions</div>
+      <div class="r" style="display: grid; grid-template-columns: 1fr 34ch 4ch; column-gap: 2ch; padding: 0 2ch; background: #1f2a3a; box-shadow: inset 2px 0 0 #e6edf3"><span><span style="font-weight: 700">Log</span>in all stale accounts <span style="color: #d29922">(3)</span></span><span style="color: #8b949e">cctx login --stale</span><span style="color: #8b949e; text-align: right">L</span></div>
+      <div class="r" style="display: grid; grid-template-columns: 1fr 34ch 4ch; column-gap: 2ch; padding: 0 2ch"><span><span style="font-weight: 700">Log</span>in prod-aws</span><span style="color: #8b949e">cctx login prod-aws</span><span style="color: #8b949e; text-align: right">l</span></div>
+      <div class="r" style="display: grid; grid-template-columns: 1fr 34ch 4ch; column-gap: 2ch; padding: 0 2ch"><span><span style="font-weight: 700">Log</span>out prod-aws</span><span style="color: #8b949e">cctx logout prod-aws</span><span style="color: #8b949e; text-align: right"></span></div>
+      <div class="r" style="display: grid; grid-template-columns: 1fr 34ch 4ch; column-gap: 2ch; padding: 0 2ch"><span>Show cctx <span style="font-weight: 700">log</span> file</span><span style="color: #8b949e">cctx doctor --log</span><span style="color: #8b949e; text-align: right"></span></div>
+      <div style="color: #8b949e; padding: 8px 2ch 4px">accounts</div>
+      <div class="r" style="display: grid; grid-template-columns: 1fr 34ch 4ch; column-gap: 2ch; padding: 0 2ch"><span><span style="color: #ffa657">AWS</span> <span style="font-weight: 700">l</span>egacy-aws <span style="color: #d29922">▲</span></span><span style="color: #8b949e">jump</span><span></span></div>
+      <div class="r" style="display: grid; grid-template-columns: 1fr 34ch 4ch; column-gap: 2ch; padding: 0 2ch"><span><span style="color: #6ea8fe">GCP</span> byoip-<span style="font-weight: 700">l</span>ab <span style="color: #f85149">✕</span></span><span style="color: #8b949e">jump</span><span></span></div>
+      <div class="r" style="display: grid; grid-template-columns: 1fr 34ch 4ch; column-gap: 2ch; padding: 0 2ch"><span><span style="color: #6ea8fe">GCP</span> sbx-a<span style="font-weight: 700">l</span>iz <span style="color: #d29922">▲</span></span><span style="color: #8b949e">jump</span><span></span></div>
+    </div>
+    <div style="display: flex; gap: 2ch; padding: 8px 2ch; border-top: 1px solid #30363d; color: #8b949e">
+      <span>↑↓ select</span><span>↵ run</span><span>⇥ complete</span><span>esc close</span>
+      <span style="flex: 1"></span>
+      <span>right column = the CLI equivalent</span>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx visual language</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1360px; height: 820px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; padding: 32px 40px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 56px; border-radius: 10px; border: 1px solid #30363d; align-content: start">
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-weight: 700; font-size: 15px">Cloud identity</div>
+    <div style="color: #8b949e">Letters carry the meaning; color only reinforces it. Mode: truecolor.</div>
+    <div style="display: grid; grid-template-columns: 7ch 12ch 10ch 10ch 1fr; column-gap: 2ch; row-gap: 6px; align-items: center">
+      <span style="color: #8b949e">badge</span><span style="color: #8b949e">truecolor</span><span style="color: #8b949e">ansi-256</span><span style="color: #8b949e">ansi-16</span><span style="color: #8b949e">target label</span>
+      <span style="font-weight: 700; text-align: center; padding: 0 1ch; color: #0d1117; background: #6ea8fe">GCP</span><span>#6ea8fe</span><span>75</span><span>bright blue</span><span>PROJECT</span>
+      <span style="font-weight: 700; text-align: center; padding: 0 1ch; color: #0d1117; background: #ffa657">AWS</span><span>#ffa657</span><span>215</span><span>bright yellow</span><span>PROFILE</span>
+      <span style="font-weight: 700; text-align: center; padding: 0 1ch; color: #0d1117; background: #56d4dd">AZR</span><span>#56d4dd</span><span>80</span><span>bright cyan</span><span>SUBSCRIPTION</span>
+      <span style="font-weight: 700; text-align: center; padding: 0 1ch; color: #0d1117; background: #c39bff">TCT</span><span>#c39bff</span><span>183</span><span>bright magenta</span><span>PROFILE</span>
+    </div>
+    <div style="color: #8b949e">Tencent moves from green to violet so it never reads as READY.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-weight: 700; font-size: 15px">Health</div>
+    <div style="display: grid; grid-template-columns: 3ch 17ch 9ch 1fr; column-gap: 2ch; row-gap: 4px">
+      <span style="color: #8b949e">ascii</span><span style="color: #8b949e">state</span><span style="color: #8b949e">source</span><span style="color: #8b949e">meaning</span>
+      <span>*</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">network</span><span>provider CLI accepted the credentials</span>
+      <span>!</span><span style="color: #d29922">▲ AUTH REQUIRED</span><span style="color: #8b949e">either</span><span>never logged in, or logged out</span>
+      <span>x</span><span style="color: #f85149">✕ EXPIRED</span><span style="color: #8b949e">either</span><span>token or session past its expiry</span>
+      <span>~</span><span style="color: #8b949e">⠼ checking…</span><span style="color: #8b949e">network</span><span>async check in flight, per-provider timeout</span>
+      <span>?</span><span style="color: #a5a5b8">? UNVERIFIED</span><span style="color: #8b949e">network</span><span>check timed out; last good result + age</span>
+      <span>-</span><span style="color: #6e7681">○ CLI MISSING</span><span style="color: #8b949e">local</span><span>provider binary not on PATH</span>
+      <span>!</span><span style="color: #f85149">! CONFIG ERROR</span><span style="color: #8b949e">local</span><span>profile, dir or project id missing on disk</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-weight: 700; font-size: 15px">Row markers</div>
+    <div style="display: grid; grid-template-columns: 8ch 1fr; row-gap: 4px">
+      <span style="background: #1f2a3a; box-shadow: inset 2px 0 0 #e6edf3; padding-left: 1ch">row</span><span>cursor: tinted row plus a left bar (reverse video in 16-color)</span>
+      <span style="color: #ffa657">●</span><span>active in its cloud, in that cloud's color. One per cloud, never one global.</span>
+      <span style="color: #8b949e">○ none</span><span>header slot for a cloud with nothing active</span>
+      <span><span style="color: #3fb950">✓</span> <span style="color: #f85149">✕</span> <span style="color: #8b949e">–</span></span><span>ADC (GCP only); – where a provider has no equivalent</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-weight: 700; font-size: 15px">Neutrals</div>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1ch">
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="height: 32px; background: #0d1117; border: 1px solid #30363d"></span><span>#0d1117</span><span style="color: #8b949e">ground</span></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="height: 32px; background: #11161d; border: 1px solid #30363d"></span><span>#11161d</span><span style="color: #8b949e">overlay</span></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="height: 32px; background: #1f2a3a"></span><span>#1f2a3a</span><span style="color: #8b949e">cursor</span></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="height: 32px; background: #8b949e"></span><span>#8b949e</span><span style="color: #8b949e">dim text</span></div>
+      <div style="display: flex; flex-direction: column; gap: 4px"><span style="height: 32px; background: #e6edf3"></span><span>#e6edf3</span><span style="color: #8b949e">text</span></div>
+    </div>
+    <div style="color: #8b949e">Light terminals: same roles, inverted ground, detected via OSC 11; override with CCTX_THEME.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-weight: 700; font-size: 15px">Width breakpoints</div>
+    <div style="display: grid; grid-template-columns: 10ch 1fr; row-gap: 4px">
+      <span>≥ 150</span><span>list + detail pane, full hint line</span>
+      <span>100–149</span><span>list only; d opens details full screen; CLOUD column drops on a cloud tab</span>
+      <span>60–99</span><span>badge folds into NAME; tabs collapse to one cycling chip; hints shrink to 5</span>
+      <span>&lt; 60×16</span><span>"terminal too small (needs 60×16)" and nothing else</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-weight: 700; font-size: 15px">Column priority (first to drop → never)</div>
+    <div style="display: flex; gap: 1ch; flex-wrap: wrap; align-items: center">
+      <span style="border: 1px solid #30363d; padding: 0 1ch; color: #8b949e">EXPIRES</span><span style="color: #6e7681">→</span>
+      <span style="border: 1px solid #30363d; padding: 0 1ch; color: #8b949e">IDENTITY</span><span style="color: #6e7681">→</span>
+      <span style="border: 1px solid #30363d; padding: 0 1ch; color: #8b949e">ADC</span><span style="color: #6e7681">→</span>
+      <span style="border: 1px solid #30363d; padding: 0 1ch; color: #8b949e">extra</span><span style="color: #6e7681">→</span>
+      <span style="border: 1px solid #30363d; padding: 0 1ch">TARGET (mid-ellipsis)</span><span style="color: #6e7681">·</span>
+      <span style="border: 1px solid #e6edf3; padding: 0 1ch; font-weight: 700">NAME</span>
+      <span style="border: 1px solid #e6edf3; padding: 0 1ch; font-weight: 700">STATUS</span>
+    </div>
+    <div style="color: #8b949e">"extra" is the provider's own column from Provider.Columns(): REGION for AWS, TENANT for Azure.</div>
+  </div>
+
+</div>
+</div>
+
+</body>
+</html>

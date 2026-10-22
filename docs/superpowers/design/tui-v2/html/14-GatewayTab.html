@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx v2 SumoPod gateway tab</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.r>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1040px; height: 640px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 128×29</span>
+  </div>
+  <div style="flex: 1; display: flex; flex-direction: column; padding: 12px 16px; min-height: 0">
+    <div style="display: flex; align-items: center; gap: 2ch">
+      <span style="font-weight: 700">cctx</span>
+      <span style="color: #30363d">│</span>
+      <span><span style="color: #6ea8fe; font-weight: 700">GCP</span> cloudsuite</span>
+      <span><span style="color: #ffa657; font-weight: 700">AWS</span> prod-aws</span>
+      <span style="color: #30363d">│</span>
+      <span><span style="color: #e3b38c; font-weight: 700">CLD</span> claude-work</span>
+      <span><span style="color: #e8a6c8; font-weight: 700">API</span> sumopod-dev</span>
+      <span style="flex: 1"></span>
+      <span style="color: #3fb950">✓ cfg</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2ch; margin-top: 10px; padding-bottom: 8px; border-bottom: 1px solid #21262d">
+      <span style="color: #8b949e">All 19</span>
+      <span style="color: #8b949e">GCP 9</span>
+      <span style="color: #8b949e">AWS 2</span>
+      <span style="color: #30363d">│</span>
+      <span style="color: #8b949e">Claude 3</span>
+      <span style="color: #8b949e">OpenAI 1</span>
+      <span style="color: #8b949e">OpenRouter 1</span>
+      <span style="background: #e8a6c8; color: #0d1117; font-weight: 700; padding: 0 1ch">SumoPod 2</span>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">LiteLLM backend detected</span>
+    </div>
+
+    <div style="padding-top: 8px; display: flex; flex-direction: column">
+      <div class="r" style="display: grid; grid-template-columns: 2ch 15ch 30ch 24ch 14ch 1fr; column-gap: 1ch; color: #8b949e">
+        <span></span><span>NAME</span><span>KEY REF</span><span>BUDGET</span><span>STATUS</span><span>LAST CHECK</span>
+      </div>
+      <div class="r" style="display: grid; grid-template-columns: 2ch 15ch 30ch 24ch 14ch 1fr; column-gap: 1ch; background: #1f2a3a; box-shadow: inset 2px 0 0 #e6edf3"><span style="color: #e8a6c8">●</span><span style="font-weight: 600">sumopod-dev</span><span>op://Private/sumopod-dev</span><span><span style="color: #3fb950">█████</span><span style="color: #30363d">█████</span> $1.85/$5</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">/key/info 210ms</span></div>
+      <div class="r" style="display: grid; grid-template-columns: 2ch 15ch 30ch 24ch 14ch 1fr; column-gap: 1ch"><span></span><span>sumopod-prod</span><span>gcpsm://aliz-ai/sumopod-prod</span><span><span style="color: #d29922">█████████</span><span style="color: #30363d">█</span> $18.40/$20</span><span style="color: #d29922">▲ BUDGET 92%</span><span style="color: #8b949e">/key/info 240ms</span></div>
+    </div>
+
+    <div style="margin-top: 14px; display: grid; grid-template-columns: 15ch 1fr; row-gap: 0; color: #8b949e">
+      <span>base url</span><span style="color: #e6edf3">https://ai.sumopod.com/v1</span>
+      <span>compat</span><span style="color: #e6edf3">OpenAI chat completions · default model gpt-4o-mini</span>
+      <span>auth check</span><span>GET /key/info (LiteLLM), fallback GET /v1/models</span>
+      <span>key</span><span>resolved at activate / run / shell, kept in the child env only, never written or printed</span>
+    </div>
+
+    <div style="flex: 1"></div>
+
+    <div style="border: 1px solid #e8a6c8; padding: 10px 2ch; display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px">
+      <div style="display: flex; gap: 1ch; align-items: center">
+        <span style="color: #3fb950">✓</span>
+        <span>API slot is now <span style="font-weight: 700">sumopod-dev</span></span>
+        <span style="color: #8b949e">(replaces openrouter: both set OPENAI_*)</span>
+        <span style="flex: 1"></span>
+        <span style="color: #8b949e">esc dismiss</span>
+      </div>
+      <div style="color: #8b949e">eval prints the lookup, not the key:</div>
+      <div><span style="color: #8b949e">export</span> OPENAI_BASE_URL=https://ai.sumopod.com/v1</div>
+      <div><span style="color: #8b949e">export</span> OPENAI_API_KEY="$(op read op://Private/sumopod-dev/credential)"</div>
+      <div style="display: flex; gap: 3ch; flex-wrap: wrap; margin-top: 2px">
+        <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">y</span> <span style="color: #8b949e">copy eval line</span></span>
+        <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">s</span> <span style="color: #8b949e">subshell</span></span>
+        <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">t</span> <span style="color: #8b949e">test one completion</span></span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 2ch; border-top: 1px solid #21262d; padding-top: 6px; white-space: nowrap; overflow: hidden">
+      <span><span style="color: #e6edf3">tab</span> <span style="color: #8b949e">provider</span></span>
+      <span><span style="color: #e6edf3">↵</span> <span style="color: #8b949e">activate</span></span>
+      <span><span style="color: #e6edf3">d</span> <span style="color: #8b949e">details</span></span>
+      <span><span style="color: #e6edf3">t</span> <span style="color: #8b949e">test</span></span>
+      <span><span style="color: #e6edf3">b</span> <span style="color: #8b949e">open usage page</span></span>
+      <span><span style="color: #e6edf3">c</span> <span style="color: #8b949e">create</span></span>
+      <span><span style="color: #e6edf3">?</span> <span style="color: #8b949e">help</span></span>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

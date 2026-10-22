@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx v2 create AI gateway</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1040px; height: 640px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d; position: relative">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 128×29</span>
+  </div>
+  <div aria-hidden="true" style="flex: 1; padding: 12px 16px; color: #3a414b; white-space: pre; overflow: hidden">cctx │ GCP cloudsuite  AWS prod-aws │ CLD claude-work  API sumopod-dev                      ✓ cfg
+
+All 19   GCP 9   AWS 2 │ Claude 3   OpenAI 1   OpenRouter 1   SumoPod 2
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  NAME           KEY REF                        BUDGET                   STATUS
+● sumopod-dev    op://Private/sumopod-dev       █████░░░░░ $1.85/$5      ● READY
+  sumopod-prod   gcpsm://aliz-ai/sumopod-prod   █████████░ $18.40/$20    ▲ BUDGET 92%</div>
+
+  <div style="position: absolute; left: 50%; top: 48px; transform: translateX(-50%); width: 84ch; background: #11161d; border: 1px solid #8b949e; padding: 14px 3ch 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 0 0 9999px rgba(13,17,23,.35)">
+    <div style="display: flex; align-items: center; gap: 1ch">
+      <span style="font-weight: 700">Create account</span>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">AI gateway · API key by reference</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 15ch 1fr; row-gap: 8px; align-items: start">
+      <span style="color: #8b949e">Kind</span>
+      <div style="display: flex; gap: 1ch">
+        <span style="color: #8b949e; padding: 0 1ch">Cloud</span>
+        <span style="color: #8b949e; padding: 0 1ch">AI tool</span>
+        <span style="background: #e6edf3; color: #0d1117; font-weight: 700; padding: 0 1ch">AI gateway</span>
+      </div>
+
+      <span style="color: #8b949e">Provider</span>
+      <div style="display: flex; gap: 1ch; align-items: center">
+        <span style="color: #8b949e">‹</span>
+        <span style="color: #8b949e; padding: 0 1ch">OpenRouter</span>
+        <span style="background: #e8a6c8; color: #0d1117; font-weight: 700; padding: 0 1ch">SumoPod</span>
+        <span style="color: #8b949e; padding: 0 1ch">OpenAI-compatible…</span>
+        <span style="color: #8b949e">›</span>
+      </div>
+
+      <label style="color: #8b949e">Name</label>
+      <span style="border-bottom: 1px solid #8b949e">sumopod-hackathon</span>
+
+      <label style="color: #8b949e">Base URL</label>
+      <span style="border-bottom: 1px solid #30363d">https://ai.sumopod.com/v1 <span style="color: #6e7681">· preset</span></span>
+
+      <span style="color: #e6edf3; font-weight: 600">› Key from</span>
+      <div style="display: flex; flex-direction: column">
+        <span><span style="color: #e8a6c8">◉</span> 1Password    <span style="border-bottom: 1px solid #8b949e">op://Private/sumopod-hackathon/credential</span></span>
+        <span style="color: #8b949e">○ GCP Secret Manager   gcpsm://project/secret</span>
+        <span style="color: #8b949e">○ OS keychain          keychain:name</span>
+        <span style="color: #8b949e">○ env var you set      $SUMOPOD_KEY</span>
+        <span style="color: #6e7681"><span style="text-decoration: line-through">○ paste key</span>  never stored (D5)</span>
+      </div>
+
+      <span style="color: #8b949e">Exports</span>
+      <div style="display: flex; flex-direction: column">
+        <span>OPENAI_BASE_URL, OPENAI_API_KEY <span style="color: #6e7681">· OpenAI SDK, LiteLLM clients</span></span>
+        <span style="color: #8b949e">[ ] also SUMOPOD_API_KEY · [ ] custom names…</span>
+      </div>
+
+      <label style="color: #8b949e">Default model</label>
+      <span style="border-bottom: 1px solid #30363d">gpt-4o-mini <span style="color: #6e7681">· from GET /v1/models (42)</span></span>
+    </div>
+
+    <div style="border: 1px solid #30363d; padding: 6px 1ch; display: flex; flex-direction: column">
+      <span><span style="color: #3fb950">✓</span> key resolved from 1Password <span style="color: #8b949e">· value not shown</span></span>
+      <span><span style="color: #3fb950">✓</span> GET /key/info · LiteLLM proxy · budget $0.00 / $10.00 · no expiry</span>
+      <span><span style="color: #3fb950">✓</span> 1 completion with gpt-4o-mini · 412ms</span>
+    </div>
+
+    <div style="color: #8b949e">writes config.json: name, base URL, key ref, exports, model · never the key</div>
+
+    <div style="display: flex; gap: 2ch; align-items: center">
+      <button type="button" style="font: inherit; background: #e6edf3; color: #0d1117; border: 0; padding: 0 1.5ch; font-weight: 700; min-height: 24px">Create</button>
+      <button type="button" style="font: inherit; background: transparent; color: #e6edf3; border: 1px solid #30363d; padding: 0 1.5ch; min-height: 24px">Test again</button>
+      <button type="button" style="font: inherit; background: transparent; color: #8b949e; border: 0; padding: 0 1ch; min-height: 24px">Cancel</button>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">tab next · ←/→ change · esc</span>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

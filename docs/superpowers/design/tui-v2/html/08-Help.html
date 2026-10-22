@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx help screen</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1040px; height: 640px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 128×29</span>
+  </div>
+  <div style="flex: 1; display: flex; flex-direction: column; padding: 12px 16px; gap: 14px; min-height: 0">
+    <div style="display: flex; align-items: center; gap: 2ch; padding-bottom: 8px; border-bottom: 1px solid #21262d">
+      <span style="font-weight: 700">Keys</span>
+      <span style="color: #8b949e">/ search keys</span>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">esc or ? to close</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 4ch">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="color: #8b949e; margin-bottom: 4px">navigation</div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>j k ↑ ↓</span><span style="color: #8b949e">move</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>g G</span><span style="color: #8b949e">top, bottom</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>tab ⇧tab</span><span style="color: #8b949e">next, previous cloud</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>1 – 5</span><span style="color: #8b949e">All, GCP, AWS, Azure, Tencent</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>/</span><span style="color: #8b949e">filter by any column</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>!</span><span style="color: #8b949e">only accounts needing action</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>o</span><span style="color: #8b949e">sort: name, status, expiry</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>:</span><span style="color: #8b949e">command palette</span></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="color: #8b949e; margin-bottom: 4px">account</div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>↵</span><span style="color: #8b949e">activate in its cloud</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>d</span><span style="color: #8b949e">details (pane or screen)</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>l</span><span style="color: #8b949e">login</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>L</span><span style="color: #8b949e">login every stale account</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>c</span><span style="color: #8b949e">create</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>e</span><span style="color: #8b949e">edit (name, region)</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>x</span><span style="color: #8b949e">delete</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>y</span><span style="color: #8b949e">copy env line</span></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <div style="color: #8b949e; margin-bottom: 4px">session</div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>s</span><span style="color: #8b949e">subshell, all active clouds</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>S</span><span style="color: #8b949e">subshell, this account only</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>r</span><span style="color: #8b949e">run a command</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>R</span><span style="color: #8b949e">recheck auth now</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>p</span><span style="color: #8b949e">toggle detail pane</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>?</span><span style="color: #8b949e">this screen</span></div>
+        <div style="display: grid; grid-template-columns: 10ch 1fr"><span>q ctrl+c</span><span style="color: #8b949e">quit</span></div>
+      </div>
+    </div>
+
+    <div style="flex: 1"></div>
+
+    <div style="border-top: 1px solid #21262d; padding-top: 10px; display: flex; flex-direction: column; gap: 2px">
+      <div style="color: #8b949e">providers</div>
+      <div style="display: grid; grid-template-columns: 9ch 22ch 1fr; column-gap: 2ch"><span style="color: #6ea8fe; font-weight: 700">GCP</span><span>gcloud 540.0.0</span><span style="color: #3fb950">✓ global switch · ADC</span></div>
+      <div style="display: grid; grid-template-columns: 9ch 22ch 1fr; column-gap: 2ch"><span style="color: #ffa657; font-weight: 700">AWS</span><span>aws 2.27.4</span><span style="color: #3fb950">✓ env: AWS_PROFILE</span></div>
+      <div style="display: grid; grid-template-columns: 9ch 22ch 1fr; column-gap: 2ch"><span style="color: #56d4dd; font-weight: 700">Azure</span><span>az 2.75.0</span><span style="color: #3fb950">✓ env: AZURE_CONFIG_DIR</span></div>
+      <div style="display: grid; grid-template-columns: 9ch 22ch 1fr; column-gap: 2ch"><span style="color: #c39bff; font-weight: 700">Tencent</span><span style="color: #8b949e">tccli not found</span><span style="color: #8b949e">○ brew install tccli · or pipx install tccli</span></div>
+      <div style="color: #8b949e; margin-top: 6px">config ~/.config/cctx/config.json · log ~/.cache/cctx/cctx.log · cctx doctor for a full report</div>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

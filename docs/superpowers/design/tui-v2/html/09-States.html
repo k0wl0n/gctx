@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx empty, CLI missing and offline states</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.r>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1040px; height: 640px; box-sizing: border-box; background: #0a0d12; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 12px; line-height: 18px; padding: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 16px; border-radius: 10px">
+
+  <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+    <div style="color: #8b949e">A · first run, nothing configured</div>
+    <div style="flex: 1; background: #0d1117; border: 1px solid #30363d; padding: 12px 1.5ch; display: flex; flex-direction: column; gap: 10px">
+      <div><span style="font-weight: 700">cctx</span> <span style="color: #8b949e">· no accounts yet</span></div>
+      <div style="color: #8b949e">found existing CLI setups you can import. nothing is copied except names.</div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <label style="display: flex; gap: 1ch"><input type="checkbox" checked style="accent-color: #6ea8fe; margin: 2px 0 0"><span><span style="color: #6ea8fe; font-weight: 700">GCP</span> 6 gcloud configurations</span></label>
+        <label style="display: flex; gap: 1ch"><input type="checkbox" checked style="accent-color: #ffa657; margin: 2px 0 0"><span><span style="color: #ffa657; font-weight: 700">AWS</span> 3 profiles in ~/.aws/config</span></label>
+        <label style="display: flex; gap: 1ch"><input type="checkbox" style="accent-color: #56d4dd; margin: 2px 0 0"><span><span style="color: #56d4dd; font-weight: 700">AZR</span> 2 subscriptions in ~/.azure</span></label>
+        <div style="display: flex; gap: 1ch; color: #6e7681"><span>○</span><span>TCT tccli not installed</span></div>
+      </div>
+      <div style="display: flex; gap: 1ch; flex-wrap: wrap">
+        <button type="button" style="font: inherit; background: #e6edf3; color: #0d1117; border: 0; padding: 0 1ch; font-weight: 700; min-height: 22px">Import 9</button>
+        <button type="button" style="font: inherit; background: transparent; color: #e6edf3; border: 1px solid #30363d; padding: 0 1ch; min-height: 22px">Review each</button>
+        <button type="button" style="font: inherit; background: transparent; color: #8b949e; border: 0; padding: 0 1ch; min-height: 22px">Start empty</button>
+      </div>
+      <div style="flex: 1"></div>
+      <div style="color: #8b949e">c create · ? keys · q quit</div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+    <div style="color: #8b949e">B · Tencent tab, CLI not on PATH</div>
+    <div style="flex: 1; background: #0d1117; border: 1px solid #30363d; padding: 12px 1.5ch; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; gap: 1ch; flex-wrap: wrap; color: #8b949e; padding-bottom: 6px; border-bottom: 1px solid #21262d">
+        <span>All</span><span>GCP</span><span>AWS</span><span>Azure</span>
+        <span style="background: #c39bff; color: #0d1117; font-weight: 700; padding: 0 1ch">Tencent 0</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 24px; align-items: center; text-align: center">
+        <div style="color: #8b949e; font-size: 20px; line-height: 24px">○</div>
+        <div style="font-weight: 600">tccli is not installed</div>
+        <div style="color: #8b949e">Tencent accounts need it for login, switching and auth checks. Other clouds are unaffected.</div>
+      </div>
+      <div style="border: 1px solid #30363d; padding: 8px 1ch; display: flex; flex-direction: column">
+        <span><span style="color: #8b949e">$</span> pipx install tccli</span>
+        <span style="color: #8b949e">then press R to rescan PATH</span>
+      </div>
+      <div style="flex: 1"></div>
+      <div style="color: #8b949e">y copy · R rescan · tab next cloud</div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+    <div style="color: #8b949e">C · offline, checks timed out</div>
+    <div style="flex: 1; background: #0d1117; border: 1px solid #30363d; padding: 12px 1.5ch; display: flex; flex-direction: column; gap: 8px">
+      <div style="border: 1px solid #d29922; padding: 6px 1ch; color: #d29922">▲ network unreachable · showing last known status</div>
+      <div style="display: flex; flex-direction: column">
+        <div class="r" style="display: grid; grid-template-columns: 4ch 13ch 1fr; column-gap: 1ch; color: #8b949e"><span></span><span>NAME</span><span>STATUS</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 4ch 13ch 1fr; column-gap: 1ch"><span style="color: #6ea8fe; font-weight: 700">GCP</span><span>cloudsuite</span><span style="color: #3fb950">● READY <span style="color: #8b949e">local</span></span></div>
+        <div class="r" style="display: grid; grid-template-columns: 4ch 13ch 1fr; column-gap: 1ch"><span style="color: #6ea8fe; font-weight: 700">GCP</span><span>sbx-aliz</span><span style="color: #d29922">▲ AUTH REQUIRED</span></div>
+        <div class="r" style="display: grid; grid-template-columns: 4ch 13ch 1fr; column-gap: 1ch"><span style="color: #ffa657; font-weight: 700">AWS</span><span>prod-aws</span><span style="color: #a5a5b8">? UNVERIFIED <span style="color: #8b949e">2h</span></span></div>
+        <div class="r" style="display: grid; grid-template-columns: 4ch 13ch 1fr; column-gap: 1ch"><span style="color: #ffa657; font-weight: 700">AWS</span><span>legacy-aws</span><span style="color: #a5a5b8">? UNVERIFIED <span style="color: #8b949e">3d</span></span></div>
+        <div class="r" style="display: grid; grid-template-columns: 4ch 13ch 1fr; column-gap: 1ch"><span style="color: #56d4dd; font-weight: 700">AZR</span><span>corp-azure</span><span style="color: #a5a5b8">? UNVERIFIED <span style="color: #8b949e">2h</span></span></div>
+      </div>
+      <div style="color: #8b949e">A timeout is never shown as AUTH REQUIRED. UNVERIFIED keeps the last good result and its age; local checks (file reads) still run.</div>
+      <div style="flex: 1"></div>
+      <div style="color: #8b949e">R retry · switching still works offline</div>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

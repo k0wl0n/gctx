@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx v2 create AI tool account</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1040px; height: 640px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d; position: relative">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 128×29</span>
+  </div>
+  <div aria-hidden="true" style="flex: 1; padding: 12px 16px; color: #3a414b; white-space: pre; overflow: hidden">cctx │ GCP cloudsuite  AWS prod-aws │ CLD claude-work  OAI codex-work                       ✓ cfg
+
+All 16   GCP 9   AWS 2   Azure 1 │ Claude 3   OpenAI 1
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  NAME              AUTH             ORG / RUNS ON              IDENTITY                   STATUS
+● claude-work       subscription     Aliz Tech                  wahyu.anggana@aliz.ai      ● READY
+  claude-vertex     via cloud        ↳ GCP cloudsuite · us-ea   (cloudsuite's identity)    ● READY ↳
+  claude-personal   subscription     personal                   –                          ▲ AUTH REQUIRED</div>
+
+  <div style="position: absolute; left: 50%; top: 52px; transform: translateX(-50%); width: 80ch; background: #11161d; border: 1px solid #8b949e; padding: 14px 3ch 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 0 0 9999px rgba(13,17,23,.35)">
+    <div style="display: flex; align-items: center; gap: 1ch">
+      <span style="font-weight: 700">Create account</span>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">no login needed: uses a cloud account</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 15ch 1fr; row-gap: 10px; align-items: start">
+      <span style="color: #8b949e">Kind</span>
+      <div style="display: flex; gap: 1ch">
+        <span style="color: #8b949e; padding: 0 1ch">Cloud</span>
+        <span style="background: #e6edf3; color: #0d1117; font-weight: 700; padding: 0 1ch">AI tool</span>
+      </div>
+
+      <span style="color: #8b949e">Tool</span>
+      <div style="display: flex; gap: 1ch; align-items: center">
+        <span style="color: #8b949e">‹</span>
+        <span style="background: #e3b38c; color: #0d1117; font-weight: 700; padding: 0 1ch">Claude Code</span>
+        <span style="color: #8b949e; padding: 0 1ch">Codex</span>
+        <span style="color: #8b949e">›</span>
+      </div>
+
+      <label style="color: #8b949e">Name</label>
+      <div style="display: flex; flex-direction: column">
+        <span style="border-bottom: 1px solid #8b949e">claude-bedrock</span>
+        <span style="color: #3fb950">✓ unique across all accounts</span>
+      </div>
+
+      <span style="color: #8b949e">Auth</span>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="color: #8b949e">○ subscription <span style="color: #6e7681">· opens claude's own login</span></span>
+        <span><span style="color: #e3b38c">◉</span> via cloud account <span style="color: #8b949e">· Vertex AI or Bedrock</span></span>
+        <span style="color: #6e7681; text-decoration: line-through">○ API key</span><span style="color: #6e7681">  cctx never stores secrets (D5)</span>
+      </div>
+
+      <span style="color: #e6edf3; font-weight: 600">› Cloud account</span>
+      <div style="border: 1px solid #30363d; display: flex; flex-direction: column">
+        <div style="display: grid; grid-template-columns: 5ch 15ch 13ch 1fr; column-gap: 1ch; padding: 0 1ch"><span style="color: #6ea8fe; font-weight: 700">GCP</span><span>cloudsuite</span><span style="color: #8b949e">Vertex AI</span><span style="color: #3fb950">● READY</span></div>
+        <div style="display: grid; grid-template-columns: 5ch 15ch 13ch 1fr; column-gap: 1ch; padding: 0 1ch"><span style="color: #6ea8fe; font-weight: 700">GCP</span><span>demo-ai</span><span style="color: #8b949e">Vertex AI</span><span style="color: #3fb950">● READY</span></div>
+        <div style="display: grid; grid-template-columns: 5ch 15ch 13ch 1fr; column-gap: 1ch; padding: 0 1ch; background: #1f2a3a; box-shadow: inset 2px 0 0 #e6edf3"><span style="color: #ffa657; font-weight: 700">AWS</span><span style="font-weight: 600">prod-aws</span><span style="color: #8b949e">Bedrock</span><span style="color: #3fb950">● READY</span></div>
+        <div style="display: grid; grid-template-columns: 5ch 15ch 13ch 1fr; column-gap: 1ch; padding: 0 1ch; color: #6e7681"><span style="font-weight: 700">AZR</span><span>corp-azure</span><span>not supported</span><span></span></div>
+      </div>
+
+      <label style="color: #8b949e">Region</label>
+      <span style="border-bottom: 1px solid #30363d">us-east-1 <span style="color: #6e7681">· from prod-aws, change if the model lives elsewhere</span></span>
+    </div>
+
+    <div style="border-top: 1px solid #21262d; padding-top: 10px; color: #8b949e; display: flex; flex-direction: column">
+      <span>writes  config.json (name, tool, link → prod-aws, region)</span>
+      <span>        ~/.config/cctx/ai/claude-bedrock (empty claude config dir)</span>
+      <span>env     CLAUDE_CONFIG_DIR, CLAUDE_CODE_USE_BEDROCK=1, AWS_REGION + prod-aws's env</span>
+    </div>
+
+    <div style="display: flex; gap: 2ch; align-items: center">
+      <button type="button" style="font: inherit; background: #e6edf3; color: #0d1117; border: 0; padding: 0 1.5ch; font-weight: 700; min-height: 24px">Create</button>
+      <button type="button" style="font: inherit; background: transparent; color: #8b949e; border: 0; padding: 0 1ch; min-height: 24px">Cancel</button>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">tab next · ←/→ change · esc cancel</span>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

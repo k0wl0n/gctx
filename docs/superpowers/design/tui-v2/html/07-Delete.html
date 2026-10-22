@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx delete confirmation</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1040px; height: 640px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d; position: relative">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 128×29</span>
+  </div>
+  <div aria-hidden="true" style="flex: 1; padding: 12px 16px; color: #3a414b; white-space: pre; overflow: hidden">cctx │ GCP cloudsuite  AWS prod-aws  AZR corp-azure                                  ✓ cfg  14s
+
+All 12   GCP 9   AWS 2   Azure 1   Tencent · n/a
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  NAME               SUBSCRIPTION           IDENTITY                     STATUS
+● corp-azure         8c1f…e2a9              wahyu@corp.onmicrosoft.com   ● READY</div>
+
+  <div style="position: absolute; left: 50%; top: 80px; transform: translateX(-50%); width: 74ch; background: #11161d; border: 1px solid #f85149; padding: 14px 3ch 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 0 0 9999px rgba(13,17,23,.35)">
+    <div style="display: flex; align-items: center; gap: 1ch">
+      <span style="color: #f85149; font-weight: 700">Delete</span>
+      <span style="background: #56d4dd; color: #0d1117; font-weight: 700; padding: 0 1ch">AZR</span>
+      <span style="font-weight: 700">corp-azure</span>
+    </div>
+    <div style="color: #d29922">▲ this is the active Azure account; AZR becomes none</div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="color: #8b949e">remove</div>
+      <label style="display: flex; gap: 1ch; color: #8b949e"><input type="checkbox" checked disabled style="accent-color: #8b949e; margin: 3px 0 0"> <span>cctx entry in config.json <span style="color: #6e7681">· always</span></span></label>
+      <label style="display: flex; gap: 1ch"><input type="checkbox" checked style="accent-color: #f85149; margin: 3px 0 0"> <span>isolated az dir ~/.config/cctx/azure/corp-azure <span style="color: #8b949e">· 2.1 MB, cached tokens</span></span></label>
+      <label style="display: flex; gap: 1ch"><input type="checkbox" style="accent-color: #f85149; margin: 3px 0 0"> <span>run az logout first <span style="color: #8b949e">· revokes the refresh token server-side</span></span></label>
+    </div>
+    <div style="color: #8b949e">kept: the Azure subscription and its resources. cctx never touches cloud resources.</div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <label for="confirm-name" style="color: #8b949e">type <span style="color: #e6edf3">corp-azure</span> to confirm</label>
+      <input id="confirm-name" type="text" value="corp-az" style="font: inherit; color: #e6edf3; background: #0d1117; border: 0; border-bottom: 1px solid #f85149; padding: 2px 0; outline: none">
+    </div>
+
+    <div style="display: flex; gap: 2ch; align-items: center">
+      <button type="button" disabled style="font: inherit; background: #3a1d1d; color: #8b949e; border: 1px solid #5c2b2b; padding: 0 1.5ch; min-height: 24px">Delete</button>
+      <button type="button" style="font: inherit; background: transparent; color: #e6edf3; border: 1px solid #30363d; padding: 0 1.5ch; min-height: 24px">Cancel</button>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">esc cancel · default focus on Cancel</span>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

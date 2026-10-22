@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cctx v2 Claude tab</title>
+
+</head>
+<body>
+<div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.r>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+a{color:#6ea8fe}a:hover{color:#a5c8ff}
+</style>
+
+<div style="width: 1040px; height: 640px; box-sizing: border-box; background: #0d1117; color: #e6edf3; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; overflow: hidden; border-radius: 10px; border: 1px solid #30363d">
+  <div style="height: 32px; flex-shrink: 0; background: #161b22; border-bottom: 1px solid #21262d; display: flex; align-items: center; padding: 0 14px; gap: 8px">
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+    <span style="flex: 1; text-align: center; color: #8b949e; font-size: 12px">cctx — 128×29</span>
+  </div>
+  <div style="flex: 1; display: flex; flex-direction: column; padding: 12px 16px; min-height: 0">
+    <div style="display: flex; align-items: center; gap: 2ch">
+      <span style="font-weight: 700">cctx</span>
+      <span style="color: #30363d">│</span>
+      <span><span style="color: #6ea8fe; font-weight: 700">GCP</span> cloudsuite</span>
+      <span><span style="color: #ffa657; font-weight: 700">AWS</span> prod-aws</span>
+      <span style="color: #30363d">│</span>
+      <span><span style="color: #e3b38c; font-weight: 700">CLD</span> claude-work</span>
+      <span><span style="color: #b9c7d6; font-weight: 700">OAI</span> codex-work</span>
+      <span style="flex: 1"></span>
+      <span style="color: #3fb950">✓ cfg</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 2ch; margin-top: 10px; padding-bottom: 8px; border-bottom: 1px solid #21262d">
+      <span style="color: #8b949e">All 16</span>
+      <span style="color: #8b949e">GCP 9</span>
+      <span style="color: #8b949e">AWS 2</span>
+      <span style="color: #8b949e">Azure 1</span>
+      <span style="color: #30363d">│</span>
+      <span style="box-shadow: inset 0 0 0 1px #e3b38c; background: #e3b38c; color: #0d1117; font-weight: 700; padding: 0 1ch">Claude 3</span>
+      <span style="color: #8b949e">OpenAI 1</span>
+      <span style="flex: 1"></span>
+      <span style="color: #8b949e">claude found on PATH</span>
+    </div>
+
+    <div style="padding-top: 8px; display: flex; flex-direction: column">
+      <div class="r" style="display: grid; grid-template-columns: 2ch 17ch 16ch 26ch 26ch 16ch 1fr; column-gap: 1ch; color: #8b949e">
+        <span></span><span>NAME</span><span>AUTH</span><span>ORG / RUNS ON</span><span>IDENTITY</span><span>STATUS</span><span>EXPIRES</span>
+      </div>
+      <div class="r" style="display: grid; grid-template-columns: 2ch 17ch 16ch 26ch 26ch 16ch 1fr; column-gap: 1ch; background: #1f2a3a; box-shadow: inset 2px 0 0 #e6edf3"><span style="color: #e3b38c">●</span><span style="font-weight: 600">claude-work</span><span>subscription</span><span>Aliz Tech</span><span>wahyu.anggana@aliz.ai</span><span style="color: #3fb950">● READY</span><span style="color: #8b949e">6d</span></div>
+      <div class="r" style="display: grid; grid-template-columns: 2ch 17ch 16ch 26ch 26ch 16ch 1fr; column-gap: 1ch"><span></span><span>claude-vertex</span><span>via cloud</span><span>↳ <span style="color: #6ea8fe">GCP</span> cloudsuite · us-east5</span><span style="color: #8b949e">(cloudsuite's identity)</span><span style="color: #3fb950">● READY ↳</span><span style="color: #8b949e">52m</span></div>
+      <div class="r" style="display: grid; grid-template-columns: 2ch 17ch 16ch 26ch 26ch 16ch 1fr; column-gap: 1ch"><span></span><span>claude-personal</span><span>subscription</span><span>personal</span><span style="color: #8b949e">–</span><span style="color: #d29922">▲ AUTH REQUIRED</span><span style="color: #8b949e">—</span></div>
+      <div style="color: #6e7681; margin-top: 10px; padding-left: 3ch">↳ status follows the linked cloud account. AUTH values: subscription · via cloud. API keys are not stored (D5).</div>
+    </div>
+
+    <div style="flex: 1"></div>
+
+    <div style="border: 1px solid #e3b38c; padding: 10px 2ch; display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px">
+      <div style="display: flex; gap: 1ch; align-items: center">
+        <span style="color: #3fb950">✓</span>
+        <span>Claude Code active account is now <span style="font-weight: 700">claude-work</span></span>
+        <span style="color: #8b949e">(was claude-personal)</span>
+        <span style="flex: 1"></span>
+        <span style="color: #8b949e">esc dismiss</span>
+      </div>
+      <div style="color: #d29922">▲ 2 claude sessions are already running; they keep the old account until restarted.</div>
+      <div style="display: flex; gap: 3ch; flex-wrap: wrap">
+        <span><span style="color: #8b949e">$</span> eval "$(cctx env claude-work)"</span>
+        <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">y</span> <span style="color: #8b949e">copy</span></span>
+        <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">s</span> <span style="color: #8b949e">subshell</span></span>
+        <span><span style="color: #e6edf3; background: #262c36; padding: 0 .6ch">r</span> <span style="color: #8b949e">run claude here</span></span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 2ch; border-top: 1px solid #21262d; padding-top: 6px; white-space: nowrap; overflow: hidden">
+      <span><span style="color: #e6edf3">tab</span> <span style="color: #8b949e">provider</span></span>
+      <span><span style="color: #e6edf3">6 7</span> <span style="color: #8b949e">Claude, OpenAI</span></span>
+      <span><span style="color: #e6edf3">↵</span> <span style="color: #8b949e">activate</span></span>
+      <span><span style="color: #e6edf3">d</span> <span style="color: #8b949e">details</span></span>
+      <span><span style="color: #e6edf3">l</span> <span style="color: #8b949e">login</span></span>
+      <span><span style="color: #e6edf3">g</span> <span style="color: #8b949e">go to linked cloud</span></span>
+      <span><span style="color: #e6edf3">c</span> <span style="color: #8b949e">create</span></span>
+      <span><span style="color: #e6edf3">?</span> <span style="color: #8b949e">help</span></span>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>
