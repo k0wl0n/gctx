@@ -14,6 +14,7 @@ import (
 	"github.com/k0wl0n/gctx/pkg/gcloudconfig"
 	"github.com/k0wl0n/gctx/pkg/provider"
 	"github.com/k0wl0n/gctx/pkg/provider/aws"
+	"github.com/k0wl0n/gctx/pkg/provider/azure"
 	"github.com/k0wl0n/gctx/pkg/provider/gcp"
 )
 
@@ -161,6 +162,11 @@ func defaultProviders(opts Options) []provider.Provider {
 		aws.New(aws.Options{
 			LookPath: opts.LookPath,
 			Getenv:   opts.Getenv,
+		}),
+		azure.New(azure.Options{
+			ConfigRoot: filepath.Join(opts.Paths.GctxDir, "azure"),
+			LookPath:   opts.LookPath,
+			Getenv:     opts.Getenv,
 		}),
 	}
 }

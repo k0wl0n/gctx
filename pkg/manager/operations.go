@@ -92,6 +92,9 @@ func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateR
 	account := config.Account{Name: req.Name, ProjectID: req.Target, Settings: req.Fields}
 	if id != provider.GCP {
 		account.Provider = string(id)
+		if account.Settings == nil {
+			account.Settings = map[string]string{} // providers record derived settings here
+		}
 	}
 	var warnings []Warning
 	if preparer, ok := p.(provider.CreatePreparer); ok {

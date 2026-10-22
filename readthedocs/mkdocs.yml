@@ -9,6 +9,7 @@ nav:
   - Interactive TUI: tui.md
   - Architecture: architecture.md
   - AWS: aws.md
+  - Azure: azure.md
   - CLI Reference:
     - gctx: gctx.md
     - active: gctx_active.md
