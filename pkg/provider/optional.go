@@ -47,6 +47,13 @@ type ConfigChecker interface {
 	ConfigExists(configName string) bool
 }
 
+// CreatePreparer derives provider-specific account fields (such as the CLI
+// configuration name) before Create, given every existing account, and may
+// warn about conditions the user should know about.
+type CreatePreparer interface {
+	PrepareCreate(acct config.Account, existing []config.Account) (config.Account, []Warning)
+}
+
 // GlobalState is machine-wide CLI state outside gctx.
 type GlobalState struct {
 	ActiveConfig             string

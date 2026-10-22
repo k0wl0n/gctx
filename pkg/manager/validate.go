@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/provider"
@@ -54,3 +55,22 @@ func (e unknownProviderError) Error() string {
 	return fmt.Sprintf("account '%s' uses provider %q, which this version of %s does not support", e.account, e.id, config.AppName)
 }
 func (e unknownProviderError) Is(target error) bool { return target == ErrUnknownProvider }
+
+type unknownProviderChoiceError struct {
+	id    provider.ID
+	valid []provider.ID
+}
+
+func (e unknownProviderChoiceError) Error() string {
+	names := make([]string, len(e.valid))
+	for i, id := range e.valid {
+		names[i] = string(id)
+	}
+	return fmt.Sprintf("unknown provider %q (valid: %s)", e.id, strings.Join(names, ", "))
+}
+func (e unknownProviderChoiceError) Is(target error) bool { return target == ErrUnknownProvider }
+
+// NewUnknownProviderError reports a provider id that is not among the valid ones.
+func NewUnknownProviderError(id provider.ID, valid []provider.ID) error {
+	return unknownProviderChoiceError{id: id, valid: valid}
+}

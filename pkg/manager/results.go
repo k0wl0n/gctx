@@ -55,6 +55,15 @@ const (
 	StepADCLogin  = "auth application-default login"
 )
 
+// CreateRequest describes an account to create. An empty Provider means GCP.
+// Fields carries provider-specific settings stored on the account.
+type CreateRequest struct {
+	Provider provider.ID
+	Name     string
+	Target   string
+	Fields   map[string]string
+}
+
 type CreateResult struct {
 	Account    string
 	ConfigName string

@@ -186,6 +186,15 @@ func (m *Manager) providerFor(account config.Account) (provider.Provider, error)
 	return p, nil
 }
 
+// providerIDs lists the registered provider ids in registry order.
+func (m *Manager) providerIDs() []provider.ID {
+	var ids []provider.ID
+	for _, p := range m.providers.All() {
+		ids = append(ids, p.ID())
+	}
+	return ids
+}
+
 func (m *Manager) loadConfig() (*config.Config, error) {
 	return config.LoadFrom(m.paths.ConfigPath())
 }

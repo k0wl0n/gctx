@@ -9,7 +9,6 @@ import (
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/provider"
-	"github.com/k0wl0n/gctx/pkg/provider/gcp"
 )
 
 // account loads one account record.
@@ -52,11 +51,24 @@ func (m *Manager) mutate(change func(*config.Config) error) error {
 	return change(cfg)
 }
 
-// Create validates the name, creates and activates the gcloud configuration,
-// tries to set the project, and records the account. It stops before login.
+// Create creates a GCP account; see CreateAccount.
 func (m *Manager) Create(ctx context.Context, name, projectID string) (CreateResult, error) {
-	if err := ValidateAccountName(name); err != nil {
+	return m.CreateAccount(ctx, CreateRequest{Provider: provider.GCP, Name: name, Target: projectID})
+}
+
+// CreateAccount validates the request, has the provider create its CLI-side
+// state, and records the account. It stops before login.
+func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateResult, error) {
+	if err := ValidateAccountName(req.Name); err != nil {
 		return CreateResult{}, err
+	}
+	id := req.Provider
+	if id == "" {
+		id = provider.GCP
+	}
+	p, ok := m.providers.Get(id)
+	if !ok {
+		return CreateResult{}, NewUnknownProviderError(id, m.providerIDs())
 	}
 	m.mu.Lock()
 	cfg, err := m.loadConfig()
@@ -64,55 +76,53 @@ func (m *Manager) Create(ctx context.Context, name, projectID string) (CreateRes
 	if err != nil {
 		return CreateResult{}, err
 	}
-	if _, exists := cfg.Accounts[name]; exists {
-		return CreateResult{}, existsError{name}
+	if _, exists := cfg.Accounts[req.Name]; exists {
+		return CreateResult{}, existsError{req.Name}
 	}
-	// Create still takes a GCP project; choosing a provider comes with the create form.
-	p, err := m.providerFor(config.Account{Name: name})
-	if err != nil {
+	if err := p.ValidateTarget(req.Target); err != nil {
 		return CreateResult{}, err
 	}
 	if !p.CLI().Found {
-		return CreateResult{}, gcloud.ErrNotFound
+		if id == provider.GCP {
+			return CreateResult{}, gcloud.ErrNotFound
+		}
+		return CreateResult{}, fmt.Errorf("%s CLI not found on PATH", p.Label())
 	}
 
-	configName := gcp.ConfigNameFor(name)
-	result := CreateResult{Account: name, ConfigName: configName, ProjectID: projectID}
-	if checker, ok := p.(provider.ConfigChecker); ok && checker.ConfigExists(configName) && !referencesConfig(cfg, configName) {
-		result.Warnings = append(result.Warnings, Warning{
-			Code: WarnConfigReused, Account: name,
-			Message: fmt.Sprintf("gcloud configuration %s already exists and will be reused", configName),
-		})
+	account := config.Account{Name: req.Name, ProjectID: req.Target, Settings: req.Fields}
+	if id != provider.GCP {
+		account.Provider = string(id)
+	}
+	var warnings []Warning
+	if preparer, ok := p.(provider.CreatePreparer); ok {
+		existing := make([]config.Account, 0, len(cfg.Accounts))
+		for _, other := range cfg.Accounts {
+			existing = append(existing, *other)
+		}
+		account, warnings = preparer.PrepareCreate(account, existing)
 	}
 
-	outcome, err := p.Create(ctx, config.Account{Name: name, ConfigName: configName, ProjectID: projectID})
-	result.Warnings = append(result.Warnings, outcome.Warnings...)
-	result.ProjectSet = outcome.TargetSet
+	outcome, err := p.Create(ctx, account)
+	result := CreateResult{
+		Account:    req.Name,
+		ConfigName: account.ConfigName,
+		ProjectID:  req.Target,
+		ProjectSet: outcome.TargetSet,
+		Warnings:   append(warnings, outcome.Warnings...),
+	}
+	if outcome.ConfigName != "" {
+		account.ConfigName, result.ConfigName = outcome.ConfigName, outcome.ConfigName
+	}
 	if err != nil {
 		return result, err
 	}
 
-	err = m.mutate(func(cfg *config.Config) error {
-		return cfg.AddAccount(&config.Account{
-			Name:       name,
-			ConfigName: configName,
-			ProjectID:  projectID,
-			CreatedAt:  m.opts.Now(),
-		})
-	})
+	account.CreatedAt = m.opts.Now()
+	err = m.mutate(func(cfg *config.Config) error { return cfg.AddAccount(&account) })
 	if err != nil && strings.Contains(err.Error(), "already exists") {
-		return result, existsError{name}
+		return result, existsError{req.Name}
 	}
 	return result, err
-}
-
-func referencesConfig(cfg *config.Config, configName string) bool {
-	for _, account := range cfg.Accounts {
-		if account.ConfigName == configName {
-			return true
-		}
-	}
-	return false
 }
 
 // Login runs the interactive gcloud login and ADC login for an account, then

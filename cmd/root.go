@@ -37,6 +37,7 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(shellCmd)
 	rootCmd.AddCommand(infoCmd)
+	rootCmd.AddCommand(envCmd)
 	rootCmd.AddCommand(completionCmd)
 }
 

@@ -11,18 +11,43 @@ import (
 
 	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
-// List prints `gctx list`.
-func List(w io.Writer, overview manager.Overview) {
+// ListOptions refines `gctx list`.
+type ListOptions struct {
+	// Filter keeps only that provider's accounts and always shows the column.
+	Filter provider.ID
+}
+
+// List prints `gctx list`. A PROVIDER column appears only when the rows span
+// more than one provider or a filter was requested.
+func List(w io.Writer, overview manager.Overview, options ...ListOptions) {
+	var opts ListOptions
+	if len(options) > 0 {
+		opts = options[0]
+	}
 	if len(overview.Accounts) == 0 {
 		fmt.Fprintln(w, "No accounts configured")
 		return
 	}
 
+	showProvider := opts.Filter != ""
+	for _, account := range overview.Accounts {
+		if account.Provider != overview.Accounts[0].Provider {
+			showProvider = true
+		}
+	}
+
 	fmt.Fprintln(w, "\nConfigured Accounts:")
 	fmt.Fprintln(w, "===================")
+	if showProvider {
+		fmt.Fprintf(w, "  %-*s  ACCOUNT\n", providerColumnWidth, "PROVIDER")
+	}
 	for _, account := range overview.Accounts {
+		if opts.Filter != "" && account.Provider != opts.Filter {
+			continue
+		}
 		active := ""
 		if account.Active {
 			active = " ← active"
@@ -31,9 +56,15 @@ func List(w io.Writer, overview manager.Overview) {
 		if account.Email != "" {
 			email = fmt.Sprintf(" [%s]", account.Email)
 		}
-		fmt.Fprintf(w, "  %s (%s)%s%s\n", account.Name, account.ProjectID, email, active)
+		prefix := ""
+		if showProvider {
+			prefix = fmt.Sprintf("%-*s  ", providerColumnWidth, account.Provider)
+		}
+		fmt.Fprintf(w, "  %s%s (%s)%s%s\n", prefix, account.Name, account.ProjectID, email, active)
 	}
 }
+
+const providerColumnWidth = 8
 
 // Active prints `gctx active`.
 func Active(w io.Writer, name string) {
@@ -44,7 +75,12 @@ func Active(w io.Writer, name string) {
 func Info(w io.Writer, status manager.AccountStatus) {
 	fmt.Fprintf(w, "\nAccount: %s\n", status.Name)
 	fmt.Fprintln(w, strings.Repeat("=", 50))
-	fmt.Fprintf(w, "Project ID:       %s\n", status.ProjectID)
+	if status.Provider != "" && status.Provider != provider.GCP {
+		fmt.Fprintf(w, "Provider:         %s\n", status.Provider)
+		fmt.Fprintf(w, "%-18s%s\n", status.TargetLabel+":", status.ProjectID)
+	} else {
+		fmt.Fprintf(w, "Project ID:       %s\n", status.ProjectID)
+	}
 	fmt.Fprintf(w, "Config Name:      %s\n", status.ConfigName)
 	if status.Email != "" {
 		fmt.Fprintf(w, "Email:            %s\n", status.Email)
@@ -148,6 +184,17 @@ func Switch(w, errw io.Writer, result manager.SwitchResult) {
 		}
 	}
 	fmt.Fprintf(w, "Switched to account: %s (%s)\n", result.Account, result.ProjectID)
+	if result.ApplyHint != "" {
+		fmt.Fprintln(w, result.ApplyHint)
+	}
+}
+
+// Env prints one POSIX `export KEY='value'` line per KEY=value entry.
+func Env(w io.Writer, entries []string) {
+	for _, entry := range entries {
+		key, value, _ := strings.Cut(entry, "=")
+		fmt.Fprintf(w, "export %s='%s'\n", key, strings.ReplaceAll(value, "'", `'\''`))
+	}
 }
 
 // Save prints the outcome of `gctx save`.

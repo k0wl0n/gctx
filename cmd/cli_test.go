@@ -2,6 +2,7 @@ package cmd_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -510,4 +511,133 @@ func TestLogin(t *testing.T) {
 func TestLoginUnknownAccount(t *testing.T) {
 	testutil.NewEnv(t)
 	assertCode(t, runGctx(t, "login", "nope"), 1)
+}
+
+// addAccountOfProvider writes a non-GCP account into config.json directly,
+// since only GCP is registered.
+func addAccountOfProvider(t *testing.T, env *testutil.Env, name, providerID, target string) {
+	t.Helper()
+	var doc map[string]any
+	data, err := os.ReadFile(env.ConfigPath())
+	if os.IsNotExist(err) {
+		doc = map[string]any{"accounts": map[string]any{}}
+	} else if err != nil {
+		t.Fatal(err)
+	} else if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	accounts := doc["accounts"].(map[string]any)
+	accounts[name] = map[string]any{"name": name, "provider": providerID, "project_id": target, "config_name": "", "adc_path": ""}
+	data, err = json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	env.WriteFile(env.ConfigPath(), data, 0644)
+}
+
+func TestCreateDefaultsToGCP(t *testing.T) {
+	env := testutil.NewEnv(t)
+	implicit := runGctx(t, "create", "demo", "demo-project")
+	assertCode(t, implicit, 0)
+	explicit := runGctx(t, "create", "other", "demo-project", "--provider", "gcp")
+	assertCode(t, explicit, 0)
+	if strings.ReplaceAll(explicit.stdout, "other", "demo") != implicit.stdout {
+		t.Errorf("outputs differ\n%s\n%s", implicit.stdout, explicit.stdout)
+	}
+	if strings.Contains(implicit.stdout, "PROVIDER") {
+		t.Errorf("unexpected provider column in %q", implicit.stdout)
+	}
+	cfg := env.ReadConfig()
+	if cfg.Accounts["demo"] == nil || cfg.Accounts["demo"].ConfigName != "demo-config" {
+		t.Fatalf("account %+v", cfg.Accounts["demo"])
+	}
+}
+
+func TestCreateRejectsNameUsedByOtherProvider(t *testing.T) {
+	env := testutil.NewEnv(t)
+	addAccountOfProvider(t, env, "shared", "aws", "prod-profile")
+	r := runGctx(t, "create", "shared", "demo-project")
+	assertCode(t, r, 1)
+	if !strings.Contains(r.stderr, "Error: account 'shared' already exists") {
+		t.Errorf("stderr %q", r.stderr)
+	}
+	if len(env.Invocations()) != 0 {
+		t.Error("gcloud invoked")
+	}
+}
+
+func TestCreateUnknownProviderListsValid(t *testing.T) {
+	env := testutil.NewEnv(t)
+	r := runGctx(t, "create", "demo", "demo-project", "--provider", "nope")
+	assertCode(t, r, 1)
+	if !strings.Contains(r.stderr, `unknown provider "nope" (valid: gcp)`) {
+		t.Errorf("stderr %q", r.stderr)
+	}
+	if len(env.Invocations()) != 0 {
+		t.Error("gcloud invoked")
+	}
+}
+
+func TestListProviderFilter(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{Email: "w@x.com"})
+	addAccountOfProvider(t, env, "prod", "aws", "prod-profile")
+
+	r := runGctx(t, "list", "--provider", "gcp")
+	assertCode(t, r, 0)
+	if !strings.Contains(r.stdout, "PROVIDER") || !strings.Contains(r.stdout, "work (p1)") || strings.Contains(r.stdout, "prod") {
+		t.Errorf("stdout %q", r.stdout)
+	}
+
+	r = runGctx(t, "list")
+	assertCode(t, r, 0)
+	if !strings.Contains(r.stdout, "PROVIDER") || !strings.Contains(r.stdout, "prod (prod-profile)") || !strings.Contains(r.stdout, "work (p1)") {
+		t.Errorf("stdout %q", r.stdout)
+	}
+
+	r = runGctx(t, "list", "--provider", "nope")
+	assertCode(t, r, 1)
+	if !strings.Contains(r.stderr, `unknown provider "nope" (valid: gcp)`) {
+		t.Errorf("stderr %q", r.stderr)
+	}
+}
+
+func TestListHidesProviderColumnForGCPOnly(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{})
+	r := runGctx(t, "list")
+	assertCode(t, r, 0)
+	if strings.Contains(r.stdout, "PROVIDER") {
+		t.Errorf("stdout %q", r.stdout)
+	}
+}
+
+func TestEnvPrintsQuotedExports(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{})
+	cfg := env.ReadConfig()
+	cfg.Accounts["work"].ConfigName = "it's-config"
+	env.WriteConfig(cfg)
+
+	r := runGctx(t, "env", "work")
+	assertCode(t, r, 0)
+	want := "export CLOUDSDK_ACTIVE_CONFIG_NAME='it'\\''s-config'\n"
+	if !strings.Contains(r.stdout, want) {
+		t.Errorf("stdout %q lacks %q", r.stdout, want)
+	}
+}
+
+func TestEnvGCPPrintsIsolationEnv(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{})
+	r := runGctx(t, "env", "work")
+	assertCode(t, r, 0)
+	assertStdout(t, r, "export CLOUDSDK_ACTIVE_CONFIG_NAME='work-config'\n"+
+		"export GOOGLE_APPLICATION_CREDENTIALS='"+env.StoredADCPath("work")+"'\n")
+
+	r = runGctx(t, "env", "nope")
+	assertCode(t, r, 1)
+	if !strings.Contains(r.stderr, "Error: account 'nope' not found") {
+		t.Errorf("stderr %q", r.stderr)
+	}
 }

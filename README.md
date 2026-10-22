@@ -161,6 +161,8 @@ gctx create personal my-personal-project
 gctx create client client-project
 ```
 
+Pick the cloud with `--provider gcp|aws|azure|tencent` (default `gcp`); only providers registered in your build are accepted. Account names are unique across providers.
+
 > **Note**: As of v0.5.0, `gctx create` always auto-authenticates. The `--auto-save` flag has been removed for simplicity.
 
 ### Daily Usage
@@ -183,6 +185,13 @@ gctx list
 #   work (my-work-project) [user@work.com] ← active
 #   personal (my-personal-project) [user@gmail.com]
 #   client (client-project) [user@client.com]
+
+# Show only one provider's accounts (a PROVIDER column appears whenever
+# accounts of more than one provider exist, or --provider is given)
+gctx list --provider gcp
+
+# Print shell exports for an account (single-quoted, POSIX)
+eval "$(gctx env personal)"
 
 # Run command with specific account (Isolated!)
 # This runs the command without changing your global active account

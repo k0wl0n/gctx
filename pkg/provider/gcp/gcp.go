@@ -195,6 +195,24 @@ func (p *Provider) ConfigExists(configName string) bool {
 	return existing.Exists
 }
 
+// PrepareCreate derives the gcloud configuration name and warns when an
+// existing configuration of that name, unused by any account, will be reused.
+func (p *Provider) PrepareCreate(acct config.Account, existing []config.Account) (config.Account, []provider.Warning) {
+	acct.ConfigName = ConfigNameFor(acct.Name)
+	if !p.ConfigExists(acct.ConfigName) {
+		return acct, nil
+	}
+	for _, other := range existing {
+		if other.ConfigName == acct.ConfigName {
+			return acct, nil
+		}
+	}
+	return acct, []provider.Warning{{
+		Code: provider.WarnConfigReused, Account: acct.Name,
+		Message: fmt.Sprintf("gcloud configuration %s already exists and will be reused", acct.ConfigName),
+	}}
+}
+
 // Create creates and activates the account's gcloud configuration and tries
 // to set its project. A set-project failure is a warning: it is expected
 // before the account is authenticated.

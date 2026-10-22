@@ -9,6 +9,7 @@ Available Commands:
   completion  Generate completion script
   create      Create a new account configuration
   delete      Delete an account
+  env         Print shell exports that select an account
   help        Help about any command
   info        Show detailed account information
   list        List all configured accounts
