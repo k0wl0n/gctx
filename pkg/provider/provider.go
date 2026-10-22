@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/k0wl0n/gctx/pkg/config"
 )
@@ -34,6 +35,74 @@ type Provider interface {
 	Env(acct config.Account) ([]string, error)
 	Delete(ctx context.Context, acct config.Account, opt DeleteOptions) (DeleteResult, error)
 	Details(acct config.Account) []Field
+
+	Category() Category
+	Badge() Badge
+	// Slot names the env vars or global state the provider owns; one account
+	// per slot is active. Usually string(ID()).
+	Slot() string
+	// Columns are the provider's own columns for a single-provider view.
+	Columns() []Column
+	// Form lists the create-form fields after kind, provider and name.
+	Form() []FormField
+}
+
+// Category groups providers for display; behavior never branches on it.
+type Category string
+
+const (
+	CategoryCloud     Category = "cloud"
+	CategoryAITool    Category = "ai-tool"
+	CategoryAIGateway Category = "ai-gateway"
+)
+
+// BadgeStyle is how a badge is drawn.
+type BadgeStyle string
+
+const (
+	BadgeFilled  BadgeStyle = "filled"
+	BadgeOutline BadgeStyle = "outline"
+	BadgeDashed  BadgeStyle = "dashed"
+)
+
+// Badge is the provider's short label; Color is a hex colour reference.
+type Badge struct {
+	Text  string
+	Style BadgeStyle
+	Color string
+}
+
+// AccountView is what a Column reads from one account.
+type AccountView struct {
+	Name     string
+	Target   string
+	Settings map[string]string
+	Identity string
+}
+
+// Column is one provider-specific table column.
+type Column struct {
+	Key    string
+	Header string
+	Width  int
+	Value  func(AccountView) string
+}
+
+// FormTargetKey is the FormField key of the account's target (project,
+// profile, subscription).
+const FormTargetKey = "target"
+
+// FormField is one create-form input. Validate may be nil.
+type FormField struct {
+	Key      string
+	Label    string
+	Default  string
+	Help     string
+	Options  []string
+	Validate func(string) error
+	// Secret fields accept only a key reference (op://, env:, ...), never a
+	// raw secret value.
+	Secret bool
 }
 
 // CLIStatus reports whether the provider's CLI is on PATH.
@@ -90,6 +159,9 @@ const (
 	HealthProjectMismatch Health = "PROJECT MISMATCH"
 	HealthCLIMissing      Health = "CLI MISSING"
 	HealthReady           Health = "READY"
+	HealthExpired         Health = "EXPIRED"
+	HealthUnverified      Health = "UNVERIFIED"
+	HealthBudgetLow       Health = "BUDGET LOW"
 )
 
 // Finding is one health finding. Message is set for ERROR findings.
@@ -109,11 +181,26 @@ type LocalStatus struct {
 // AuthReport is the outcome of a provider's credential check. Warnings is
 // non-empty when the check could not complete.
 type AuthReport struct {
-	Credentialed map[string]bool
-	// Identities maps account name to the identity the provider reported
-	// (for AWS, the caller ARN). Never holds tokens or secrets.
-	Identities map[string]string
-	Warnings   []Warning
+	// Results is keyed by account name, or by lower-cased gcloud account for GCP.
+	Results  map[string]AuthResult
+	Warnings []Warning
+}
+
+// AuthResult is one account's credential check. It never holds a token or key.
+type AuthResult struct {
+	Credentialed bool
+	Identity     string    // email, ARN or org
+	ExpiresAt    time.Time // zero: unknown
+	Checked      time.Time // zero: stamped by the caller
+	Budget       *Budget   // gateways only
+	Err          error     // timeout or network error: no verdict (UNVERIFIED)
+}
+
+// Budget is a gateway's spend. Limit 0 means unlimited.
+type Budget struct {
+	Spent    float64 `json:"spent"`
+	Limit    float64 `json:"limit"`
+	Currency string  `json:"currency,omitempty"`
 }
 
 // LoginEventKind names a progress point in the login flow.

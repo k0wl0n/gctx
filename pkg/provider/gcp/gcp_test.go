@@ -92,12 +92,12 @@ func TestGCPCheckAuthTreatsCredentialedAsAuthed(t *testing.T) {
 		t.Fatalf("warnings %+v", report.Warnings)
 	}
 	want := map[string]bool{"active@example.com": true, "stored@example.com": true}
-	if len(report.Credentialed) != len(want) {
-		t.Fatalf("credentialed %v, want %v", report.Credentialed, want)
+	if len(report.Results) != len(want) {
+		t.Fatalf("credentialed %v, want %v", report.Results, want)
 	}
 	for account := range want {
-		if !report.Credentialed[account] {
-			t.Errorf("%s not credentialed: %v", account, report.Credentialed)
+		if !report.Results[account].Credentialed {
+			t.Errorf("%s not credentialed: %v", account, report.Results)
 		}
 	}
 }

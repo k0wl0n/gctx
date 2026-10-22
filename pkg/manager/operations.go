@@ -154,6 +154,7 @@ func (m *Manager) Login(ctx context.Context, name string, lio LoginIO) (LoginRes
 	m.stateMu.Lock()
 	delete(m.reauth, name)
 	m.stateMu.Unlock()
+	m.forgetCachedStatus(name)
 	return result, nil
 }
 
@@ -236,6 +237,9 @@ func (m *Manager) Delete(ctx context.Context, name string, opt DeleteOptions) (D
 		}
 		return nil
 	})
+	if err == nil {
+		m.forgetCachedStatus(name)
+	}
 	return result, err
 }
 

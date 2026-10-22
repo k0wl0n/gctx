@@ -284,26 +284,25 @@ func (p *Provider) Local(acct config.Account) provider.LocalStatus {
 }
 
 // CheckAuth runs `aws sts get-caller-identity` for every account in parallel.
-// Credentialed is keyed by account name.
+// Results are keyed by account name.
 func (p *Provider) CheckAuth(ctx context.Context, accts []config.Account) provider.AuthReport {
 	runner, err := p.runner()
 	if err != nil {
 		return provider.AuthReport{
-			Credentialed: map[string]bool{},
-			Identities:   map[string]string{},
-			Warnings:     []provider.Warning{providerutil.CredentialWarning("", err)},
+			Results:  map[string]provider.AuthResult{},
+			Warnings: []provider.Warning{providerutil.CredentialWarning("", err)},
 		}
 	}
-	return providerutil.CheckEach(ctx, accts, func(ctx context.Context, acct config.Account) (bool, string) {
+	return providerutil.CheckEach(ctx, accts, func(ctx context.Context, acct config.Account) provider.AuthResult {
 		out, err := runner.Query(ctx, p.childEnv(), "sts", "get-caller-identity", "--profile", acct.Target(), "--output", "json")
 		if err != nil {
-			return false, ""
+			return provider.AuthResult{}
 		}
 		var identity struct{ Arn string }
 		if json.Unmarshal([]byte(out), &identity) != nil {
-			return true, ""
+			return provider.AuthResult{Credentialed: true}
 		}
-		return true, identity.Arn
+		return provider.AuthResult{Credentialed: true, Identity: identity.Arn}
 	})
 }
 

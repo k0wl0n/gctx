@@ -48,6 +48,9 @@ const (
 	HealthProjectMismatch = provider.HealthProjectMismatch
 	HealthCLIMissing      = provider.HealthCLIMissing
 	HealthReady           = provider.HealthReady
+	HealthExpired         = provider.HealthExpired
+	HealthUnverified      = provider.HealthUnverified
+	HealthBudgetLow       = provider.HealthBudgetLow
 )
 
 // gcloud steps reported by login errors (gcloud.StepError.Step).
@@ -102,7 +105,8 @@ type DeleteResult struct {
 type AccountStatus struct {
 	Name        string
 	Provider    provider.ID
-	TargetLabel string // provider's name for ProjectID, e.g. "PROJECT"; "" for an unknown provider
+	Category    provider.Category // "" for an unknown provider
+	TargetLabel string            // provider's name for ProjectID, e.g. "PROJECT"; "" for an unknown provider
 	ConfigName  string
 	ProjectID   string
 	Email       string
@@ -122,6 +126,14 @@ type AccountStatus struct {
 
 	Status   Health
 	Findings []Finding // every applicable finding, highest priority first
+
+	// Last credential check, from this session or the status cache; zero
+	// values when there is none.
+	Identity    string // never a token
+	ExpiresAt   time.Time
+	Checked     time.Time
+	LastGoodAge time.Duration // UNVERIFIED only: age of the last good result
+	Budget      *provider.Budget
 }
 
 // HasFinding reports whether the account has the given finding.

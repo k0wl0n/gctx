@@ -26,7 +26,7 @@ type InspectedStatus struct {
 }
 
 // StatusInspector reports file-based status with provider-specific details.
-// Local.Identity is the key the provider uses in AuthReport.Credentialed.
+// Local.Identity is the key the provider uses in AuthReport.Results.
 type StatusInspector interface {
 	Inspect(acct config.Account) InspectedStatus
 }

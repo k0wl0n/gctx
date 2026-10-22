@@ -447,7 +447,8 @@ func (p *Provider) GlobalState(storedADCPath string) provider.GlobalState {
 
 // ListAuth runs `gcloud auth list` without network access and without
 // printing or refreshing any token. It returns every listed account and the
-// report; Credentialed is keyed by lower-cased gcloud account.
+// report; Results holds only credentialed accounts, keyed by lower-cased
+// gcloud account.
 func (p *Provider) ListAuth(ctx context.Context) ([]string, provider.AuthReport) {
 	p.Locate()
 	if !p.Client().Available() {
@@ -465,15 +466,15 @@ func (p *Provider) ListAuth(ctx context.Context) ([]string, provider.AuthReport)
 		return nil, provider.AuthReport{Warnings: []provider.Warning{{Code: provider.WarnCredentialCheck, Message: fmt.Sprintf("unexpected gcloud auth list output: %v", err)}}}
 	}
 	var accounts []string
-	credentialed := map[string]bool{}
+	results := map[string]provider.AuthResult{}
 	for _, entry := range entries {
 		accounts = append(accounts, entry.Account)
 		// ACTIVE and CREDENTIALED both mean gcloud holds credentials on file.
 		if strings.EqualFold(entry.Status, "ACTIVE") || strings.EqualFold(entry.Status, "CREDENTIALED") {
-			credentialed[strings.ToLower(entry.Account)] = true
+			results[strings.ToLower(entry.Account)] = provider.AuthResult{Credentialed: true, Identity: entry.Account}
 		}
 	}
-	return accounts, provider.AuthReport{Credentialed: credentialed}
+	return accounts, provider.AuthReport{Results: results}
 }
 
 func (p *Provider) CheckAuth(ctx context.Context, _ []config.Account) provider.AuthReport {

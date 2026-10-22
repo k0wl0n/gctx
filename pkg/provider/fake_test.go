@@ -12,6 +12,11 @@ type fakeProvider struct {
 	LabelValue       string
 	TargetLabelValue string
 	CLIValue         CLIStatus
+	CategoryValue    Category
+	BadgeValue       Badge
+	SlotValue        string
+	ColumnsValue     []Column
+	FormValue        []FormField
 
 	ValidateTargetFn func(target string) error
 	CreateFn         func(ctx context.Context, acct config.Account) (CreateOutcome, error)
@@ -30,6 +35,11 @@ func (f *fakeProvider) ID() ID              { return f.IDValue }
 func (f *fakeProvider) Label() string       { return f.LabelValue }
 func (f *fakeProvider) TargetLabel() string { return f.TargetLabelValue }
 func (f *fakeProvider) CLI() CLIStatus      { return f.CLIValue }
+func (f *fakeProvider) Category() Category  { return f.CategoryValue }
+func (f *fakeProvider) Badge() Badge        { return f.BadgeValue }
+func (f *fakeProvider) Slot() string        { return f.SlotValue }
+func (f *fakeProvider) Columns() []Column   { return f.ColumnsValue }
+func (f *fakeProvider) Form() []FormField   { return f.FormValue }
 
 func (f *fakeProvider) ValidateTarget(target string) error {
 	if f.ValidateTargetFn == nil {

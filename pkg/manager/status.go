@@ -3,8 +3,10 @@ package manager
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/provider"
@@ -45,9 +47,10 @@ func (m *Manager) Overview() (Overview, error) {
 		DefaultADCPath:  m.paths.DefaultADC,
 		GcloudAvailable: clis[provider.GCP].Found,
 	}
+	cache := m.loadStatusCache()
 	counts := map[provider.ID]int{}
 	for _, account := range cfg.ListAccounts() {
-		status := m.accountStatus(cfg, account, clis)
+		status := m.accountStatus(cfg, account, clis, cache)
 		counts[status.Provider]++
 		overview.Accounts = append(overview.Accounts, status)
 	}
@@ -70,12 +73,12 @@ func (m *Manager) Info(name string) (AccountStatus, error) {
 	if err != nil {
 		return AccountStatus{}, notFoundError{name}
 	}
-	return m.accountStatus(cfg, account, nil), nil
+	return m.accountStatus(cfg, account, nil, m.loadStatusCache()), nil
 }
 
 // accountStatus computes one account's status. clis caches CLI lookups; nil
 // looks the account's CLI up directly.
-func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, clis map[provider.ID]provider.CLIStatus) AccountStatus {
+func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, clis map[provider.ID]provider.CLIStatus, cache statusCache) AccountStatus {
 	status := AccountStatus{
 		Name:       account.Name,
 		Provider:   provider.ID(account.ProviderID()),
@@ -93,6 +96,7 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, cli
 		return status
 	}
 	status.TargetLabel = p.TargetLabel()
+	status.Category = p.Category()
 
 	if inspector, ok := p.(provider.StatusInspector); ok {
 		inspected := inspector.Inspect(*account)
@@ -105,8 +109,8 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, cli
 		status.GcloudProject = inspected.ConfigProject
 		status.Findings = inspected.Local.Findings
 		// Without a configured identity the inspector already reports AUTH REQUIRED.
-		if inspected.ConfigExists && inspected.Local.Identity != "" && m.authRequired(p.ID(), account.Name, inspected.Local.Identity) {
-			status.Findings = insertFinding(status.Findings, Finding{Health: HealthAuthRequired})
+		if inspected.ConfigExists && inspected.Local.Identity != "" {
+			m.applyAuth(&status, p.ID(), inspected.Local.Identity, cache)
 		}
 	} else {
 		local := p.Local(*account)
@@ -114,9 +118,7 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, cli
 		if len(status.Findings) == 0 && local.Status != "" && local.Status != HealthReady {
 			status.Findings = []Finding{{Health: local.Status}}
 		}
-		if !status.HasFinding(HealthAuthRequired) && m.authRequired(p.ID(), account.Name, local.Identity) {
-			status.Findings = insertFinding(status.Findings, Finding{Health: HealthAuthRequired})
-		}
+		m.applyAuth(&status, p.ID(), local.Identity, cache)
 	}
 
 	cli, cached := clis[p.ID()]
@@ -137,7 +139,10 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, cli
 }
 
 // findingOrder ranks findings; the first finding is the account's status.
-var findingOrder = []Health{HealthError, HealthCLIMissing, HealthConfigMissing, HealthAuthRequired, HealthADCMissing, HealthProjectMismatch}
+var findingOrder = []Health{
+	HealthError, HealthCLIMissing, HealthConfigMissing, HealthAuthRequired, HealthExpired,
+	HealthADCMissing, HealthProjectMismatch, HealthUnverified, HealthBudgetLow,
+}
 
 func findingRank(h Health) int {
 	for rank, candidate := range findingOrder {
@@ -160,20 +165,76 @@ func insertFinding(findings []Finding, finding Finding) []Finding {
 	return append(findings[:position:position], append([]Finding{finding}, findings[position:]...)...)
 }
 
-// authRequired applies the session state: a failed re-authentication or a
-// completed credential check for the provider that listed neither the
-// account name nor its identity.
-func (m *Manager) authRequired(id provider.ID, name, identity string) bool {
+// applyAuth adds the account's last credential result to its status.
+func (m *Manager) applyAuth(status *AccountStatus, id provider.ID, identity string, cache statusCache) {
+	outcome, ok := m.authOutcome(id, status.Name, identity, cache)
+	if !ok {
+		return
+	}
+	status.Identity, status.ExpiresAt, status.Checked = outcome.Identity, outcome.ExpiresAt, outcome.Checked
+	status.LastGoodAge, status.Budget = outcome.LastGoodAge, outcome.Budget
+	if status.Identity == "" {
+		status.Identity = identity
+	}
+	if outcome.Health != HealthReady && !status.HasFinding(outcome.Health) {
+		status.Findings = insertFinding(status.Findings, Finding{Health: outcome.Health})
+	}
+}
+
+// authOutcome resolves an account's last credential result: a failed
+// re-authentication, then this session's check, then the status cache.
+func (m *Manager) authOutcome(id provider.ID, name, identity string, cache statusCache) (authOutcome, bool) {
+	var last *cachedResult
+	if entry, ok := cache.Accounts[name]; ok {
+		last = &entry
+	}
 	m.stateMu.Lock()
-	defer m.stateMu.Unlock()
-	if m.reauth[name] {
-		return true
+	reauth := m.reauth[name]
+	res, found := m.sessionResult(id, name, identity)
+	m.stateMu.Unlock()
+
+	now := m.opts.Now()
+	switch {
+	case reauth:
+		return authOutcome{Health: HealthAuthRequired}, true
+	case found:
+		return deriveHealth(res, last, now), true
+	case last != nil:
+		return deriveHealth(last.authResult(), nil, now), true
 	}
-	if !m.credChecked[id] {
-		return false
+	return authOutcome{}, false
+}
+
+// sessionResult finds this session's result for an account by name or
+// identity, preferring a credentialed match. After a check that completed
+// without warnings, an account it did not list is not credentialed. The
+// caller holds stateMu.
+func (m *Manager) sessionResult(id provider.ID, name, identity string) (provider.AuthResult, bool) {
+	keys := []string{name}
+	if identity != "" {
+		keys = append(keys, strings.ToLower(identity))
 	}
-	credentialed := m.credentialed[id]
-	return !credentialed[name] && (identity == "" || !credentialed[strings.ToLower(identity)])
+	var match provider.AuthResult
+	found := false
+	for _, key := range keys {
+		res, ok := m.authResults[id][key]
+		if !ok {
+			continue
+		}
+		if res.Credentialed && res.Err == nil {
+			return res, true
+		}
+		if !found {
+			match, found = res, true
+		}
+	}
+	if found {
+		return match, true
+	}
+	if checked, ok := m.credChecked[id]; ok {
+		return provider.AuthResult{Checked: checked}, true
+	}
+	return provider.AuthResult{}, false
 }
 
 // fillGlobalState fills the gcloud active configuration and the default ADC
@@ -217,8 +278,9 @@ type providerCheck struct {
 
 // CheckCredentials asks every provider that has accounts which of them hold
 // credentials, concurrently and each under its own timeout. A provider that
-// fails or times out yields a warning and leaves its accounts' statuses
-// unchanged; the others' results are still applied.
+// fails yields a warning and leaves its accounts' statuses unchanged; one that
+// times out also marks its accounts UNVERIFIED. The others' results are still
+// applied.
 func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error) {
 	m.mu.Lock()
 	cfg, err := m.loadConfig()
@@ -249,19 +311,110 @@ func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error
 	}
 	wg.Wait()
 
+	now := m.opts.Now()
 	var report CredentialReport
 	m.stateMu.Lock()
-	defer m.stateMu.Unlock()
 	for _, result := range results {
+		stamped := make(map[string]provider.AuthResult, len(result.report.Results))
+		for key, res := range result.report.Results {
+			if res.Checked.IsZero() {
+				res.Checked = now
+			}
+			stamped[key] = res
+		}
 		if len(result.report.Warnings) > 0 {
+			// Per-account results of an incomplete check still apply (a timed-out
+			// account becomes UNVERIFIED); unlisted accounts keep their status.
 			report.Warnings = append(report.Warnings, result.report.Warnings...)
+			if m.authResults[result.id] == nil {
+				m.authResults[result.id] = map[string]provider.AuthResult{}
+			}
+			maps.Copy(m.authResults[result.id], stamped)
 			continue
 		}
-		m.credentialed[result.id] = result.report.Credentialed
-		m.credChecked[result.id] = true
+		m.authResults[result.id] = stamped
+		m.credChecked[result.id] = now
 		report.Accounts = append(report.Accounts, result.accounts...)
 	}
+	m.stateMu.Unlock()
+	m.recordStatusCache(cfg, now)
 	return report, nil
+}
+
+// recordStatusCache merges this session's per-account results into the
+// status cache. The cache is best effort: a write failure is ignored.
+func (m *Manager) recordStatusCache(cfg *config.Config, now time.Time) {
+	path := m.paths.StatusCachePath()
+	if path == "" {
+		return
+	}
+	byName := map[string]provider.AuthResult{}
+	for _, account := range cfg.ListAccounts() {
+		p, err := m.providerFor(*account)
+		if err != nil {
+			continue
+		}
+		identity, applies := authIdentity(p, *account)
+		if !applies {
+			continue
+		}
+		m.stateMu.Lock()
+		res, found := m.sessionResult(p.ID(), account.Name, identity)
+		m.stateMu.Unlock()
+		if found {
+			byName[account.Name] = res
+		}
+	}
+
+	m.cacheMu.Lock()
+	defer m.cacheMu.Unlock()
+	var cache statusCache
+	cache.Load(path)
+	cache.Merge(byName, now)
+	for name := range cache.Accounts {
+		if _, err := cfg.GetAccount(name); err != nil {
+			delete(cache.Accounts, name)
+		}
+	}
+	_ = cache.Save(path)
+}
+
+// forgetCachedStatus drops an account's cached result, after a login or
+// delete made it stale.
+func (m *Manager) forgetCachedStatus(name string) {
+	path := m.paths.StatusCachePath()
+	if path == "" {
+		return
+	}
+	m.cacheMu.Lock()
+	defer m.cacheMu.Unlock()
+	var cache statusCache
+	cache.Load(path)
+	if _, ok := cache.Accounts[name]; !ok {
+		return
+	}
+	delete(cache.Accounts, name)
+	_ = cache.Save(path)
+}
+
+// loadStatusCache reads the status cache; it is empty when disabled, missing
+// or corrupt.
+func (m *Manager) loadStatusCache() statusCache {
+	var cache statusCache
+	if path := m.paths.StatusCachePath(); path != "" {
+		cache.Load(path)
+	}
+	return cache
+}
+
+// authIdentity is the identity an account's credential result is matched by,
+// and whether a result applies at all (see accountStatus). It reads files only.
+func authIdentity(p provider.Provider, account config.Account) (string, bool) {
+	if inspector, ok := p.(provider.StatusInspector); ok {
+		inspected := inspector.Inspect(account)
+		return inspected.Local.Identity, inspected.ConfigExists && inspected.Local.Identity != ""
+	}
+	return p.Local(account).Identity, true
 }
 
 // checkProvider runs one provider's check, abandoning it at the timeout. An
@@ -279,7 +432,7 @@ func (m *Manager) checkProvider(ctx context.Context, p provider.Provider, accoun
 		} else {
 			result.report = p.CheckAuth(ctx, accounts)
 			for _, account := range accounts {
-				if result.report.Credentialed[account.Name] {
+				if res := result.report.Results[account.Name]; res.Credentialed && res.Err == nil {
 					result.accounts = append(result.accounts, account.Name)
 				}
 			}
@@ -291,7 +444,13 @@ func (m *Manager) checkProvider(ctx context.Context, p provider.Provider, accoun
 	case result := <-done:
 		return result
 	case <-ctx.Done():
-		return providerCheck{id: p.ID(), report: provider.AuthReport{Warnings: []Warning{{
+		// An abandoned check is no verdict: every account gets a timeout result
+		// and becomes UNVERIFIED, never AUTH REQUIRED.
+		results := make(map[string]provider.AuthResult, len(accounts))
+		for _, account := range accounts {
+			results[account.Name] = provider.AuthResult{Err: ctx.Err()}
+		}
+		return providerCheck{id: p.ID(), report: provider.AuthReport{Results: results, Warnings: []Warning{{
 			Code:    WarnCredentialCheck,
 			Message: fmt.Sprintf("%s credential check did not finish within %s: %v", p.Label(), timeout, ctx.Err()),
 		}}}}

@@ -58,6 +58,11 @@ func (f *fakeProvider) TargetLabel() string                     { return f.targe
 func (f *fakeProvider) CLI() provider.CLIStatus                 { return f.cli }
 func (f *fakeProvider) ValidateTarget(string) error             { return nil }
 func (f *fakeProvider) Details(config.Account) []provider.Field { return nil }
+func (f *fakeProvider) Category() provider.Category             { return provider.CategoryCloud }
+func (f *fakeProvider) Badge() provider.Badge                   { return provider.Badge{Text: f.label} }
+func (f *fakeProvider) Slot() string                            { return string(f.id) }
+func (f *fakeProvider) Columns() []provider.Column              { return nil }
+func (f *fakeProvider) Form() []provider.FormField              { return nil }
 
 func (f *fakeProvider) Create(_ context.Context, acct config.Account) (provider.CreateOutcome, error) {
 	f.record("create", acct)
@@ -221,7 +226,7 @@ func TestMissingCLIAffectsOnlyThatProvider(t *testing.T) {
 func TestCheckCredentialsTimeoutIsPerProvider(t *testing.T) {
 	gcpFake, awsFake := newFake(provider.GCP, "PROJECT"), newFake(provider.AWS, "PROFILE")
 	gcpFake.checkAuthFn = func(context.Context, []config.Account) provider.AuthReport {
-		return provider.AuthReport{Credentialed: map[string]bool{"g": true}}
+		return provider.AuthReport{Results: map[string]provider.AuthResult{"g": {Credentialed: true}}}
 	}
 	release := make(chan struct{})
 	defer close(release)
@@ -248,15 +253,15 @@ func TestCheckCredentialsTimeoutIsPerProvider(t *testing.T) {
 	if got := status(t, m, "g").Status; got != manager.HealthReady {
 		t.Errorf("g after check: %s", got)
 	}
-	if got := status(t, m, "a-aws").Status; got != manager.HealthReady {
-		t.Errorf("a-aws must keep local status after a timed-out check: %s", got)
+	if got := status(t, m, "a-aws").Status; got != manager.HealthUnverified {
+		t.Errorf("a-aws must be UNVERIFIED after a timed-out check: %s", got)
 	}
 }
 
 func TestCheckCredentialsMarksUncredentialedByName(t *testing.T) {
 	awsFake := newFake(provider.AWS, "PROFILE")
 	awsFake.checkAuthFn = func(context.Context, []config.Account) provider.AuthReport {
-		return provider.AuthReport{Credentialed: map[string]bool{"a-aws": true}}
+		return provider.AuthReport{Results: map[string]provider.AuthResult{"a-aws": {Credentialed: true}}}
 	}
 	accounts := append(twoProviderAccounts(), config.Account{Name: "b-aws", ProjectID: "prod", Provider: "aws"})
 	m, _ := dispatchManager(t, accounts, newFake(provider.GCP, "PROJECT"), awsFake)

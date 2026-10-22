@@ -34,31 +34,25 @@ func CredentialWarning(account string, err error) provider.Warning {
 	return provider.Warning{Code: provider.WarnCredentialCheck, Account: account, Message: err.Error()}
 }
 
-// CheckEach runs check for every account concurrently. Credentialed and
-// Identities are keyed by account name; an account whose check was cut short by
-// ctx gets a warning instead of a result. An empty identity is not recorded.
-func CheckEach(ctx context.Context, accts []config.Account, check func(ctx context.Context, acct config.Account) (credentialed bool, identity string)) provider.AuthReport {
-	report := provider.AuthReport{
-		Credentialed: map[string]bool{},
-		Identities:   map[string]string{},
-	}
+// CheckEach runs check for every account concurrently. Results are keyed by
+// account name; an account whose check was cut short by ctx gets a warning and
+// a result carrying only ctx's error.
+func CheckEach(ctx context.Context, accts []config.Account, check func(ctx context.Context, acct config.Account) provider.AuthResult) provider.AuthReport {
+	report := provider.AuthReport{Results: map[string]provider.AuthResult{}}
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	for _, acct := range accts {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			credentialed, identity := check(ctx, acct)
+			result := check(ctx, acct)
 			mu.Lock()
 			defer mu.Unlock()
-			if ctx.Err() != nil {
-				report.Warnings = append(report.Warnings, CredentialWarning(acct.Name, ctx.Err()))
-				return
+			if err := ctx.Err(); err != nil {
+				report.Warnings = append(report.Warnings, CredentialWarning(acct.Name, err))
+				result = provider.AuthResult{Err: err}
 			}
-			report.Credentialed[acct.Name] = credentialed
-			if identity != "" {
-				report.Identities[acct.Name] = identity
-			}
+			report.Results[acct.Name] = result
 		}()
 	}
 	wg.Wait()

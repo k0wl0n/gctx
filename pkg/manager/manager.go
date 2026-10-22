@@ -27,10 +27,19 @@ type Paths struct {
 	ADCDir     string // <GctxDir>/adc
 	GcloudDir  string // $CLOUDSDK_CONFIG | %APPDATA%\gcloud | ~/.config/gcloud
 	DefaultADC string // <GcloudDir>/application_default_credentials.json
+	CacheDir   string // <user cache dir>/gctx; "" disables the status cache
 }
 
 // ConfigPath is the location of config.json.
 func (p Paths) ConfigPath() string { return filepath.Join(p.GctxDir, "config.json") }
+
+// StatusCachePath is the location of status.json, or "" without a CacheDir.
+func (p Paths) StatusCachePath() string {
+	if p.CacheDir == "" {
+		return ""
+	}
+	return filepath.Join(p.CacheDir, "status.json")
+}
 
 // ResolvePaths derives every root from the environment, OS and home directory.
 func ResolvePaths(getenv func(string) string, goos, home string) Paths {
@@ -65,8 +74,12 @@ func DefaultOptions() (Options, error) {
 	if err != nil {
 		return Options{}, err
 	}
+	paths := ResolvePaths(os.Getenv, runtime.GOOS, home)
+	if cacheDir, err := os.UserCacheDir(); err == nil {
+		paths.CacheDir = filepath.Join(cacheDir, config.AppName)
+	}
 	return Options{
-		Paths:    ResolvePaths(os.Getenv, runtime.GOOS, home),
+		Paths:    paths,
 		Getenv:   os.Getenv,
 		LookPath: exec.LookPath,
 		GOOS:     runtime.GOOS,
@@ -86,11 +99,16 @@ type Manager struct {
 
 	// stateMu guards the session state below.
 	stateMu sync.Mutex
-	// credentialed holds each provider's last successful AuthReport.Credentialed:
-	// lower-cased gcloud accounts for GCP, account names elsewhere.
-	credentialed map[provider.ID]map[string]bool
-	credChecked  map[provider.ID]bool
-	reauth       map[string]bool // accounts that reported re-authentication required
+	// authResults holds each provider's latest AuthReport.Results: lower-cased
+	// gcloud accounts for GCP, account names elsewhere.
+	authResults map[provider.ID]map[string]provider.AuthResult
+	// credChecked is when each provider last completed a check without
+	// warnings; an account absent from that check is AUTH REQUIRED.
+	credChecked map[provider.ID]time.Time
+	reauth      map[string]bool // accounts that reported re-authentication required
+
+	// cacheMu serialises read-modify-write of the status cache file.
+	cacheMu sync.Mutex
 
 	// config is the legacy cached document used by operations not yet converted.
 	config *config.Config
@@ -138,12 +156,12 @@ func NewWithOptions(opts Options) (*Manager, error) {
 		providers = defaultProviders(opts)
 	}
 	m := &Manager{
-		opts:         opts,
-		paths:        opts.Paths,
-		providers:    provider.NewRegistry(providers...),
-		credentialed: map[provider.ID]map[string]bool{},
-		credChecked:  map[provider.ID]bool{},
-		reauth:       map[string]bool{},
+		opts:        opts,
+		paths:       opts.Paths,
+		providers:   provider.NewRegistry(providers...),
+		authResults: map[provider.ID]map[string]provider.AuthResult{},
+		credChecked: map[provider.ID]time.Time{},
+		reauth:      map[string]bool{},
 	}
 	return m, nil
 }

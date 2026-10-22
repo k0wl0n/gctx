@@ -192,7 +192,7 @@ func TestAzureCheckAuthExpired(t *testing.T) {
 	h := newHarness(t, "FAKE_AZ_TOKEN_FAIL=1")
 	acct := h.created(t, "work")
 	report := h.provider.CheckAuth(context.Background(), []config.Account{acct})
-	if credentialed, present := report.Credentialed["work"]; !present || credentialed {
+	if result, present := report.Results["work"]; !present || result.Credentialed {
 		t.Fatalf("report %+v, want work present and not credentialed", report)
 	}
 }
@@ -201,7 +201,7 @@ func TestAzureCheckAuthCredentialed(t *testing.T) {
 	h := newHarness(t)
 	acct := h.created(t, "work")
 	report := h.provider.CheckAuth(context.Background(), []config.Account{acct})
-	if !report.Credentialed["work"] {
+	if !report.Results["work"].Credentialed {
 		t.Fatalf("report %+v", report)
 	}
 	calls := h.calls(t)
@@ -253,7 +253,7 @@ func TestAzureCheckAuthHonoursContext(t *testing.T) {
 	if elapsed := time.Since(start); elapsed > 10*time.Second {
 		t.Fatalf("CheckAuth took %s with a 200ms deadline", elapsed)
 	}
-	if report.Credentialed["work"] || len(report.Warnings) == 0 {
+	if report.Results["work"].Credentialed || len(report.Warnings) == 0 {
 		t.Fatalf("report %+v", report)
 	}
 }
@@ -387,7 +387,7 @@ func TestAzureMissingCLI(t *testing.T) {
 		t.Fatalf("login err %v", err)
 	}
 	report := p.CheckAuth(context.Background(), []config.Account{account("x")})
-	if len(report.Warnings) == 0 || report.Credentialed["x"] {
+	if len(report.Warnings) == 0 || report.Results["x"].Credentialed {
 		t.Fatalf("report %+v", report)
 	}
 }

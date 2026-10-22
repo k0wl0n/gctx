@@ -336,6 +336,7 @@ go install github.com/k0wl0n/gctx@latest
 ### Features
 - `gctx tui` command and full-screen account manager with health statuses, filtering, details, switch, login, shell, run, create, delete and save.
 - Accounts are checked locally for missing ADC, missing gcloud configuration, required re-authentication and project mismatch.
+- The last credential check of each account (health, identity, expiry, budget and check time; never a token or key) is cached in `status.json` under the user cache directory (`gctx/`, mode `0600`), so status shows at once on the next launch. A check that times out keeps the last good result instead of reporting AUTH REQUIRED.
 
 ### Requirements
 - Building from source requires Go 1.26 or newer.

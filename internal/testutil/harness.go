@@ -102,6 +102,9 @@ func NewEnv(t testing.TB) *Env {
 	t.Setenv("HOME", env.Home)
 	t.Setenv("USERPROFILE", env.Home)
 	t.Setenv("CLOUDSDK_CONFIG", env.GcloudDir)
+	// os.UserCacheDir (the status cache) must stay inside the test root too.
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(env.Home, ".cache"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "localappdata"))
 	t.Setenv("FAKE_GCLOUD_LOG", env.LogPath)
 	t.Setenv("PATH", env.BinDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	for _, name := range []string{

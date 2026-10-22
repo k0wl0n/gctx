@@ -229,25 +229,24 @@ func (p *Provider) Local(acct config.Account) provider.LocalStatus {
 }
 
 // CheckAuth asks az only for the token's expiry (--query keeps the token out
-// of the output) for every account in parallel. Credentialed is keyed by
+// of the output) for every account in parallel. Results are keyed by
 // account name; a non-zero exit means expired or not logged in.
 func (p *Provider) CheckAuth(ctx context.Context, accts []config.Account) provider.AuthReport {
 	runner, err := p.runner()
 	if err != nil {
 		return provider.AuthReport{
-			Credentialed: map[string]bool{},
-			Identities:   map[string]string{},
-			Warnings:     []provider.Warning{providerutil.CredentialWarning("", err)},
+			Results:  map[string]provider.AuthResult{},
+			Warnings: []provider.Warning{providerutil.CredentialWarning("", err)},
 		}
 	}
-	return providerutil.CheckEach(ctx, accts, func(ctx context.Context, acct config.Account) (bool, string) {
+	return providerutil.CheckEach(ctx, accts, func(ctx context.Context, acct config.Account) provider.AuthResult {
 		dir, err := p.accountDir(acct)
 		if err != nil {
-			return false, ""
+			return provider.AuthResult{}
 		}
 		out, err := runner.Query(ctx, []string{envConfDir + "=" + dir},
 			"account", "get-access-token", "--subscription", acct.Target(), "--query", "expiresOn", "--output", "tsv")
-		return err == nil && out != "", ""
+		return provider.AuthResult{Credentialed: err == nil && out != ""}
 	})
 }
 

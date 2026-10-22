@@ -117,7 +117,7 @@ func TestAWSLocalDefaultProfileAndMissingFile(t *testing.T) {
 func TestAWSCheckAuthParsesArn(t *testing.T) {
 	h := newHarness(t, ssoConfig, "FAKE_AWS_ARN=arn:aws:sts::1:assumed-role/Dev/me")
 	report := h.provider.CheckAuth(context.Background(), []config.Account{account("work", "work")})
-	if !report.Credentialed["work"] || report.Identities["work"] != "arn:aws:sts::1:assumed-role/Dev/me" {
+	if !report.Results["work"].Credentialed || report.Results["work"].Identity != "arn:aws:sts::1:assumed-role/Dev/me" {
 		t.Fatalf("report %+v", report)
 	}
 	want := []string{"sts", "get-caller-identity", "--profile", "work", "--output", "json"}
@@ -129,11 +129,11 @@ func TestAWSCheckAuthParsesArn(t *testing.T) {
 func TestAWSCheckAuthExpired(t *testing.T) {
 	h := newHarness(t, ssoConfig, "FAKE_AWS_STS_FAIL=1")
 	report := h.provider.CheckAuth(context.Background(), []config.Account{account("work", "work")})
-	if credentialed, present := report.Credentialed["work"]; !present || credentialed {
+	if result, present := report.Results["work"]; !present || result.Credentialed {
 		t.Fatalf("report %+v, want work present and not credentialed", report)
 	}
-	if len(report.Identities) != 0 {
-		t.Errorf("identities %v", report.Identities)
+	if identity := report.Results["work"].Identity; identity != "" {
+		t.Errorf("identity %q", identity)
 	}
 }
 
@@ -146,7 +146,7 @@ func TestAWSCheckAuthHonoursContext(t *testing.T) {
 	if elapsed := time.Since(start); elapsed > 10*time.Second {
 		t.Fatalf("CheckAuth took %s with a 200ms deadline", elapsed)
 	}
-	if report.Credentialed["work"] {
+	if report.Results["work"].Credentialed {
 		t.Fatalf("report %+v", report)
 	}
 	if len(report.Warnings) == 0 {
