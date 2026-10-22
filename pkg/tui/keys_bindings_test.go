@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 	"testing"
+
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
 // TestActionEntryPoints verifies that key presses reach the correct entry points.
@@ -65,6 +67,7 @@ func TestLCallsStartLogin(t *testing.T) {
 func TestGcloudUnavailableGatesActions(t *testing.T) {
 	ov := sampleOverview("work", "work")
 	ov.GcloudAvailable = false
+	ov.Providers[0].CLI = provider.CLIStatus{Name: "gcloud", Found: false} // as the manager reports it
 	svc := newFakeService(ov)
 	m := newTestModel(t, svc, 100, 24)
 

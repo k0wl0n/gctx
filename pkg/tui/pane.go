@@ -17,6 +17,16 @@ func paneWidth(width int) int { return max(44, width*28/100) }
 // active state, the provider's Details() rows, the env activation applies
 // and the account's actions.
 func (m Model) paneLines(width int, g glyphs, st styles) []string {
+	if group, ok := m.selectedPlaceholder(); ok {
+		return []string{
+			truncateCells(renderBadge(group.info.Badge, st.prof, g)+" "+st.Bold.Render(strings.ToUpper(group.info.Label)), width, g.Ellipsis),
+			"",
+			truncateCells(m.groupSummary(group.info, g), width, g.Ellipsis),
+			st.Dim.Render(truncateCells(fmt.Sprintf("folded: %d ready rows hidden", group.hidden), width, g.Ellipsis)),
+			"",
+			keys.Fold.Keys()[0] + " " + st.Dim.Render("expand"),
+		}
+	}
 	acct, ok := m.selectedAccount()
 	if !ok {
 		return []string{st.Dim.Render("No account selected")}

@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/k0wl0n/gctx/pkg/manager"
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
 func matches(msg tea.KeyPressMsg, bound []string) bool {
@@ -47,7 +49,7 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		m = m.moveToIndex(0)
 		return m, nil
 	case matches(msg, keys.Last.Keys()):
-		m = m.moveToIndex(len(m.visible) - 1)
+		m = m.moveToIndex(len(m.nav) - 1)
 		return m, nil
 	case matches(msg, keys.PageDown.Keys()):
 		m = m.moveSelection(m.pageSize())
@@ -108,19 +110,23 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		return m, m.setStatus("Busy: "+m.op.desc, levelWarning)
 	}
 
-	// gcloud-unavailable gating (task 7.4): some actions need gcloud
-	gcloudGated := map[string]bool{
-		"enter": true,
-		"l":     true,
-		"r":     true,
-		"c":     true,
+	if _, ok := m.selectedPlaceholder(); ok && accountKeys[k] {
+		return m, m.setStatus("This group is folded: press z to expand it", levelInfo)
 	}
-	if gcloudGated[k] && !m.overview.GcloudAvailable {
+
+	// CLI gating: switch, login and run need the selected row's provider CLI;
+	// create still needs gcloud while the create form is GCP-only.
+	acct, hasSelection := m.selectedAccount()
+	if cliGated[k] && hasSelection {
+		if info, known := m.knownProvider(acct.Provider); known && !info.CLI.Found {
+			return m, m.setStatus(cliMissingText(info), levelError)
+		}
+	}
+	if k == "c" && !m.overview.GcloudAvailable {
 		return m, m.setStatus("gcloud not found — install it and press R to reload", levelError)
 	}
 
 	// selection-required actions
-	acct, hasSelection := m.selectedAccount()
 	noSelectionNeeded := map[string]bool{"c": true}
 
 	if !noSelectionNeeded[k] && !hasSelection && len(m.visible) == 0 {
@@ -133,6 +139,9 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 	case "a":
 		if !hasSelection {
 			return m, m.setStatus("No account selected", levelInfo)
+		}
+		if !adcApplies(acct) {
+			return m, nil // saving ADC exists only for accounts with ADC
 		}
 		return m.openSave(acct.Name)
 	case "ctrl+d":
@@ -209,29 +218,58 @@ func (m Model) selectTab(tab int) Model {
 	return m
 }
 
-// toggleFold folds or unfolds the selected row's provider group on the All tab.
-func (m Model) toggleFold() (Model, tea.Cmd) {
-	if _, onTab := m.tabProvider(); onTab {
-		return m, m.setStatus("Folding works on the All tab", levelInfo)
+// accountKeys act on the selected account; a placeholder is not one.
+var accountKeys = map[string]bool{"enter": true, "a": true, "ctrl+d": true, "r": true, "s": true, "l": true}
+
+var cliGated = map[string]bool{"enter": true, "l": true, "r": true}
+
+// knownProvider is the provider's metadata when the overview lists it.
+func (m Model) knownProvider(id provider.ID) (manager.ProviderInfo, bool) {
+	for _, info := range m.overview.Providers {
+		if info.ID == id {
+			return info, true
+		}
 	}
-	acct, ok := m.selectedAccount()
-	if !ok {
+	return manager.ProviderInfo{}, false
+}
+
+func cliMissingText(info manager.ProviderInfo) string {
+	name := info.CLI.Name
+	if name == "" {
+		name = info.Label + " CLI"
+	}
+	return name + " not found — install it and press R to reload"
+}
+
+// toggleFold folds or unfolds the group of the selected row or placeholder.
+// Folding moves the cursor to the placeholder when its row is hidden;
+// unfolding moves it to the group's first row.
+func (m Model) toggleFold() (Model, tea.Cmd) {
+	var id provider.ID
+	if g, ok := m.selectedPlaceholder(); ok {
+		id = g.info.ID
+	} else if acct, ok := m.selectedAccount(); ok {
+		id = acct.Provider
+	} else {
 		return m, nil
 	}
-	id := string(acct.Provider)
 	m.folded = cloneOrNew(m.folded)
-	m.folded[id] = !m.folded[id]
-	if !m.folded[id] {
-		delete(m.folded, id)
+	if m.folded[string(id)] {
+		delete(m.folded, string(id))
+	} else {
+		m.folded[string(id)] = true
 	}
+	previous := m.selected
 	m.refilter()
-	// Stay in the folded group when it still shows rows.
-	if !m.isVisible(acct.Name) {
+	switch {
+	case !m.folded[string(id)]:
 		for _, g := range m.groups {
-			if string(g.info.ID) == id && len(g.rows) > 0 {
+			if g.info.ID == id && len(g.rows) > 0 {
 				m.selected = m.overview.Accounts[g.rows[0]].Name
 			}
 		}
+	case !m.isVisible(previous) && m.isVisible(foldKey(id)):
+		m.selected = foldKey(id)
 	}
 	return m, nil
 }
@@ -289,7 +327,7 @@ func finishedProgress(p checkProgress, msg credsCheckedMsg) checkProgress {
 
 // moveSelection moves by delta rows, clamping at the ends (no wrap).
 func (m Model) moveSelection(delta int) Model {
-	if len(m.visible) == 0 {
+	if len(m.nav) == 0 {
 		return m
 	}
 	idx := m.selectedIndex() + delta
@@ -298,16 +336,11 @@ func (m Model) moveSelection(delta int) Model {
 
 // moveToIndex selects the row at the given index, clamped.
 func (m Model) moveToIndex(idx int) Model {
-	if len(m.visible) == 0 {
+	if len(m.nav) == 0 {
 		return m
 	}
-	if idx < 0 {
-		idx = 0
-	}
-	if idx >= len(m.visible) {
-		idx = len(m.visible) - 1
-	}
-	m.selected = m.overview.Accounts[m.visible[idx]].Name
+	idx = max(min(idx, len(m.nav)-1), 0)
+	m.selected = m.rowKey(m.nav[idx])
 	// adjust scroll offset
 	bodyLines := m.height - 5
 	if bodyLines < 1 {

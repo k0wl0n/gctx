@@ -130,7 +130,10 @@ func (m Model) listLines(cols []colSpec, width, height int, g glyphs, st styles)
 				body = append(body, m.renderRow(acct, cols, g, st, acct.Name == m.selected, width))
 			}
 			if group.hidden > 0 {
-				body = append(body, st.Dim.Render(fmt.Sprintf("  %s %d more ready %s %s expand", g.Ellipsis, group.hidden, g.Dot, keys.Fold.Keys()[0])))
+				body = append(body, m.placeholderLine(group, width, g, st))
+				if m.selected == foldKey(group.info.ID) {
+					selectedLine = len(body) - 1
+				}
 			}
 		}
 	}
@@ -146,6 +149,15 @@ func (m Model) listLines(cols []colSpec, width, height int, g glyphs, st styles)
 		body = append(body, "")
 	}
 	return body
+}
+
+// placeholderLine is a folded group's selectable "… N more ready" row.
+func (m Model) placeholderLine(group listGroup, width int, g glyphs, st styles) string {
+	text := fmt.Sprintf("%s %d more ready %s %s expand", g.Ellipsis, group.hidden, g.Dot, keys.Fold.Keys()[0])
+	if m.selected != foldKey(group.info.ID) {
+		return st.Dim.Render(fitCells("  "+text, width, g.Ellipsis))
+	}
+	return st.Selected.Render(fitCells(g.Bar+" "+text, width, g.Ellipsis))
 }
 
 func (m Model) categoryHeading(c provider.Category, width int, g glyphs, st styles) string {

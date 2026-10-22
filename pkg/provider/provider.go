@@ -107,6 +107,7 @@ type FormField struct {
 
 // CLIStatus reports whether the provider's CLI is on PATH.
 type CLIStatus struct {
+	Name  string // executable looked up on PATH, e.g. "gcloud"; names it in messages when missing
 	Bin   string
 	Found bool
 }

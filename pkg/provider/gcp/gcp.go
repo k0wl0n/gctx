@@ -147,7 +147,7 @@ func (p *Provider) ValidateTarget(target string) error { return ValidateProjectI
 func (p *Provider) CLI() provider.CLIStatus {
 	p.Locate()
 	client := p.Client()
-	return provider.CLIStatus{Bin: client.Bin, Found: client.Available()}
+	return provider.CLIStatus{Name: "gcloud", Bin: client.Bin, Found: client.Available()}
 }
 
 func accountEnv(configName string) []string {

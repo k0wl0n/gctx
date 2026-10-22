@@ -37,6 +37,8 @@ func checksInFlight(t testing.TB, svc *fakeService, width, height int, finished 
 	return m
 }
 
+func (m Model) svcCalls() []string { return m.svc.(*fakeService).Calls() }
+
 func lines(out string) []string { return strings.Split(out, "\n") }
 
 // lineWith returns the first rendered line containing every needle.
@@ -247,16 +249,16 @@ func TestFoldShowsOnlyRowsNeedingAction(t *testing.T) {
 	if !slices.Equal(gcpRows, []string{"byoip-lab", "sbx-aliz"}) {
 		t.Errorf("folded rows %v", gcpRows)
 	}
-	if !slices.Contains(gcpRows, m.selected) {
-		t.Errorf("selection %q hidden by the fold", m.selected)
+	if m.selected != foldKey(provider.GCP) {
+		t.Errorf("selection %q, want the group's placeholder", m.selected)
 	}
 	out := screen(m)
 	if !hasLineWith(out, "… 7 more ready") || hasLineWith(out, "infra-hub-prd") {
 		t.Errorf("folded group:\n%s", out)
 	}
 	m = press(t, m, "z")
-	if m.folded[string(provider.GCP)] || len(m.visible) != 19 {
-		t.Errorf("unfold: %v", visibleNames(m))
+	if m.folded[string(provider.GCP)] || len(m.visible) != 19 || m.selected != "byoip-lab" {
+		t.Errorf("unfold: selected %q visible %v", m.selected, visibleNames(m))
 	}
 }
 
@@ -506,5 +508,127 @@ func TestNoProviderSpecificBranchesInTUI(t *testing.T) {
 	}
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		t.Errorf("provider-specific code in pkg/tui: %s", line)
+	}
+}
+
+func TestFoldAllReadyGroupCanBeExpanded(t *testing.T) {
+	m := multiModel(t, newMultiService(), 160, 40)
+	m.selected = "openrouter" // its group has only READY rows
+	m = press(t, m, "z")
+	key := foldKey(fakeOpenRouter)
+	if !m.folded[string(fakeOpenRouter)] || m.selected != key {
+		t.Fatalf("after fold: folded %v selected %q", m.folded, m.selected)
+	}
+	if slices.Contains(visibleNames(m), "openrouter") {
+		t.Error("folded row still listed")
+	}
+	out := screen(m)
+	if line := lineWith(t, out, "1 more ready"); !strings.Contains(line, "▌") {
+		t.Errorf("placeholder not drawn as selected: %q", line)
+	}
+	if !strings.Contains(out, "OPENROUTER") || !strings.Contains(out, "1 · 1 ready") {
+		t.Errorf("pane or heading lacks the group summary:\n%s", out)
+	}
+	// Actions do not act on the placeholder.
+	before := len(m.svcCalls())
+	for _, k := range []string{"enter", "l", "s", "r", "a", "ctrl+d"} {
+		m2, _ := m.dispatch(keyMsg(k)) // dispatch: keep the info message, which drain would expire
+		if !strings.Contains(m2.status.text, "press z") || m2.modal != nil || len(m.svcCalls()) != before {
+			t.Errorf("%s on placeholder: status %q modal %v calls %v", k, m2.status.text, m2.modal, m.svcCalls()[before:])
+		}
+	}
+	// j/k reach it: up then down returns to it.
+	m = press(t, m, "k", "j")
+	if m.selected != key {
+		t.Errorf("placeholder not reachable with j: %q", m.selected)
+	}
+	m = press(t, m, "z")
+	if m.folded[string(fakeOpenRouter)] || m.selected != "openrouter" || len(m.visible) != 19 {
+		t.Errorf("after unfold: folded %v selected %q visible %d", m.folded, m.selected, len(m.visible))
+	}
+	if !strings.Contains(statusLine(m), "19 accounts") {
+		t.Errorf("totals: %q", statusLine(m))
+	}
+}
+
+func TestFoldOnSingleProviderTab(t *testing.T) {
+	m := multiModel(t, newMultiService(), 120, 30)
+	m = press(t, m, "2") // GCP tab
+	m.selected = "cloudsuite"
+	m = press(t, m, "z")
+	if !m.folded[string(provider.GCP)] || len(m.visible) != 2 || m.selected != foldKey(provider.GCP) {
+		t.Fatalf("tab fold: folded %v visible %v selected %q", m.folded, visibleNames(m), m.selected)
+	}
+	if !hasLineWith(screen(m), "7 more ready") {
+		t.Errorf("no placeholder:\n%s", screen(m))
+	}
+	m = press(t, m, "z")
+	if len(m.visible) != 9 || m.selected != "byoip-lab" {
+		t.Errorf("tab unfold: visible %d selected %q", len(m.visible), m.selected)
+	}
+}
+
+// gatingOverview has one GCP and one AWS account with the given CLIs found.
+func gatingOverview(gcloud, aws bool) manager.Overview {
+	ov := multiOverview()
+	var accounts []manager.AccountStatus
+	for _, a := range ov.Accounts {
+		if a.Name == "cloudsuite" || a.Name == "prod-aws" {
+			accounts = append(accounts, a)
+		}
+	}
+	ov.Accounts = accounts
+	ov.GcloudAvailable = gcloud
+	for i := range ov.Providers {
+		ov.Providers[i].Count = 0
+		switch ov.Providers[i].ID {
+		case provider.GCP:
+			ov.Providers[i].Count, ov.Providers[i].CLI = 1, provider.CLIStatus{Name: "gcloud", Found: gcloud}
+		case provider.AWS:
+			ov.Providers[i].Count, ov.Providers[i].CLI = 1, provider.CLIStatus{Name: "aws", Found: aws}
+		}
+	}
+	return ov
+}
+
+func TestMissingGcloudDoesNotBlockAWSRow(t *testing.T) {
+	m := newTestModel(t, newFakeService(gatingOverview(false, true)), 120, 30)
+	m.selected = "prod-aws"
+	for _, k := range []string{"enter", "l", "r"} {
+		m2, _ := m.dispatch(keyMsg(k))
+		if strings.Contains(m2.status.text, "not found") {
+			t.Errorf("%s on AWS row blocked: %q", k, m2.status.text)
+		}
+	}
+}
+
+func TestMissingAWSCLIBlocksOnlyAWSRows(t *testing.T) {
+	m := newTestModel(t, newFakeService(gatingOverview(true, false)), 120, 30)
+	m.selected = "prod-aws"
+	for _, k := range []string{"enter", "l", "r"} {
+		m2, _ := m.dispatch(keyMsg(k))
+		if !strings.Contains(m2.status.text, "aws not found") {
+			t.Errorf("%s on AWS row: %q", k, m2.status.text)
+		}
+	}
+	m.selected = "cloudsuite"
+	for _, k := range []string{"enter", "l", "r"} {
+		m2, _ := m.dispatch(keyMsg(k))
+		if strings.Contains(m2.status.text, "not found") {
+			t.Errorf("%s on GCP row blocked: %q", k, m2.status.text)
+		}
+	}
+}
+
+func TestSaveKeyIgnoredOnNonGCPRow(t *testing.T) {
+	m := newTestModel(t, newFakeService(gatingOverview(true, true)), 120, 30)
+	m.selected = "prod-aws"
+	m2, _ := m.dispatch(keyMsg("a"))
+	if m2.modal != nil {
+		t.Error("a opened the save dialog on an AWS row")
+	}
+	m.selected = "cloudsuite"
+	if m2, _ = m.dispatch(keyMsg("a")); m2.modal == nil {
+		t.Error("a did not open the save dialog on a GCP row")
 	}
 }

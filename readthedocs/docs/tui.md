@@ -46,7 +46,7 @@ Between 60 and 99 columns the badge moves into the NAME column, the tab row beco
 | `ctrl+d` | delete |
 | `a` | save current ADC to selected account |
 | `p` | toggle the detail pane |
-| `z` | fold or unfold the selected provider group (shows only rows needing action) |
+| `z` | fold or unfold the selected provider group (shows only rows needing action plus a selectable `… N more ready` row; `z` on it expands the group) |
 | `!` | only rows needing action |
 | `o` | cycle sort: name, status, expiry |
 | `R` | reload |
@@ -59,6 +59,7 @@ Notes:
 - Filtering is a case-insensitive substring match on name, project, email and gcloud configuration, within the current tab. While the filter input is open, letters are text, not commands.
 - `esc` cancels any dialog. `ctrl+c` quits unless a command is running.
 - `:` is reserved and currently shows `Command mode is not available yet`.
+- A missing provider CLI blocks switch, login and run only on that provider's rows. `a` applies only to accounts with ADC (GCP).
 - Only one changing operation (switch, save, delete, create, login) runs at a time.
 
 ## Login, shell and run

@@ -155,7 +155,7 @@ func gcpInfo(count int) manager.ProviderInfo {
 	return manager.ProviderInfo{
 		ID: provider.GCP, Label: "GCP", Category: provider.CategoryCloud, Slot: "gcp", TargetLabel: "PROJECT",
 		Badge:        provider.Badge{Text: "GCP", Style: provider.BadgeFilled, Color: "#6ea8fe"},
-		CLI:          provider.CLIStatus{Bin: "gcloud", Found: true},
+		CLI:          provider.CLIStatus{Name: "gcloud", Bin: "gcloud", Found: true},
 		CheckTimeout: 15 * time.Second, Count: count,
 	}
 }

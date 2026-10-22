@@ -77,7 +77,7 @@ func (p *Provider) ValidateTarget(target string) error {
 // CLI looks az up on PATH each time, so installing it is noticed without a restart.
 func (p *Provider) CLI() provider.CLIStatus {
 	bin, err := p.opts.LookPath(cliName)
-	return provider.CLIStatus{Bin: bin, Found: err == nil}
+	return provider.CLIStatus{Name: cliName, Bin: bin, Found: err == nil}
 }
 
 func (p *Provider) runner() (provider.Runner, error) {

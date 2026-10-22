@@ -154,7 +154,7 @@ func (m Model) buildGroups() []listGroup {
 			continue
 		}
 		g := group(account.Provider)
-		if !onTab && m.folded[string(account.Provider)] && !needsAction(account) {
+		if m.folded[string(account.Provider)] && !needsAction(account) {
 			g.hidden++
 			continue
 		}

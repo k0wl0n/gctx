@@ -142,6 +142,7 @@ type Model struct {
 	loadErr  error
 	visible  []int               // indices into overview.Accounts after filtering, in display order
 	groups   []listGroup         // visible rows by provider, in display order
+	nav      []navRow            // selectable rows: visible accounts plus folded-group placeholders
 	selected string              // selected account name
 	offset   int                 // first visible row
 	envs     map[string][]string // Env per account, loaded asynchronously
@@ -264,7 +265,7 @@ func (m *Model) reload() {
 	m.loadErr = err
 	if err != nil {
 		m.overview = manager.Overview{}
-		m.visible, m.groups, m.selected, m.offset = nil, nil, "", 0
+		m.visible, m.groups, m.nav, m.selected, m.offset = nil, nil, nil, "", 0
 		return
 	}
 	m.overview = overview
@@ -274,26 +275,60 @@ func (m *Model) reload() {
 	m.rebuildVisible()
 
 	switch {
-	case len(m.visible) == 0:
+	case len(m.nav) == 0:
 		m.selected = ""
 	case previous != "" && m.isVisible(previous):
 		m.selected = previous
 	case previous != "":
-		m.selected = m.overview.Accounts[m.visible[min(previousIndex, len(m.visible)-1)]].Name
+		m.selected = m.rowKey(m.nav[min(previousIndex, len(m.nav)-1)])
 	default:
-		m.selected = m.overview.Accounts[m.visible[0]].Name
+		m.selected = m.rowKey(m.nav[0])
 		if active, ok := m.overview.Active(); ok && m.isVisible(active.Name) {
 			m.selected = active.Name
 		}
 	}
 }
 
+// navRow is one selectable row: an account, or (account < 0) the
+// "… N more ready" placeholder that a folded group ends with.
+type navRow struct {
+	account int
+	group   provider.ID
+}
+
+// foldKey is the selection key of a folded group's placeholder. Account
+// names cannot contain NUL, so it never matches an account.
+func foldKey(id provider.ID) string { return "\x00fold:" + string(id) }
+
+func (m Model) rowKey(r navRow) string {
+	if r.account < 0 {
+		return foldKey(r.group)
+	}
+	return m.overview.Accounts[r.account].Name
+}
+
+// selectedPlaceholder returns the folded group whose placeholder is selected.
+func (m Model) selectedPlaceholder() (listGroup, bool) {
+	for _, g := range m.groups {
+		if g.hidden > 0 && m.selected == foldKey(g.info.ID) {
+			return g, true
+		}
+	}
+	return listGroup{}, false
+}
+
 // rebuildVisible applies the tab, filters, sort and folds to the overview.
 func (m *Model) rebuildVisible() {
 	m.groups = m.buildGroups()
-	m.visible = nil
+	m.visible, m.nav = nil, nil
 	for _, g := range m.groups {
 		m.visible = append(m.visible, g.rows...)
+		for _, idx := range g.rows {
+			m.nav = append(m.nav, navRow{account: idx, group: g.info.ID})
+		}
+		if g.hidden > 0 {
+			m.nav = append(m.nav, navRow{account: -1, group: g.info.ID})
+		}
 	}
 }
 
@@ -303,11 +338,11 @@ func (m *Model) refilter() {
 	previousIndex := m.selectedIndex()
 	m.rebuildVisible()
 	switch {
-	case len(m.visible) == 0:
+	case len(m.nav) == 0:
 		m.selected = ""
 	case m.selected != "" && m.isVisible(m.selected):
 	default:
-		m.selected = m.overview.Accounts[m.visible[min(previousIndex, len(m.visible)-1)]].Name
+		m.selected = m.rowKey(m.nav[min(previousIndex, len(m.nav)-1)])
 	}
 }
 
@@ -324,8 +359,8 @@ func (m Model) isVisible(name string) bool { return m.visibleIndex(name) >= 0 }
 
 // visibleIndex returns the row of name among the visible rows, or -1.
 func (m Model) visibleIndex(name string) int {
-	for row, i := range m.visible {
-		if m.overview.Accounts[i].Name == name {
+	for row, r := range m.nav {
+		if m.rowKey(r) == name {
 			return row
 		}
 	}
