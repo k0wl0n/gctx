@@ -2,12 +2,12 @@ package manager
 
 import (
 	"context"
-	"os"
+	"fmt"
 	"strings"
+	"sync"
 
-	"github.com/k0wl0n/gctx/pkg/adc"
 	"github.com/k0wl0n/gctx/pkg/config"
-	"github.com/k0wl0n/gctx/pkg/gcloudconfig"
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
 // ActiveAccount returns GCTX_ACCOUNT inside `gctx shell`, then the recorded
@@ -24,10 +24,9 @@ func (m *Manager) ActiveAccount() string {
 	return "unknown"
 }
 
-// Overview computes the local status of every account. It reads files only:
-// no subprocess, no network, and no writes.
+// Overview computes the local status of every account. It reads files and
+// looks CLIs up on PATH only: no subprocess, no network, and no writes.
 func (m *Manager) Overview() (Overview, error) {
-	m.gcp.Locate()
 	m.mu.Lock()
 	cfg, err := m.loadConfig()
 	m.mu.Unlock()
@@ -35,18 +34,27 @@ func (m *Manager) Overview() (Overview, error) {
 		return Overview{}, err
 	}
 
+	clis := map[provider.ID]provider.CLIStatus{}
+	for _, p := range m.providers.All() {
+		clis[p.ID()] = p.CLI()
+	}
 	overview := Overview{
-		ConfigPath:         m.paths.ConfigPath(),
-		ActiveAccount:      cfg.ActiveAccount,
-		ShellAccount:       m.opts.Getenv("GCTX_ACCOUNT"),
-		GcloudActiveConfig: gcloudconfig.ActiveConfig(m.paths.GcloudDir),
-		DefaultADCPath:     m.paths.DefaultADC,
-		GcloudAvailable:    m.GcloudAvailable(),
+		ConfigPath:      m.paths.ConfigPath(),
+		ActiveAccount:   cfg.ActiveAccount,
+		ShellAccount:    m.opts.Getenv("GCTX_ACCOUNT"),
+		DefaultADCPath:  m.paths.DefaultADC,
+		GcloudAvailable: clis[provider.GCP].Found,
 	}
+	counts := map[provider.ID]int{}
 	for _, account := range cfg.ListAccounts() {
-		overview.Accounts = append(overview.Accounts, m.accountStatus(cfg, account))
+		status := m.accountStatus(cfg, account, clis)
+		counts[status.Provider]++
+		overview.Accounts = append(overview.Accounts, status)
 	}
-	m.fillDefaultADC(&overview)
+	for _, p := range m.providers.All() {
+		overview.Providers = append(overview.Providers, ProviderInfo{ID: p.ID(), Label: p.Label(), CLI: clis[p.ID()], Count: counts[p.ID()]})
+	}
+	m.fillGlobalState(&overview)
 	return overview, nil
 }
 
@@ -62,31 +70,65 @@ func (m *Manager) Info(name string) (AccountStatus, error) {
 	if err != nil {
 		return AccountStatus{}, notFoundError{name}
 	}
-	return m.accountStatus(cfg, account), nil
+	return m.accountStatus(cfg, account, nil), nil
 }
 
-func (m *Manager) accountStatus(cfg *config.Config, account *config.Account) AccountStatus {
-	inspected := m.gcp.Inspect(*account)
+// accountStatus computes one account's status. clis caches CLI lookups; nil
+// looks the account's CLI up directly.
+func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, clis map[provider.ID]provider.CLIStatus) AccountStatus {
 	status := AccountStatus{
-		Name:               account.Name,
-		ConfigName:         account.ConfigName,
-		ProjectID:          account.ProjectID,
-		Email:              account.Email,
-		CreatedAt:          account.CreatedAt,
-		Active:             account.Name == cfg.ActiveAccount,
-		ADCPath:            account.ADCPath,
-		StoredADCPath:      inspected.StoredADCPath,
-		ADCExists:          inspected.ADCExists,
-		ADCModTime:         inspected.ADCModTime,
-		RecordedADCModTime: inspected.RecordedADCModTime,
-		GcloudConfigExists: inspected.ConfigExists,
-		GcloudAccount:      inspected.ConfigAccount,
-		GcloudProject:      inspected.ConfigProject,
-		Findings:           inspected.Local.Findings,
+		Name:       account.Name,
+		Provider:   provider.ID(account.ProviderID()),
+		ConfigName: account.ConfigName,
+		ProjectID:  account.ProjectID,
+		Email:      account.Email,
+		CreatedAt:  account.CreatedAt,
+		Active:     account.Name == cfg.ActiveAccount,
+		ADCPath:    account.ADCPath,
 	}
-	if inspected.ConfigExists && inspected.Local.Identity != "" && m.authRequired(account.Name, inspected.Local.Identity) {
-		status.Findings = insertFinding(status.Findings, Finding{Health: HealthAuthRequired})
+	p, err := m.providerFor(*account)
+	if err != nil {
+		status.Status = HealthError
+		status.Findings = []Finding{{Health: HealthError, Message: err.Error()}}
+		return status
 	}
+	status.TargetLabel = p.TargetLabel()
+
+	if inspector, ok := p.(provider.StatusInspector); ok {
+		inspected := inspector.Inspect(*account)
+		status.StoredADCPath = inspected.StoredADCPath
+		status.ADCExists = inspected.ADCExists
+		status.ADCModTime = inspected.ADCModTime
+		status.RecordedADCModTime = inspected.RecordedADCModTime
+		status.GcloudConfigExists = inspected.ConfigExists
+		status.GcloudAccount = inspected.ConfigAccount
+		status.GcloudProject = inspected.ConfigProject
+		status.Findings = inspected.Local.Findings
+		// Without a configured identity the inspector already reports AUTH REQUIRED.
+		if inspected.ConfigExists && inspected.Local.Identity != "" && m.authRequired(p.ID(), account.Name, inspected.Local.Identity) {
+			status.Findings = insertFinding(status.Findings, Finding{Health: HealthAuthRequired})
+		}
+	} else {
+		local := p.Local(*account)
+		status.Findings = local.Findings
+		if len(status.Findings) == 0 && local.Status != "" && local.Status != HealthReady {
+			status.Findings = []Finding{{Health: local.Status}}
+		}
+		if !status.HasFinding(HealthAuthRequired) && m.authRequired(p.ID(), account.Name, local.Identity) {
+			status.Findings = insertFinding(status.Findings, Finding{Health: HealthAuthRequired})
+		}
+	}
+
+	cli, cached := clis[p.ID()]
+	if !cached {
+		cli = p.CLI()
+	}
+	// GCP keeps its pre-multi-cloud behavior: a missing gcloud does not change
+	// account status, because ADC files stay usable without it.
+	if !cli.Found && p.ID() != provider.GCP {
+		status.Findings = insertFinding(status.Findings, Finding{Health: HealthCLIMissing})
+	}
+
 	status.Status = HealthReady
 	if len(status.Findings) > 0 {
 		status.Status = status.Findings[0].Health
@@ -95,7 +137,7 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account) Acc
 }
 
 // findingOrder ranks findings; the first finding is the account's status.
-var findingOrder = []Health{HealthError, HealthConfigMissing, HealthAuthRequired, HealthADCMissing, HealthProjectMismatch}
+var findingOrder = []Health{HealthError, HealthCLIMissing, HealthConfigMissing, HealthAuthRequired, HealthADCMissing, HealthProjectMismatch}
 
 func findingRank(h Health) int {
 	for rank, candidate := range findingOrder {
@@ -119,47 +161,139 @@ func insertFinding(findings []Finding, finding Finding) []Finding {
 }
 
 // authRequired applies the session state: a failed re-authentication or a
-// completed credential check that did not list the gcloud account.
-func (m *Manager) authRequired(name, gcloudAccount string) bool {
+// completed credential check for the provider that listed neither the
+// account name nor its identity.
+func (m *Manager) authRequired(id provider.ID, name, identity string) bool {
 	m.stateMu.Lock()
 	defer m.stateMu.Unlock()
-	return m.reauth[name] || (m.credChecked && !m.credentialed[strings.ToLower(gcloudAccount)])
+	if m.reauth[name] {
+		return true
+	}
+	if !m.credChecked[id] {
+		return false
+	}
+	credentialed := m.credentialed[id]
+	return !credentialed[name] && (identity == "" || !credentialed[strings.ToLower(identity)])
 }
 
-// fillDefaultADC compares the default ADC with the active account's stored ADC
-// in memory; no content or hash is kept.
-func (m *Manager) fillDefaultADC(overview *Overview) {
-	info, err := os.Stat(m.paths.DefaultADC)
-	if err != nil || info.IsDir() {
-		overview.DefaultADC = ADCNone
+// fillGlobalState fills the gcloud active configuration and the default ADC
+// comparison from providers that have global state.
+func (m *Manager) fillGlobalState(overview *Overview) {
+	overview.DefaultADC = ADCNone
+	for _, p := range m.providers.All() {
+		reader, ok := p.(provider.GlobalStateReader)
+		if !ok {
+			continue
+		}
+		stored := ""
+		if active, ok := overview.Active(); ok && active.Provider == p.ID() {
+			stored = active.StoredADCPath
+		}
+		state := reader.GlobalState(stored)
+		overview.GcloudActiveConfig = state.ActiveConfig
+		overview.DefaultADCPath = state.DefaultCredentialPath
+		if !state.DefaultCredentialExists {
+			return
+		}
+		overview.DefaultADCExists, overview.DefaultADCModTime = true, state.DefaultCredentialModTime
+		switch {
+		case !state.Compared:
+			overview.DefaultADC = ADCUnknown
+		case state.Matches:
+			overview.DefaultADC = ADCActive
+		default:
+			overview.DefaultADC = ADCDiffers
+		}
 		return
-	}
-	overview.DefaultADCExists, overview.DefaultADCModTime = true, info.ModTime()
-	overview.DefaultADC = ADCUnknown
-	active, ok := overview.Active()
-	if !ok || active.StoredADCPath == "" {
-		return
-	}
-	equal, err := adc.FilesEqual(m.paths.DefaultADC, active.StoredADCPath)
-	switch {
-	case err != nil:
-	case equal:
-		overview.DefaultADC = ADCActive
-	default:
-		overview.DefaultADC = ADCDiffers
 	}
 }
 
-// CheckCredentials lists the accounts gcloud holds credentials for, without
-// network access and without printing or refreshing any token. A failure is
-// reported as a warning and leaves statuses unchanged.
+// providerCheck is one provider's part of CheckCredentials.
+type providerCheck struct {
+	id       provider.ID
+	accounts []string
+	report   provider.AuthReport
+}
+
+// CheckCredentials asks every provider that has accounts which of them hold
+// credentials, concurrently and each under its own timeout. A provider that
+// fails or times out yields a warning and leaves its accounts' statuses
+// unchanged; the others' results are still applied.
 func (m *Manager) CheckCredentials(ctx context.Context) (CredentialReport, error) {
-	accounts, auth := m.gcp.ListAuth(ctx)
-	if len(auth.Warnings) > 0 {
-		return CredentialReport{Warnings: auth.Warnings}, nil
+	m.mu.Lock()
+	cfg, err := m.loadConfig()
+	m.mu.Unlock()
+	if err != nil {
+		return CredentialReport{}, err
 	}
+	byProvider := map[provider.ID][]config.Account{}
+	for _, account := range cfg.ListAccounts() {
+		id := provider.ID(account.ProviderID())
+		byProvider[id] = append(byProvider[id], *account)
+	}
+
+	var checked []provider.Provider
+	for _, p := range m.providers.All() {
+		if len(byProvider[p.ID()]) > 0 {
+			checked = append(checked, p)
+		}
+	}
+	results := make([]providerCheck, len(checked))
+	var wg sync.WaitGroup
+	for i, p := range checked {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			results[i] = m.checkProvider(ctx, p, byProvider[p.ID()])
+		}()
+	}
+	wg.Wait()
+
+	var report CredentialReport
 	m.stateMu.Lock()
-	m.credentialed, m.credChecked = auth.Credentialed, true
-	m.stateMu.Unlock()
-	return CredentialReport{Accounts: accounts}, nil
+	defer m.stateMu.Unlock()
+	for _, result := range results {
+		if len(result.report.Warnings) > 0 {
+			report.Warnings = append(report.Warnings, result.report.Warnings...)
+			continue
+		}
+		m.credentialed[result.id] = result.report.Credentialed
+		m.credChecked[result.id] = true
+		report.Accounts = append(report.Accounts, result.accounts...)
+	}
+	return report, nil
+}
+
+// checkProvider runs one provider's check, abandoning it at the timeout. An
+// abandoned check finishes in the background and its result is discarded.
+func (m *Manager) checkProvider(ctx context.Context, p provider.Provider, accounts []config.Account) providerCheck {
+	timeout := m.opts.CredentialTimeout
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	done := make(chan providerCheck, 1)
+	go func() {
+		result := providerCheck{id: p.ID()}
+		if lister, ok := p.(provider.AuthLister); ok {
+			result.accounts, result.report = lister.ListAuth(ctx)
+		} else {
+			result.report = p.CheckAuth(ctx, accounts)
+			for _, account := range accounts {
+				if result.report.Credentialed[account.Name] {
+					result.accounts = append(result.accounts, account.Name)
+				}
+			}
+		}
+		done <- result
+	}()
+
+	select {
+	case result := <-done:
+		return result
+	case <-ctx.Done():
+		return providerCheck{id: p.ID(), report: provider.AuthReport{Warnings: []Warning{{
+			Code:    WarnCredentialCheck,
+			Message: fmt.Sprintf("%s credential check did not finish within %s: %v", p.Label(), timeout, ctx.Err()),
+		}}}}
+	}
 }

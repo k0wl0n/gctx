@@ -27,6 +27,19 @@ func (m *Manager) account(name string) (config.Account, error) {
 	return *account, nil
 }
 
+// resolve loads one account record and the provider it belongs to.
+func (m *Manager) resolve(name string) (config.Account, provider.Provider, error) {
+	account, err := m.account(name)
+	if err != nil {
+		return config.Account{}, nil, err
+	}
+	p, err := m.providerFor(account)
+	if err != nil {
+		return config.Account{}, nil, err
+	}
+	return account, p, nil
+}
+
 // mutate re-reads config.json under the lock, applies change, and leaves
 // persisting to change itself or to the Save it requests by returning nil.
 func (m *Manager) mutate(change func(*config.Config) error) error {
@@ -54,21 +67,25 @@ func (m *Manager) Create(ctx context.Context, name, projectID string) (CreateRes
 	if _, exists := cfg.Accounts[name]; exists {
 		return CreateResult{}, existsError{name}
 	}
-	m.gcp.Locate()
-	if !m.gcp.CLI().Found {
+	// Create still takes a GCP project; choosing a provider comes with the create form.
+	p, err := m.providerFor(config.Account{Name: name})
+	if err != nil {
+		return CreateResult{}, err
+	}
+	if !p.CLI().Found {
 		return CreateResult{}, gcloud.ErrNotFound
 	}
 
 	configName := gcp.ConfigNameFor(name)
 	result := CreateResult{Account: name, ConfigName: configName, ProjectID: projectID}
-	if m.gcp.ConfigExists(configName) && !referencesConfig(cfg, configName) {
+	if checker, ok := p.(provider.ConfigChecker); ok && checker.ConfigExists(configName) && !referencesConfig(cfg, configName) {
 		result.Warnings = append(result.Warnings, Warning{
 			Code: WarnConfigReused, Account: name,
 			Message: fmt.Sprintf("gcloud configuration %s already exists and will be reused", configName),
 		})
 	}
 
-	outcome, err := m.gcp.Create(ctx, config.Account{Name: name, ConfigName: configName, ProjectID: projectID})
+	outcome, err := p.Create(ctx, config.Account{Name: name, ConfigName: configName, ProjectID: projectID})
 	result.Warnings = append(result.Warnings, outcome.Warnings...)
 	result.ProjectSet = outcome.TargetSet
 	if err != nil {
@@ -102,11 +119,11 @@ func referencesConfig(cfg *config.Config, configName string) bool {
 // stores the resulting ADC. The result reports how far it got on failure.
 func (m *Manager) Login(ctx context.Context, name string, lio LoginIO) (LoginResult, error) {
 	result := LoginResult{Account: name}
-	account, err := m.account(name)
+	account, p, err := m.resolve(name)
 	if err != nil {
 		return result, err
 	}
-	result, err = m.gcp.Login(ctx, account, lio)
+	result, err = p.Login(ctx, account, lio)
 	if err != nil {
 		return result, err
 	}
@@ -130,11 +147,15 @@ func (m *Manager) Login(ctx context.Context, name string, lio LoginIO) (LoginRes
 
 // SaveCredentials copies the default ADC into the account's stored location.
 func (m *Manager) SaveCredentials(ctx context.Context, name string) (SaveResult, error) {
-	account, err := m.account(name)
+	account, p, err := m.resolve(name)
 	if err != nil {
 		return SaveResult{}, err
 	}
-	adcPath, email, err := m.gcp.SaveCredentials(ctx, account)
+	saver, ok := p.(provider.CredentialSaver)
+	if !ok {
+		return SaveResult{}, fmt.Errorf("%s accounts have no default credentials to save", p.Label())
+	}
+	adcPath, email, err := saver.SaveCredentials(ctx, account)
 	if err != nil {
 		return SaveResult{}, err
 	}
@@ -150,17 +171,18 @@ func (m *Manager) SaveCredentials(ctx context.Context, name string) (SaveResult,
 	return result, err
 }
 
-// Switch restores the account's ADC, activates its gcloud configuration,
-// re-applies its project, and records it as active.
+// Switch activates the account through its provider (for GCP: restores the
+// ADC, activates the gcloud configuration, re-applies the project) and
+// records it as active. Providers without a global switch return ApplyHint.
 func (m *Manager) Switch(ctx context.Context, name string) (SwitchResult, error) {
-	account, err := m.account(name)
+	account, p, err := m.resolve(name)
 	if err != nil {
 		return SwitchResult{}, err
 	}
 	result := SwitchResult{Account: name, ProjectID: account.ProjectID}
 
-	activated, err := m.gcp.Activate(ctx, account)
-	result.Warnings = activated.Warnings
+	activated, err := p.Activate(ctx, account)
+	result.Warnings, result.ApplyHint = activated.Warnings, activated.ApplyHint
 	if slices.ContainsFunc(activated.Warnings, func(w Warning) bool { return w.Code == WarnReauthRequired }) {
 		m.stateMu.Lock()
 		m.reauth[name] = true
@@ -183,13 +205,13 @@ func (m *Manager) Switch(ctx context.Context, name string) (SwitchResult, error)
 // configuration, and the account record. Failures after the first step are
 // warnings so the record is still removed.
 func (m *Manager) Delete(ctx context.Context, name string, opt DeleteOptions) (DeleteResult, error) {
-	account, err := m.account(name)
+	account, p, err := m.resolve(name)
 	if err != nil {
 		return DeleteResult{}, err
 	}
 	result := DeleteResult{Account: name}
 
-	removed, err := m.gcp.Delete(ctx, account, provider.DeleteOptions{GcloudConfig: opt.GcloudConfig})
+	removed, err := p.Delete(ctx, account, provider.DeleteOptions{GcloudConfig: opt.GcloudConfig})
 	result.Warnings = removed.Warnings
 	result.ConfigDeleted = slices.Contains(removed.Removed, account.ConfigName)
 	if err != nil {

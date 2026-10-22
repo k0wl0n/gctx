@@ -68,14 +68,20 @@ flowchart TB
   end
 
   mgr --> cfg["pkg/config<br/>config.json (atomic)"]
-  mgr --> adcp["pkg/adc<br/>stored/default ADC files"]
-  mgr --> gcc["pkg/gcloudconfig<br/>local gcloud config view"]
-  mgr --> gcl["pkg/gcloud<br/>gcloud subprocesses"]
+  mgr -->|"dispatch by account provider"| reg["pkg/provider<br/>contract + registry"]
+
+  subgraph providers[Providers]
+    reg --> gcpp["pkg/provider/gcp"]
+  end
+
+  gcpp --> adcp["pkg/adc<br/>stored/default ADC files"]
+  gcpp --> gcc["pkg/gcloudconfig<br/>local gcloud config view"]
+  gcpp --> gcl["pkg/gcloud<br/>gcloud subprocesses"]
   gcl --> gcloudbin[(gcloud CLI)]
   model -->|tea.Exec| child[(login / gcloud run / shell<br/>owns the terminal)]
 ```
 
-`pkg/tui` and `cmd` depend on `pkg/manager` and `pkg/present`. `pkg/manager` owns `config.json` and session state and delegates cloud-specific work to a provider (`pkg/provider`); the GCP provider (`pkg/provider/gcp`) wraps `adc`, `gcloud` and `gcloudconfig`. `pkg/manager` never depends on the TUI, presenters, Cobra or Bubble Tea. See the [TUI guide](tui.md) for behavior.
+`pkg/tui` and `cmd` depend on `pkg/manager` and `pkg/present`. `pkg/manager` owns `config.json` and session state and dispatches each account operation to the provider named by the account (`pkg/provider` registry; accounts without a provider are GCP). The GCP provider (`pkg/provider/gcp`) wraps `adc`, `gcloud` and `gcloudconfig`; GCP-only details (stored ADC, gcloud configuration, `save`, default-ADC comparison) reach the manager through optional interfaces in `pkg/provider`. Credential checks run per provider in parallel, each under its own timeout. `pkg/manager` never depends on the TUI, presenters, Cobra or Bubble Tea. See the [TUI guide](tui.md) for behavior.
 
 ## Core Components
 

@@ -74,7 +74,14 @@ type Provider struct {
 	client *gcloud.Client
 }
 
-var _ provider.Provider = (*Provider)(nil)
+var (
+	_ provider.Provider          = (*Provider)(nil)
+	_ provider.StatusInspector   = (*Provider)(nil)
+	_ provider.CredentialSaver   = (*Provider)(nil)
+	_ provider.AuthLister        = (*Provider)(nil)
+	_ provider.ConfigChecker     = (*Provider)(nil)
+	_ provider.GlobalStateReader = (*Provider)(nil)
+)
 
 func New(opts Options) *Provider {
 	if opts.LookPath == nil {
@@ -136,7 +143,9 @@ func (p *Provider) Label() string                      { return "GCP" }
 func (p *Provider) TargetLabel() string                { return "PROJECT" }
 func (p *Provider) ValidateTarget(target string) error { return ValidateProjectID(target) }
 
+// CLI re-locates gcloud first, so installing it is noticed without a restart.
 func (p *Provider) CLI() provider.CLIStatus {
+	p.Locate()
 	client := p.Client()
 	return provider.CLIStatus{Bin: client.Bin, Found: client.Available()}
 }
@@ -331,18 +340,7 @@ func (p *Provider) Activate(ctx context.Context, acct config.Account) (provider.
 
 // Status is the file-based view of a GCP account, with the GCP-only details
 // the manager reports alongside the shared LocalStatus.
-type Status struct {
-	Local provider.LocalStatus
-
-	StoredADCPath      string // file actually holding the stored ADC; "" when none
-	ADCExists          bool
-	ADCModTime         time.Time
-	RecordedADCModTime time.Time // mtime of acct.ADCPath; zero when it cannot be read
-
-	ConfigExists  bool
-	ConfigAccount string // [core] account of the account's gcloud configuration
-	ConfigProject string // [core] project of the account's gcloud configuration
-}
+type Status = provider.InspectedStatus
 
 // Inspect reads the account's stored ADC and gcloud configuration. Session
 // credential state is not consulted: AUTH REQUIRED is reported here only when
@@ -407,6 +405,27 @@ func (p *Provider) Inspect(acct config.Account) Status {
 }
 
 func (p *Provider) Local(acct config.Account) provider.LocalStatus { return p.Inspect(acct).Local }
+
+// GlobalState reads the active gcloud configuration and compares the default
+// ADC with storedADCPath in memory; no content or hash is kept.
+func (p *Provider) GlobalState(storedADCPath string) provider.GlobalState {
+	state := provider.GlobalState{
+		ActiveConfig:          gcloudconfig.ActiveConfig(p.opts.GcloudDir),
+		DefaultCredentialPath: p.opts.DefaultADC,
+	}
+	info, err := os.Stat(p.opts.DefaultADC)
+	if err != nil || info.IsDir() {
+		return state
+	}
+	state.DefaultCredentialExists, state.DefaultCredentialModTime = true, info.ModTime()
+	if storedADCPath == "" {
+		return state
+	}
+	if equal, err := adc.FilesEqual(p.opts.DefaultADC, storedADCPath); err == nil {
+		state.Compared, state.Matches = true, equal
+	}
+	return state
+}
 
 // ListAuth runs `gcloud auth list` without network access and without
 // printing or refreshing any token. It returns every listed account and the

@@ -45,6 +45,7 @@ const (
 	HealthAuthRequired    = provider.HealthAuthRequired
 	HealthADCMissing      = provider.HealthADCMissing
 	HealthProjectMismatch = provider.HealthProjectMismatch
+	HealthCLIMissing      = provider.HealthCLIMissing
 	HealthReady           = provider.HealthReady
 )
 
@@ -65,6 +66,9 @@ type CreateResult struct {
 type SwitchResult struct {
 	Account   string
 	ProjectID string
+	// ApplyHint tells the user how to apply an environment-based account to
+	// their shell; empty for providers with a global switch.
+	ApplyHint string
 	Warnings  []Warning
 }
 
@@ -86,12 +90,14 @@ type DeleteResult struct {
 
 // AccountStatus is the local view of one account.
 type AccountStatus struct {
-	Name       string
-	ConfigName string
-	ProjectID  string
-	Email      string
-	CreatedAt  time.Time
-	Active     bool // the gctx active account
+	Name        string
+	Provider    provider.ID
+	TargetLabel string // provider's name for ProjectID, e.g. "PROJECT"; "" for an unknown provider
+	ConfigName  string
+	ProjectID   string
+	Email       string
+	CreatedAt   time.Time
+	Active      bool // the gctx active account
 
 	ADCPath       string // path recorded in config.json
 	StoredADCPath string // file actually holding the stored ADC; "" when none
@@ -143,6 +149,16 @@ type Overview struct {
 	DefaultADCModTime time.Time
 
 	GcloudAvailable bool
+
+	Providers []ProviderInfo // every registered provider, in registry order
+}
+
+// ProviderInfo summarises one registered provider for the overview.
+type ProviderInfo struct {
+	ID    provider.ID
+	Label string
+	CLI   provider.CLIStatus
+	Count int // accounts using this provider
 }
 
 // Active returns the active account's status, if any.

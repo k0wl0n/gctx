@@ -2,9 +2,11 @@ package manager
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/k0wl0n/gctx/pkg/gcloud"
+	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
 // ResolveShell picks the shell for `gctx shell`: $SHELL when set (and, on
@@ -33,33 +35,43 @@ func ResolveShell(goos string, getenv func(string) string, lookPath func(string)
 	return "cmd.exe"
 }
 
-// RunCommand returns an unstarted `gcloud <args>` command that runs as the
-// account without touching global state. The caller wires stdio and runs it.
+// Env returns the environment that runs a process as the account without
+// touching global state.
+func (m *Manager) Env(name string) ([]string, error) {
+	account, p, err := m.resolve(name)
+	if err != nil {
+		return nil, err
+	}
+	return p.Env(account)
+}
+
+// RunCommand returns an unstarted `<provider CLI> <args>` command that runs as
+// the account without touching global state. The caller wires stdio and runs it.
 func (m *Manager) RunCommand(name string, args []string) (*exec.Cmd, error) {
-	account, err := m.account(name)
+	account, p, err := m.resolve(name)
 	if err != nil {
 		return nil, err
 	}
-	m.gcp.Locate()
-	client := m.gcp.Client()
-	if !client.Available() {
-		return nil, gcloud.ErrNotFound
+	cli := p.CLI()
+	if !cli.Found {
+		if p.ID() == provider.GCP {
+			return nil, gcloud.ErrNotFound
+		}
+		return nil, fmt.Errorf("%s CLI not found on PATH", p.Label())
 	}
-	env, err := m.gcp.Env(account)
+	env, err := p.Env(account)
 	if err != nil {
 		return nil, err
 	}
-	return client.Command(env, args...), nil
+	cmd := exec.Command(cli.Bin, args...)
+	cmd.Env = append(os.Environ(), env...)
+	return cmd, nil
 }
 
 // ShellCommand returns an unstarted shell for the account's isolated
 // environment. The caller wires stdio and runs it.
 func (m *Manager) ShellCommand(name string) (*exec.Cmd, error) {
-	account, err := m.account(name)
-	if err != nil {
-		return nil, err
-	}
-	env, err := m.gcp.Env(account)
+	env, err := m.Env(name)
 	if err != nil {
 		return nil, err
 	}

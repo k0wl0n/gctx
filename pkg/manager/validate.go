@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/k0wl0n/gctx/pkg/config"
+	"github.com/k0wl0n/gctx/pkg/provider"
 	"github.com/k0wl0n/gctx/pkg/provider/gcp"
 )
 
@@ -13,6 +15,7 @@ var (
 	ErrInvalidProjectID = gcp.ErrInvalidProjectID
 	ErrAccountNotFound  = errors.New("account not found")
 	ErrAccountExists    = errors.New("account already exists")
+	ErrUnknownProvider  = errors.New("unknown provider")
 )
 
 var accountNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -39,3 +42,15 @@ type existsError struct{ name string }
 
 func (e existsError) Error() string        { return fmt.Sprintf("account '%s' already exists", e.name) }
 func (e existsError) Is(target error) bool { return target == ErrAccountExists }
+
+// unknownProviderError is an account whose provider this build does not
+// know, typically written by a newer version.
+type unknownProviderError struct {
+	account string
+	id      provider.ID
+}
+
+func (e unknownProviderError) Error() string {
+	return fmt.Sprintf("account '%s' uses provider %q, which this version of %s does not support", e.account, e.id, config.AppName)
+}
+func (e unknownProviderError) Is(target error) bool { return target == ErrUnknownProvider }
