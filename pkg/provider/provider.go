@@ -62,6 +62,7 @@ const (
 	WarnADCNotRefreshed     WarningCode = "adc-not-refreshed"
 	WarnGcloudNotFound      WarningCode = "gcloud-not-found"
 	WarnCredentialCheck     WarningCode = "credential-check-failed"
+	WarnProfileIncomplete   WarningCode = "profile-incomplete"
 )
 
 // Warning is a non-fatal condition. Message holds the underlying detail and

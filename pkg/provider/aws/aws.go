@@ -153,7 +153,7 @@ func usesSSO(keys map[string]string) bool {
 }
 
 // Create writes a new SSO profile with `aws configure set`, or adopts an
-// existing profile. The account id and role are set after login.
+// existing profile. sso_account_id and sso_role_name are written only when supplied.
 func (p *Provider) Create(ctx context.Context, acct config.Account) (provider.CreateOutcome, error) {
 	profile := acct.Target()
 	outcome := provider.CreateOutcome{Target: profile}
@@ -191,7 +191,7 @@ func (p *Provider) writeSSOProfile(ctx context.Context, profile string, fields m
 	if err != nil {
 		return err
 	}
-	for _, key := range []string{"sso_start_url", "sso_region", "region"} {
+	for _, key := range []string{"sso_start_url", "sso_region", "region", "sso_account_id", "sso_role_name"} {
 		value := fields[key]
 		if value == "" {
 			continue
@@ -230,7 +230,33 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 	}
 	progress(lio, provider.LoginAuthDone)
 	result.Completed = []string{"sso login"}
+	if warning, incomplete := incompleteProfileWarning(acct.Name, profile, p.profiles()[profile]); incomplete {
+		result.Warnings = append(result.Warnings, warning)
+	}
 	return result, nil
+}
+
+// incompleteProfileWarning explains how to add the account id and role that
+// STS checks need; gctx never reads the SSO token cache to discover them.
+func incompleteProfileWarning(account, profile string, keys map[string]string) (provider.Warning, bool) {
+	var missing, commands []string
+	for _, row := range []struct{ key, placeholder string }{
+		{"sso_account_id", "<id>"},
+		{"sso_role_name", "<role>"},
+	} {
+		if keys[row.key] == "" {
+			missing = append(missing, row.key)
+			commands = append(commands, fmt.Sprintf("aws configure set profile.%s.%s %s", profile, row.key, row.placeholder))
+		}
+	}
+	if len(missing) == 0 {
+		return provider.Warning{}, false
+	}
+	return provider.Warning{
+		Code:    provider.WarnProfileIncomplete,
+		Account: account,
+		Message: fmt.Sprintf("profile %s lacks %s; credential checks fail until set:\n%s", profile, strings.Join(missing, " and "), strings.Join(commands, "\n")),
+	}, true
 }
 
 func progress(lio provider.LoginIO, kind provider.LoginEventKind) {

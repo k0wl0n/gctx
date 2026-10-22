@@ -339,3 +339,62 @@ func TestAWSDetailsAndDelete(t *testing.T) {
 		t.Error("Delete must not edit the AWS config")
 	}
 }
+
+func TestAWSCreateSSOWritesAccountAndRoleWhenProvided(t *testing.T) {
+	h := newHarness(t, "")
+	acct := account("work", "work")
+	acct.Settings = map[string]string{
+		"auth": "sso", "sso_start_url": "https://example.awsapps.com/start", "sso_region": "eu-west-1",
+		"sso_account_id": "123456789012", "sso_role_name": "Developer",
+	}
+	if _, err := h.provider.Create(context.Background(), acct); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, call := range h.calls(t) {
+		got = append(got, strings.Join(call, " "))
+	}
+	joined := strings.Join(got, "\n")
+	for _, want := range []string{
+		"configure set profile.work.sso_account_id 123456789012",
+		"configure set profile.work.sso_role_name Developer",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing call %q in:\n%s", want, joined)
+		}
+	}
+	for _, secret := range []string{"secret", "token", "access_key", "password"} {
+		if strings.Contains(strings.ToLower(joined), secret) {
+			t.Errorf("calls look secret-bearing: %s", joined)
+		}
+	}
+}
+
+func TestAWSLoginWarnsWhenAccountOrRoleMissing(t *testing.T) {
+	h := newHarness(t, ssoConfig)
+	result, err := h.provider.Login(context.Background(), account("work", "work"), provider.LoginIO{})
+	if err != nil || len(result.Warnings) != 1 {
+		t.Fatalf("result %+v err %v", result, err)
+	}
+	message := result.Warnings[0].Message
+	for _, want := range []string{
+		"sso_account_id", "sso_role_name",
+		"aws configure set profile.work.sso_account_id <id>",
+		"aws configure set profile.work.sso_role_name <role>",
+	} {
+		if !strings.Contains(message, want) {
+			t.Errorf("warning %q lacks %q", message, want)
+		}
+	}
+	if result.Warnings[0].Account != "work" {
+		t.Errorf("warning account %q", result.Warnings[0].Account)
+	}
+}
+
+func TestAWSLoginNoWarningWhenComplete(t *testing.T) {
+	h := newHarness(t, ssoConfig+"sso_account_id = 123456789012\nsso_role_name = Developer\n")
+	result, err := h.provider.Login(context.Background(), account("work", "work"), provider.LoginIO{})
+	if err != nil || len(result.Warnings) != 0 {
+		t.Fatalf("result %+v err %v", result, err)
+	}
+}
