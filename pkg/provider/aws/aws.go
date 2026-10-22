@@ -15,11 +15,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/provider"
-	"github.com/k0wl0n/gctx/pkg/provider/execrunner"
+	"github.com/k0wl0n/gctx/pkg/provider/providerutil"
 )
 
 const (
@@ -76,14 +75,7 @@ func (p *Provider) CLI() provider.CLIStatus {
 }
 
 func (p *Provider) runner() (provider.Runner, error) {
-	if p.opts.Runner != nil {
-		return p.opts.Runner, nil
-	}
-	cli := p.CLI()
-	if !cli.Found {
-		return nil, ErrCLINotFound
-	}
-	return execrunner.New(cli.Bin), nil
+	return providerutil.ResolveRunner(p.opts.Runner, p.CLI(), ErrCLINotFound)
 }
 
 func (p *Provider) configPath() string {
@@ -178,7 +170,19 @@ func (p *Provider) Create(ctx context.Context, acct config.Account) (provider.Cr
 		return outcome, fmt.Errorf("unknown auth %q: use %q or %q", auth, authSSO, authProfile)
 	}
 	outcome.TargetSet = true
+	outcome.Settings = storedSettings(acct.Settings)
 	return outcome, nil
+}
+
+// storedSettings picks the fields persisted with the account.
+func storedSettings(fields map[string]string) map[string]string {
+	stored := map[string]string{}
+	for _, key := range []string{"auth", "region", "sso_start_url", "sso_region", "sso_account_id", "sso_role_name"} {
+		if value := fields[key]; value != "" {
+			stored[key] = value
+		}
+	}
+	return stored
 }
 
 func (p *Provider) writeSSOProfile(ctx context.Context, profile string, fields map[string]string) error {
@@ -223,12 +227,12 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 	if lio.NoBrowser {
 		args = append(args, "--no-browser")
 	}
-	progress(lio, provider.LoginAuthStarted)
+	providerutil.Progress(lio, provider.LoginAuthStarted)
 	stdio := provider.Stdio{Stdin: lio.Stdin, Stdout: lio.Stdout, Stderr: lio.Stderr}
 	if err := runner.Interactive(ctx, stdio, p.childEnv(), args...); err != nil {
 		return result, fmt.Errorf("aws sso login failed: %w", err)
 	}
-	progress(lio, provider.LoginAuthDone)
+	providerutil.Progress(lio, provider.LoginAuthDone)
 	result.Completed = []string{"sso login"}
 	if warning, incomplete := incompleteProfileWarning(acct.Name, profile, p.profiles()[profile]); incomplete {
 		result.Warnings = append(result.Warnings, warning)
@@ -259,12 +263,6 @@ func incompleteProfileWarning(account, profile string, keys map[string]string) (
 	}, true
 }
 
-func progress(lio provider.LoginIO, kind provider.LoginEventKind) {
-	if lio.Progress != nil {
-		lio.Progress(provider.LoginEvent{Kind: kind})
-	}
-}
-
 // Activate only hints at the shell command that applies the account: AWS has
 // no global state to switch.
 func (p *Provider) Activate(_ context.Context, acct config.Account) (provider.ActivateResult, error) {
@@ -288,45 +286,25 @@ func (p *Provider) Local(acct config.Account) provider.LocalStatus {
 // CheckAuth runs `aws sts get-caller-identity` for every account in parallel.
 // Credentialed is keyed by account name.
 func (p *Provider) CheckAuth(ctx context.Context, accts []config.Account) provider.AuthReport {
-	report := provider.AuthReport{
-		Credentialed: map[string]bool{},
-		Identities:   map[string]string{},
-	}
 	runner, err := p.runner()
 	if err != nil {
-		report.Warnings = append(report.Warnings, authWarning("", err))
-		return report
+		return provider.AuthReport{
+			Credentialed: map[string]bool{},
+			Identities:   map[string]string{},
+			Warnings:     []provider.Warning{providerutil.CredentialWarning("", err)},
+		}
 	}
-
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-	for _, acct := range accts {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			out, err := runner.Query(ctx, p.childEnv(), "sts", "get-caller-identity", "--profile", acct.Target(), "--output", "json")
-			mu.Lock()
-			defer mu.Unlock()
-			if ctx.Err() != nil {
-				report.Warnings = append(report.Warnings, authWarning(acct.Name, ctx.Err()))
-				return
-			}
-			report.Credentialed[acct.Name] = err == nil
-			if err != nil {
-				return
-			}
-			var identity struct{ Arn string }
-			if json.Unmarshal([]byte(out), &identity) == nil && identity.Arn != "" {
-				report.Identities[acct.Name] = identity.Arn
-			}
-		}()
-	}
-	wg.Wait()
-	return report
-}
-
-func authWarning(account string, err error) provider.Warning {
-	return provider.Warning{Code: provider.WarnCredentialCheck, Account: account, Message: err.Error()}
+	return providerutil.CheckEach(ctx, accts, func(ctx context.Context, acct config.Account) (bool, string) {
+		out, err := runner.Query(ctx, p.childEnv(), "sts", "get-caller-identity", "--profile", acct.Target(), "--output", "json")
+		if err != nil {
+			return false, ""
+		}
+		var identity struct{ Arn string }
+		if json.Unmarshal([]byte(out), &identity) != nil {
+			return true, ""
+		}
+		return true, identity.Arn
+	})
 }
 
 func (p *Provider) Env(acct config.Account) ([]string, error) {

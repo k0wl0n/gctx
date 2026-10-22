@@ -159,7 +159,9 @@ type CreateOutcome struct {
 	ConfigName string
 	Target     string
 	TargetSet  bool
-	Warnings   []Warning
+	// Settings are provider-owned account settings the manager stores.
+	Settings map[string]string
+	Warnings []Warning
 }
 
 type ActivateResult struct {

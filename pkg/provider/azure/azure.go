@@ -14,11 +14,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/provider"
-	"github.com/k0wl0n/gctx/pkg/provider/execrunner"
+	"github.com/k0wl0n/gctx/pkg/provider/providerutil"
 )
 
 const (
@@ -75,14 +74,7 @@ func (p *Provider) CLI() provider.CLIStatus {
 }
 
 func (p *Provider) runner() (provider.Runner, error) {
-	if p.opts.Runner != nil {
-		return p.opts.Runner, nil
-	}
-	cli := p.CLI()
-	if !cli.Found {
-		return nil, ErrCLINotFound
-	}
-	return execrunner.New(cli.Bin), nil
+	return providerutil.ResolveRunner(p.opts.Runner, p.CLI(), ErrCLINotFound)
 }
 
 // accountDir returns the account's isolated directory, refusing any path that
@@ -140,8 +132,8 @@ func validateName(name string) error {
 	return nil
 }
 
-// Create makes the account's private config directory and records it in
-// acct.Settings["dir"].
+// Create makes the account's private config directory and returns it, with the
+// tenant, as settings to store.
 func (p *Provider) Create(_ context.Context, acct config.Account) (provider.CreateOutcome, error) {
 	outcome := provider.CreateOutcome{Target: acct.Target()}
 	if err := p.ValidateTarget(acct.Target()); err != nil {
@@ -160,8 +152,9 @@ func (p *Provider) Create(_ context.Context, acct config.Account) (provider.Crea
 	if err := os.Chmod(dir, 0o700); err != nil {
 		return outcome, fmt.Errorf("failed to restrict azure config dir: %w", err)
 	}
-	if acct.Settings != nil {
-		acct.Settings["dir"] = dir
+	outcome.Settings = map[string]string{"dir": dir}
+	if tenant := acct.Settings["tenant"]; tenant != "" {
+		outcome.Settings["tenant"] = tenant
 	}
 	outcome.TargetSet = true
 	return outcome, nil
@@ -188,7 +181,7 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 	if tenant := acct.Settings["tenant"]; tenant != "" {
 		args = append(args, "--tenant", tenant)
 	}
-	progress(lio, provider.LoginAuthStarted)
+	providerutil.Progress(lio, provider.LoginAuthStarted)
 	stdio := provider.Stdio{Stdin: lio.Stdin, Stdout: lio.Stdout, Stderr: lio.Stderr}
 	if err := runner.Interactive(ctx, stdio, env, args...); err != nil {
 		return result, fmt.Errorf("az login failed: %w", err)
@@ -197,15 +190,9 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 	if _, err := runner.Query(ctx, env, "account", "set", "--subscription", acct.Target()); err != nil {
 		return result, fmt.Errorf("az account set failed: %w", err)
 	}
-	progress(lio, provider.LoginAuthDone)
+	providerutil.Progress(lio, provider.LoginAuthDone)
 	result.Completed = append(result.Completed, "account set")
 	return result, nil
-}
-
-func progress(lio provider.LoginIO, kind provider.LoginEventKind) {
-	if lio.Progress != nil {
-		lio.Progress(provider.LoginEvent{Kind: kind})
-	}
 }
 
 // Activate only hints at the shell command that applies the account: Azure
@@ -245,48 +232,23 @@ func (p *Provider) Local(acct config.Account) provider.LocalStatus {
 // of the output) for every account in parallel. Credentialed is keyed by
 // account name; a non-zero exit means expired or not logged in.
 func (p *Provider) CheckAuth(ctx context.Context, accts []config.Account) provider.AuthReport {
-	report := provider.AuthReport{
-		Credentialed: map[string]bool{},
-		Identities:   map[string]string{},
-	}
 	runner, err := p.runner()
 	if err != nil {
-		report.Warnings = append(report.Warnings, authWarning("", err))
-		return report
+		return provider.AuthReport{
+			Credentialed: map[string]bool{},
+			Identities:   map[string]string{},
+			Warnings:     []provider.Warning{providerutil.CredentialWarning("", err)},
+		}
 	}
-
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-	for _, acct := range accts {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			credentialed := p.checkOne(ctx, runner, acct)
-			mu.Lock()
-			defer mu.Unlock()
-			if ctx.Err() != nil {
-				report.Warnings = append(report.Warnings, authWarning(acct.Name, ctx.Err()))
-				return
-			}
-			report.Credentialed[acct.Name] = credentialed
-		}()
-	}
-	wg.Wait()
-	return report
-}
-
-func (p *Provider) checkOne(ctx context.Context, runner provider.Runner, acct config.Account) bool {
-	dir, err := p.accountDir(acct)
-	if err != nil {
-		return false
-	}
-	out, err := runner.Query(ctx, []string{envConfDir + "=" + dir},
-		"account", "get-access-token", "--subscription", acct.Target(), "--query", "expiresOn", "--output", "tsv")
-	return err == nil && out != ""
-}
-
-func authWarning(account string, err error) provider.Warning {
-	return provider.Warning{Code: provider.WarnCredentialCheck, Account: account, Message: err.Error()}
+	return providerutil.CheckEach(ctx, accts, func(ctx context.Context, acct config.Account) (bool, string) {
+		dir, err := p.accountDir(acct)
+		if err != nil {
+			return false, ""
+		}
+		out, err := runner.Query(ctx, []string{envConfDir + "=" + dir},
+			"account", "get-access-token", "--subscription", acct.Target(), "--query", "expiresOn", "--output", "tsv")
+		return err == nil && out != "", ""
+	})
 }
 
 func (p *Provider) Env(acct config.Account) ([]string, error) {

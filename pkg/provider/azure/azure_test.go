@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -103,9 +104,11 @@ func account(name string) config.Account {
 func (h *harness) created(t *testing.T, name string) config.Account {
 	t.Helper()
 	acct := account(name)
-	if _, err := h.provider.Create(context.Background(), acct); err != nil {
+	outcome, err := h.provider.Create(context.Background(), acct)
+	if err != nil {
 		t.Fatal(err)
 	}
+	maps.Copy(acct.Settings, outcome.Settings)
 	return acct
 }
 
@@ -134,8 +137,11 @@ func TestAzureCreateMakesPrivateDir(t *testing.T) {
 	if err != nil || !info.IsDir() || info.Mode().Perm() != 0o700 {
 		t.Fatalf("dir %v mode %v err %v", want, info, err)
 	}
-	if acct.Settings["dir"] != want {
-		t.Errorf("Settings[dir] = %q, want %q", acct.Settings["dir"], want)
+	if outcome.Settings["dir"] != want || outcome.Settings["tenant"] != "contoso.onmicrosoft.com" {
+		t.Errorf("outcome settings %v, want dir %q and tenant", outcome.Settings, want)
+	}
+	if _, mutated := acct.Settings["dir"]; mutated {
+		t.Error("Create must not mutate the caller's settings")
 	}
 	if len(h.calls(t)) != 0 {
 		t.Error("create must not run az")

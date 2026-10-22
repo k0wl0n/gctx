@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -92,9 +93,6 @@ func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateR
 	account := config.Account{Name: req.Name, ProjectID: req.Target, Settings: req.Fields}
 	if id != provider.GCP {
 		account.Provider = string(id)
-		if account.Settings == nil {
-			account.Settings = map[string]string{} // providers record derived settings here
-		}
 	}
 	var warnings []Warning
 	if preparer, ok := p.(provider.CreatePreparer); ok {
@@ -113,6 +111,7 @@ func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateR
 		ProjectSet: outcome.TargetSet,
 		Warnings:   append(warnings, outcome.Warnings...),
 	}
+	account.Settings = mergeSettings(account.Settings, outcome.Settings)
 	if outcome.ConfigName != "" {
 		account.ConfigName, result.ConfigName = outcome.ConfigName, outcome.ConfigName
 	}
@@ -238,4 +237,15 @@ func (m *Manager) Delete(ctx context.Context, name string, opt DeleteOptions) (D
 		return nil
 	})
 	return result, err
+}
+
+// mergeSettings returns base overlaid with extra, or base itself when extra is empty.
+func mergeSettings(base, extra map[string]string) map[string]string {
+	if len(extra) == 0 {
+		return base
+	}
+	merged := make(map[string]string, len(base)+len(extra))
+	maps.Copy(merged, base)
+	maps.Copy(merged, extra)
+	return merged
 }
