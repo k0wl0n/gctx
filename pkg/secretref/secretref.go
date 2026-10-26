@@ -33,7 +33,14 @@ const (
 	latestSecret = "latest"
 )
 
-var envVarName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+var (
+	envVarName      = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	gcpProjectName  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]*$`)
+	gcpSecretName   = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_-]*$`)
+	opSegment       = regexp.MustCompile(`^[A-Za-z0-9_.@+:%=,-]+$`)
+	gcpVersionName  = regexp.MustCompile(`^(latest|[0-9]+)$`)
+	keychainService = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.@+:-]*$`)
+)
 
 // Ref is a parsed secret reference. Path is everything after the scheme
 // marker ("op://", "gcpsm://", "keychain:", "env:").
@@ -78,7 +85,34 @@ func parseSegments(scheme, path string, minParts, maxParts int, shape string) (R
 			return Ref{}, fmt.Errorf("reference must look like %s with no empty or relative parts", shape)
 		}
 	}
-	return Ref{Scheme: scheme, Path: path}, nil
+	ref := Ref{Scheme: scheme, Path: path}
+	if !ref.segmentsValid(parts) {
+		return Ref{}, fmt.Errorf("reference must look like %s using only letters, digits and - _ . : @ +", shape)
+	}
+	return ref, nil
+}
+
+// segmentsValid checks the user-controlled parts against the charset of the
+// scheme; none may start with "-", so they can never be read as a flag.
+func (r Ref) segmentsValid(parts []string) bool {
+	switch r.Scheme {
+	case SchemeOnePassword:
+		for _, part := range parts {
+			if !opSegment.MatchString(part) {
+				return false
+			}
+		}
+		return !strings.HasPrefix(parts[0], "-")
+	case SchemeGCPSecret:
+		version := latestSecret
+		if len(parts) > 2 {
+			version = parts[2]
+		}
+		return gcpProjectName.MatchString(parts[0]) && gcpSecretName.MatchString(parts[1]) && gcpVersionName.MatchString(version)
+	case SchemeKeychain:
+		return keychainService.MatchString(parts[0])
+	}
+	return false
 }
 
 // String is the canonical reference text, safe to print and store.
@@ -92,7 +126,8 @@ func (r Ref) String() string {
 }
 
 // ErrHelperMissing reports that the CLI needed to resolve a reference is not
-// on PATH. It is returned as *ErrHelperMissing.
+// on PATH. Return and match it as a value:
+// var m ErrHelperMissing; errors.As(err, &m).
 type ErrHelperMissing struct{ Helper string }
 
 func (e ErrHelperMissing) Error() string {
@@ -102,7 +137,7 @@ func (e ErrHelperMissing) Error() string {
 // Deps are the outside-world hooks Resolve needs.
 type Deps struct {
 	// Runner returns a runner for the helper executable, or an error wrapping
-	// *ErrHelperMissing when it is not installed.
+	// ErrHelperMissing (a value, not a pointer) when it is not installed.
 	Runner func(helper string) (provider.Runner, error)
 	Getenv func(string) string
 	GOOS   string
@@ -114,7 +149,7 @@ func DefaultDeps() Deps {
 		Runner: func(helper string) (provider.Runner, error) {
 			bin, err := exec.LookPath(helper)
 			if err != nil {
-				return nil, &ErrHelperMissing{Helper: helper}
+				return nil, ErrHelperMissing{Helper: helper}
 			}
 			return execrunner.New(bin), nil
 		},
@@ -128,11 +163,19 @@ func (r Ref) Resolve(ctx context.Context, deps Deps) (string, error) {
 	if r.Scheme == SchemeEnv {
 		return r.resolveEnv(deps)
 	}
-	helper, args, err := r.helperCommand(deps.GOOS)
+	helper, words, err := r.helperCommand(deps.GOOS)
 	if err != nil {
 		return "", err
 	}
-	run, err := deps.Runner(helper)
+	args := make([]string, len(words))
+	for i, word := range words {
+		args[i] = word.plain()
+	}
+	newRunner := deps.Runner
+	if newRunner == nil {
+		newRunner = DefaultDeps().Runner
+	}
+	run, err := newRunner(helper)
 	if err != nil {
 		return "", err
 	}
@@ -159,23 +202,57 @@ func (r Ref) resolveEnv(deps Deps) (string, error) {
 	return value, nil
 }
 
-func (r Ref) helperCommand(goos string) (helper string, args []string, err error) {
+// word is one helper argument: a fixed prefix (such as "--secret=") followed
+// by a possibly user-controlled value.
+type word struct{ prefix, value string }
+
+func (w word) plain() string { return w.prefix + w.value }
+
+func (w word) shell() string { return w.prefix + shellQuote(w.value) }
+
+func literal(text string) word { return word{value: text} }
+
+func (r Ref) helperCommand(goos string) (helper string, args []word, err error) {
+	if err := r.refuseLeadingDash(); err != nil {
+		return "", nil, err
+	}
 	switch r.Scheme {
 	case SchemeOnePassword:
-		return "op", []string{"read", r.String()}, nil
+		return "op", []word{literal("read"), literal(r.String())}, nil
 	case SchemeGCPSecret:
 		project, secret, version := r.gcpParts()
-		return "gcloud", []string{"secrets", "versions", "access", version, "--secret=" + secret, "--project=" + project}, nil
+		return "gcloud", []word{
+			literal("secrets"), literal("versions"), literal("access"), literal(version),
+			{prefix: "--secret=", value: secret}, {prefix: "--project=", value: project},
+		}, nil
 	case SchemeKeychain:
 		switch goos {
 		case "darwin":
-			return "security", []string{"find-generic-password", "-w", "-s", r.Path}, nil
+			return "security", []word{literal("find-generic-password"), literal("-w"), literal("-s"), literal(r.Path)}, nil
 		case "linux":
-			return "secret-tool", []string{"lookup", "service", r.Path}, nil
+			return "secret-tool", []word{literal("lookup"), literal("service"), literal(r.Path)}, nil
 		}
 		return "", nil, fmt.Errorf("keychain references are not supported on %s", goos)
 	}
 	return "", nil, fmt.Errorf("unsupported reference scheme %q", r.Scheme)
+}
+
+// refuseLeadingDash guards Refs built without Parse: a segment starting with
+// "-" would be read by the helper as an option.
+func (r Ref) refuseLeadingDash() error {
+	segments := []string{r.Path}
+	if r.Scheme == SchemeOnePassword || r.Scheme == SchemeGCPSecret {
+		segments = strings.Split(r.Path, "/")
+		if r.Scheme == SchemeOnePassword {
+			segments = segments[:1]
+		}
+	}
+	for _, segment := range segments {
+		if strings.HasPrefix(segment, "-") {
+			return errors.New("reference segment must not start with '-'")
+		}
+	}
+	return nil
 }
 
 func (r Ref) gcpParts() (project, secret, version string) {
@@ -218,16 +295,13 @@ func (r Ref) ShellLookupFor(goos string) (string, error) {
 	words := make([]string, 0, len(args)+1)
 	words = append(words, helper)
 	for _, arg := range args {
-		words = append(words, shellQuote(arg))
+		words = append(words, arg.shell())
 	}
 	return "$(" + strings.Join(words, " ") + ")", nil
 }
 
 // shellQuote single-quotes s unless it is made only of shell-safe characters.
 func shellQuote(s string) string {
-	if flag, value, isFlag := strings.Cut(s, "="); isFlag && strings.HasPrefix(flag, "--") {
-		return flag + "=" + shellQuote(value)
-	}
 	if s != "" && strings.Trim(s, safeShellChars) == "" {
 		return s
 	}

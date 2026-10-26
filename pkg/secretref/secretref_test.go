@@ -76,7 +76,7 @@ func fakeOpDeps(t *testing.T) secretref.Deps {
 	return secretref.Deps{
 		Runner: func(helper string) (provider.Runner, error) {
 			if helper != "op" {
-				return nil, &secretref.ErrHelperMissing{Helper: helper}
+				return nil, secretref.ErrHelperMissing{Helper: helper}
 			}
 			return execrunner.New(bin), nil
 		},
@@ -235,9 +235,108 @@ func TestResolveEnvMissing(t *testing.T) {
 func TestResolveHelperMissingIsTyped(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	_, err := mustParse(t, "op://Private/sumopod-dev/credential").Resolve(context.Background(), secretref.DefaultDeps())
-	var missing *secretref.ErrHelperMissing
+	var missing secretref.ErrHelperMissing
 	if !errors.As(err, &missing) || missing.Helper != "op" {
 		t.Fatalf("err %v is not ErrHelperMissing{op}", err)
+	}
+}
+
+func TestHelperMissingMatchesValueTarget(t *testing.T) {
+	var value secretref.ErrHelperMissing
+	if !errors.As(secretref.ErrHelperMissing{Helper: "op"}, &value) || value.Helper != "op" {
+		t.Error("value target does not match")
+	}
+	// The documented form is the value type; a pointer target is not matched.
+	var pointer *secretref.ErrHelperMissing
+	if errors.As(secretref.ErrHelperMissing{Helper: "op"}, &pointer) {
+		t.Error("pointer target unexpectedly matches")
+	}
+}
+
+func TestResolveWithNilRunnerFallsBackToPath(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	_, err := mustParse(t, "keychain:svc").Resolve(context.Background(), secretref.Deps{GOOS: "linux"})
+	var missing secretref.ErrHelperMissing
+	if !errors.As(err, &missing) {
+		t.Fatalf("err %v, want ErrHelperMissing", err)
+	}
+}
+
+func TestParseRejectsFlagLikeSegments(t *testing.T) {
+	for _, in := range []string{
+		"gcpsm://p/s/--impersonate-service-account=x",
+		"gcpsm://p/s/-1",
+		"gcpsm://p/s/v1",
+		"gcpsm://-p/s",
+		"gcpsm://p/-s",
+		"keychain:-x",
+		"op://-x/item/field",
+	} {
+		if _, err := secretref.Parse(in); err == nil {
+			t.Errorf("Parse(%q) accepted", in)
+		}
+	}
+}
+
+func TestParseRejectsShellMetacharacters(t *testing.T) {
+	for _, in := range []string{
+		"op://v/i/f;touch", "op://v/i/$(id)", "op://v/i/`id`", "op://v/i/f\nx", "op://v/i/f\x00x", "op://v/i/f x",
+		"gcpsm://p;x/s", "gcpsm://p/s$(id)", "gcpsm://p/s`id`/3", "gcpsm://p/s x",
+		"keychain:a;b", "keychain:a$b", "keychain:a`b`", "keychain:a\nb", "keychain:a b", "keychain:a'b",
+	} {
+		if _, err := secretref.Parse(in); err == nil {
+			t.Errorf("Parse(%q) accepted", in)
+		}
+	}
+}
+
+func TestShellLookupNeverLeavesUnquotedUserInput(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("needs /bin/sh")
+	}
+	hostile := []string{"a'b", "a b", "a$b", "a;touch x", "a`id`", "a\"b", "a--x;touch=1"}
+	for _, value := range hostile {
+		refs := []struct {
+			ref  secretref.Ref
+			goos string
+			want []string
+		}{
+			{secretref.Ref{Scheme: "op", Path: "v/i/" + value}, "linux", []string{"op", "read", "op://v/i/" + value}},
+			{secretref.Ref{Scheme: "gcpsm", Path: "p/" + value + "/3"}, "linux", []string{"gcloud", "secrets", "versions", "access", "3", "--secret=" + value, "--project=p"}},
+			{secretref.Ref{Scheme: "gcpsm", Path: "p/s/" + value}, "linux", []string{"gcloud", "secrets", "versions", "access", value, "--secret=s", "--project=p"}},
+			{secretref.Ref{Scheme: "keychain", Path: value}, "darwin", []string{"security", "find-generic-password", "-w", "-s", value}},
+		}
+		for _, c := range refs {
+			expr, err := c.ref.ShellLookupFor(c.goos)
+			if err != nil {
+				t.Errorf("%+v: %v", c.ref, err)
+				continue
+			}
+			inner := strings.TrimSuffix(strings.TrimPrefix(expr, "$("), ")")
+			script := `printf '%s\n' ` + strings.TrimPrefix(inner, strings.Fields(inner)[0])
+			out, err := exec.Command("/bin/sh", "-c", script).Output()
+			if err != nil {
+				t.Errorf("%q does not parse: %v", expr, err)
+				continue
+			}
+			got := append([]string{c.want[0]}, strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")...)
+			if fmt.Sprint(got) != fmt.Sprint(c.want) {
+				t.Errorf("%q round-trips to %q, want %q", expr, got, c.want)
+			}
+		}
+	}
+}
+
+func TestShellLookupRefusesLeadingDash(t *testing.T) {
+	for _, ref := range []secretref.Ref{
+		{Scheme: "keychain", Path: "-x"},
+		{Scheme: "gcpsm", Path: "p/s/--x=1"},
+		{Scheme: "gcpsm", Path: "-p/s"},
+		{Scheme: "op", Path: "-v/i/f"},
+	} {
+		if _, err := ref.ShellLookupFor("darwin"); err == nil {
+			t.Errorf("%+v accepted", ref)
+		}
 	}
 }
 
