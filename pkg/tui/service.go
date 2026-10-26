@@ -20,6 +20,7 @@ type Service interface {
 	Info(name string) (manager.AccountStatus, error)
 	Switch(ctx context.Context, name string) (manager.SwitchResult, error)
 	CreateAccount(ctx context.Context, req manager.CreateRequest) (manager.CreateResult, error)
+	TestConnection(ctx context.Context, req manager.CreateRequest) (provider.ConnectionResult, error)
 	UpdateAccount(ctx context.Context, name string, req manager.UpdateRequest) error
 	Login(ctx context.Context, name string, io manager.LoginIO) (manager.LoginResult, error)
 	SaveCredentials(ctx context.Context, name string) (manager.SaveResult, error)

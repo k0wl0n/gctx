@@ -172,3 +172,16 @@ type Renamer interface {
 type Claimer interface {
 	Claims(acct config.Account) []string
 }
+
+// ConnectionResult is the outcome of ConnectionTester. Detail is one line for
+// the user and never holds a key or token.
+type ConnectionResult struct {
+	Detail string
+}
+
+// ConnectionTester re-runs the provider's connectivity and budget check for
+// one account that may not be saved yet (the create form's "Test again").
+// A failure is returned as an error.
+type ConnectionTester interface {
+	TestConnection(ctx context.Context, acct config.Account) (ConnectionResult, error)
+}

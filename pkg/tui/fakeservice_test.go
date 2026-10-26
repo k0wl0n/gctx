@@ -50,6 +50,8 @@ type fakeService struct {
 	imported    [][]manager.DiscoveredAccount
 	onImport    func(items []manager.DiscoveredAccount) // lets a test change the overview an import produces
 	cliVersions map[provider.ID]string
+	testRes     provider.ConnectionResult
+	testErr     error
 
 	envs            map[string][]string                      // Env results by account
 	providerReports map[provider.ID]manager.CredentialReport // CheckProviderCredentials results
@@ -139,6 +141,11 @@ func (f *fakeService) CreateAccount(ctx context.Context, req manager.CreateReque
 	f.createReqs = append(f.createReqs, req)
 	f.mu.Unlock()
 	return f.createRes, f.createErr
+}
+
+func (f *fakeService) TestConnection(ctx context.Context, req manager.CreateRequest) (provider.ConnectionResult, error) {
+	f.record("TestConnection", string(req.Provider))
+	return f.testRes, f.testErr
 }
 
 func (f *fakeService) UpdateAccount(ctx context.Context, name string, req manager.UpdateRequest) error {

@@ -468,6 +468,8 @@ func (m Model) dispatch(msg tea.Msg) (Model, tea.Cmd) {
 		return m, cmd
 	case credsCheckedMsg:
 		return m.handleCreds(msg)
+	case connTestedMsg:
+		return m.updateModal(msg)
 	case envLoadedMsg:
 		m.envs = msg.envs
 		return m, nil

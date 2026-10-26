@@ -38,6 +38,7 @@ const (
 	itemField
 	itemLogin
 	itemSubmit
+	itemTest
 	itemCancel
 )
 
@@ -77,6 +78,23 @@ type accountForm struct {
 	fields    []formField
 	pos       int // index into items()
 	attempted bool
+	test      connectionTest
+}
+
+// connectionTest is the state of the "Test again" check.
+type connectionTest struct {
+	seq     int
+	running bool
+	done    bool
+	detail  string
+	err     error
+}
+
+// connTestedMsg carries the result of a connection check back to the form.
+type connTestedMsg struct {
+	seq    int
+	result provider.ConnectionResult
+	err    error
 }
 
 func newCreateForm(overview manager.Overview, preferred provider.ID) *accountForm {
@@ -147,6 +165,7 @@ func (f *accountForm) selectKind(kind, providerIndex int) {
 	f.kind = kind
 	f.providers = providersOf(f.overview, f.kinds[kind])
 	f.provider = min(providerIndex, len(f.providers)-1)
+	f.test = connectionTest{seq: f.test.seq}
 	f.rebuildFields()
 }
 
@@ -227,6 +246,9 @@ func (f *accountForm) items() []formItem {
 			items = append(items, formItem{kind: itemLogin})
 		}
 		items = append(items, formItem{kind: itemSubmit})
+		if info.CanTest {
+			items = append(items, formItem{kind: itemTest})
+		}
 	}
 	return append(items, formItem{kind: itemCancel})
 }
@@ -302,6 +324,12 @@ func (f *accountForm) nameOwner(name string) (string, bool) {
 }
 
 func (f *accountForm) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
+	if done, ok := msg.(connTestedMsg); ok {
+		if done.seq == f.test.seq {
+			f.test = connectionTest{seq: done.seq, done: true, detail: done.result.Detail, err: done.err}
+		}
+		return m, nil
+	}
 	key, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return m, nil
@@ -324,6 +352,8 @@ func (f *accountForm) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
 			return f.submit(m, true)
 		case itemSubmit:
 			return f.submit(m, false)
+		case itemTest:
+			return f.startTest(m)
 		case itemCancel:
 			m.modal = nil
 			return m, nil
@@ -431,6 +461,21 @@ func (f *accountForm) submit(m Model, login bool) (Model, tea.Cmd) {
 		return opDoneMsg{seq: seq, kind: opCreate, account: name, result: result, err: err}
 	}
 	return m, tea.Batch(func() tea.Msg { return m.spin.Tick() }, cmd)
+}
+
+// startTest re-runs the provider's connection check for the values on the form.
+func (f *accountForm) startTest(m Model) (Model, tea.Cmd) {
+	if f.test.running {
+		return m, nil
+	}
+	f.test = connectionTest{seq: f.test.seq + 1, running: true}
+	seq := f.test.seq
+	svc := m.svc
+	request := f.createRequest(strings.TrimSpace(f.name.Value()))
+	return m, func() tea.Msg {
+		result, err := svc.TestConnection(context.Background(), request)
+		return connTestedMsg{seq: seq, result: result, err: err}
+	}
 }
 
 func (f *accountForm) focusFirstError(check formCheck) {
@@ -663,6 +708,9 @@ func (f *accountForm) view(m Model) string {
 		body = slices.DeleteFunc(body, func(line string) bool { return line == "" })
 	}
 	body = append(body, "")
+	if line := f.testLine(g, st, inner); line != "" {
+		body = append(body, line, "")
+	}
 	buttons := f.buttons(item, info, g, st)
 	if item.kind >= itemLogin {
 		focusLine = len(body)
@@ -732,8 +780,24 @@ func (f *accountForm) buttons(item formItem, info manager.ProviderInfo, g glyphs
 		submitLabel = "Create only"
 	}
 	parts = append(parts, renderButton(submitLabel, item.kind == itemSubmit, enabled, st))
+	if info.CanTest && enabled {
+		parts = append(parts, renderButton("Test again", item.kind == itemTest, true, st))
+	}
 	parts = append(parts, renderPlainButton("Cancel", item.kind == itemCancel, st))
 	return strings.Join(parts, " ")
+}
+
+// testLine is the outcome of the last connection check, "" before any.
+func (f *accountForm) testLine(g glyphs, st styles, width int) string {
+	switch {
+	case f.test.running:
+		return st.Dim.Render("testing" + g.Ellipsis)
+	case !f.test.done:
+		return ""
+	case f.test.err != nil:
+		return st.Error.Render(truncateCells(g.No+" "+f.test.err.Error(), width, g.Ellipsis))
+	}
+	return st.OK.Render(truncateCells(g.Yes+" "+f.test.detail, width, g.Ellipsis))
 }
 
 func kindLabel(category provider.Category) string {

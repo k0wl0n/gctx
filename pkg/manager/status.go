@@ -124,6 +124,7 @@ func (m *Manager) providerInfos(clis map[provider.ID]provider.CLIStatus, counts 
 			info.StreamsLogin = streaming.StreamsLogin()
 		}
 		info.NoRename = !canRename(p)
+		_, info.CanTest = p.(provider.ConnectionTester)
 		infos = append(infos, info)
 	}
 	return infos

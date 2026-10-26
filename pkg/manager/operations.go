@@ -57,6 +57,21 @@ func (m *Manager) Create(ctx context.Context, name, projectID string) (CreateRes
 	return m.CreateAccount(ctx, CreateRequest{Provider: provider.GCP, Name: name, Target: projectID})
 }
 
+// TestConnection runs the provider's connection check for the account the
+// request describes, without saving anything.
+func (m *Manager) TestConnection(ctx context.Context, req CreateRequest) (provider.ConnectionResult, error) {
+	p, ok := m.providers.Get(req.Provider)
+	if !ok {
+		return provider.ConnectionResult{}, NewUnknownProviderError(req.Provider, m.providerIDs())
+	}
+	tester, ok := p.(provider.ConnectionTester)
+	if !ok {
+		return provider.ConnectionResult{}, fmt.Errorf("%s has no connection check", p.Label())
+	}
+	account := config.Account{Name: req.Name, ProjectID: req.Target, Settings: req.Fields, Provider: string(req.Provider)}
+	return tester.TestConnection(ctx, account)
+}
+
 // CreateAccount validates the request, has the provider create its CLI-side
 // state, and records the account. It stops before login.
 func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateResult, error) {
