@@ -16,12 +16,12 @@ The screen shows, top to bottom:
 
 - **Header**: one slot per provider that has accounts (`GCP ● cloudsuite  AWS ● prod-aws  AZR ○`, where `○` means no account of that provider is active), config health and the age of the last credential check. A dim second line shows the env the active accounts would export; key references appear as `‹op://…›`, never as values.
 - **Tab row**: `All`, then one tab per provider with accounts. A provider whose CLI is missing shows `n/a`.
-- **List**: on `All`, grouped by category (clouds, AI tools, AI gateways) and provider, each group with a count summary. On a provider tab the KIND column drops and the provider's own columns (for example REGION for AWS) appear. As the terminal narrows, columns drop in this order: EXPIRES/BUDGET, IDENTITY, ADC, provider columns; TARGET then shortens with an ellipsis in the middle. NAME and STATUS always stay.
+- **List**: on `All`, grouped by category (only clouds exist in this version; AI tools and gateways are planned) and provider, each group with a count summary. On a provider tab the KIND column drops and the provider's own columns (for example REGION for AWS) appear. As the terminal narrows, columns drop in this order: EXPIRES/BUDGET, IDENTITY, ADC, provider columns; TARGET then shortens with an ellipsis in the middle. NAME and STATUS always stay.
 - **Detail pane** (150 columns or more, `p` toggles it): the selected account's details, the env activation applies and its actions. Narrower terminals use `d` for the full-screen details.
 - **Status line**: credential check progress per provider and account totals.
 - **Hint line**: the keys that fit the width.
 
-Between 60 and 99 columns the badge moves into the NAME column, the tab row becomes a single chip and the header slots become coloured dots. Colours follow the terminal's colour profile; with `NO_COLOR` badges are shown in brackets (`[GCP]`), and `GCTX_ASCII=1` uses ASCII glyphs. It uses the alternate screen, so your scrollback is untouched on exit.
+Width tiers: 150 columns or more (wide, detail pane), 100-149 (standard), 60-99 (narrow). In the narrow tier the badge moves into the NAME column, the tab row becomes a single chip and the header slots become coloured dots. Colours follow the terminal's colour profile; with `NO_COLOR` badges are shown in brackets (`[GCP]`), and `GCTX_ASCII=1` uses ASCII glyphs. It uses the alternate screen, so your scrollback is untouched on exit.
 
 ## Keybindings
 
@@ -39,10 +39,14 @@ Between 60 and 99 columns the badge moves into the NAME column, the tab row beco
 | `/` | filter |
 | `esc` | clear applied filter |
 | `d` / `i` | details |
-| `l` | login |
-| `s` | isolated shell |
+| `l` | login (Azure: full-screen login page; other providers suspend the TUI) |
+| `L` | log in every AUTH REQUIRED or EXPIRED account in turn (`n` skips) |
+| `s` | subshell with every active slot applied |
+| `S` | subshell with only the selected account |
+| `y` | copy the `eval "$(gctx env <name>)"` line (env-based providers) |
 | `r` | run gcloud command |
 | `c` | create |
+| `e` | edit: rename and change editable settings (identity fields are read-only) |
 | `ctrl+d` | delete |
 | `a` | save current ADC to selected account |
 | `p` | toggle the detail pane |
@@ -108,9 +112,12 @@ Each account shows one primary status (the first that applies in this order) and
 | `AUTH REQUIRED` | The configuration has no account, gcloud reports it is not credentialed, or a switch in this session reported that re-authentication is needed. | Press `l` to log in. |
 | `ADC MISSING` | No stored ADC file for the account. | Press `l` to log in, or `a` to save the current ADC. |
 | `PROJECT MISMATCH` | The configuration's project differs from the account's project. | Press `enter` to re-apply the project. |
+| `EXPIRED` | AWS or Azure: the session is past its expiry. | Press `l`. |
+| `UNVERIFIED` | A check timed out or the network failed. Shows the last known result and its age; never becomes `AUTH REQUIRED`. | Press `R` to recheck. |
+| `CLI MISSING` | The provider's CLI is not on `PATH`. | Install it (the provider tab shows the command). |
 | `READY` | None of the above. | None. |
 
-Health is computed from local files and `gcloud auth list`. No network call or token refresh is made, and credentials are never displayed.
+GCP health is computed from local files and `gcloud auth list`; AWS and Azure run `aws sts get-caller-identity` and `az account get-access-token --query expiresOn`. Tokens are never read or displayed. The last result per account is cached in `status.json` (no secrets).
 
 The header ADC indicator is `✓ active` (default ADC identical to the active account's stored ADC), `⚠ differs`, `✗ none` or `? unknown`. A `⚠` after the gcloud configuration means it differs from the active account's configuration. Inside `gctx shell`, the header also shows `Shell: <name>`.
 

@@ -4,7 +4,7 @@ Prerequisite: the `az` CLI on `PATH`. A missing CLI marks only Azure accounts `C
 
 An Azure account is a subscription id (`gctx create work 00000000-0000-0000-0000-000000000000 --provider azure`). The target must be a GUID. An optional `tenant` setting is passed to `az login --tenant`.
 
-Each account gets its own private Azure CLI config directory, `~/.config/gctx/azure/<name>` (mode `0700`), used as `AZURE_CONFIG_DIR`. Accounts never share a login and nothing in `~/.azure` is touched. Deleting an account removes its directory.
+Each account gets its own private Azure CLI config directory, `~/.config/gctx/azure/<name>` (mode `0700`), used as `AZURE_CONFIG_DIR`. Accounts never share a login and nothing in `~/.azure` is touched. 
 
 Azure has no global switch, so `gctx switch` prints a hint instead of changing state. Select the account per shell:
 
@@ -14,3 +14,9 @@ gctx login work           # az login --use-device-code, then az account set --su
 ```
 
 Login uses the device-code flow: open the printed URL and enter the code. Credential checks run `az account get-access-token --query expiresOn`, so gctx only sees the expiry time. gctx never reads token caches and never receives an access token.
+
+In the TUI, login runs on a full-screen page that shows the device code and URL (`o` opens the browser, `y` copies the code, `v` shows the full log, `esc` cancels).
+
+## Delete
+
+`gctx delete` removes the account's isolated directory only if it is inside `~/.config/gctx/azure`, and does not run `az logout`. The TUI delete dialog lists what is removed and offers `az logout` first (bounded by a timeout; a failed logout is reported and the delete continues). `~/.azure` is never touched.

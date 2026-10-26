@@ -16,3 +16,5 @@ gctx login prod           # aws sso login --profile prod-profile (SSO profiles o
 
 Credential checks use `aws sts get-caller-identity --profile <profile>`.
 
+
+`gctx login` prints any warnings (for example missing `sso_account_id` or `sso_role_name`) in its output. The TUI create form (`c`) offers the same two modes and shows what will be written to `~/.aws/config` before it does.

@@ -1,4 +1,4 @@
-# GCloud Multi-Account Manager
+# gctx: multi-account context manager
 
 [![Documentation Status](https://readthedocs.org/projects/gctx/badge/?version=latest)](https://gctx.readthedocs.io/en/latest/?badge=latest)
 [![CI](https://github.com/k0wl0n/gctx/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/k0wl0n/gctx/actions/workflows/ci.yml)
@@ -6,7 +6,7 @@
 <img width="495" height="425" alt="image" src="https://github.com/user-attachments/assets/1a5d2c96-ab55-4a32-ae6d-dbdd1bf1434d" />
 
 
-A Go-based CLI tool using Cobra to manage multiple GCP accounts with seamless switching of both gcloud configurations and ADC (Application Default Credentials).
+A Go CLI and terminal UI to keep several cloud accounts side by side and switch between them: GCP, AWS and Azure. GCP behaviour is unchanged (gcloud configuration plus ADC swap).
 
 
 ![01091-1-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/f7f23e3f-e33a-49c1-bad4-3db753e1cfc8)
@@ -21,6 +21,75 @@ Full documentation is available at [gctx.readthedocs.io](https://gctx.readthedoc
 **Problem**: Managing multiple GCP accounts requires constant re-authentication when switching between accounts, especially for ADC credentials which are stored in a single file.
 
 **Solution**: `gctx` saves separate ADC credentials for each account and swaps them automatically when switching, eliminating the need for repeated `gcloud auth application-default login`.
+
+## Providers
+
+| Provider | An account is | How it switches | CLI |
+|---|---|---|---|
+| GCP | a gcloud configuration + stored ADC | global: `gctx switch` activates the gcloud configuration and swaps the ADC file | `gcloud` |
+| AWS | an AWS profile | env: `AWS_PROFILE` | `aws` v2 |
+| Azure | a subscription with its own isolated CLI directory | env: `AZURE_CONFIG_DIR` | `az` |
+
+AWS and Azure have no global state to swap. `gctx switch` records the account as active for its slot (one active account per provider) and prints the line to apply it:
+
+```bash
+eval "$(gctx env prod-aws)"   # exports AWS_PROFILE for this shell
+gctx shell prod-aws           # or start a subshell with the account applied
+```
+
+Details: [AWS](readthedocs/docs/aws.md), [Azure](readthedocs/docs/azure.md), [providers overview](readthedocs/docs/providers.md).
+
+## Commands
+
+| Command | Example |
+|---|---|
+| `list` | `gctx list --provider aws` |
+| `create` | `gctx create prod prod-profile --provider aws` |
+| `env` | `eval "$(gctx env prod)"` |
+| `switch` | `gctx switch work` |
+| `login` | `gctx login work` |
+| `delete` | `gctx delete old --gcloud-config` |
+| `info` | `gctx info work` |
+| `save` | `gctx save work` (GCP: store the current ADC) |
+| `run` | `gctx run work compute instances list` (GCP) |
+| `shell` | `gctx shell work` |
+| `active` | `gctx active` |
+| `tui` | `gctx tui` |
+
+## Health states
+
+| Status | Meaning |
+|---|---|
+| `READY` | Credentials are valid. |
+| `AUTH REQUIRED` | Not logged in, or the provider reports re-authentication is needed. Run `gctx login <name>` (`l` in the TUI). |
+| `EXPIRED` | The token or session is past its expiry. Log in again. |
+| `UNVERIFIED` | The check timed out or the network failed. The last known result and its age are shown; it never turns into `AUTH REQUIRED`. |
+| `CLI MISSING` | The provider's CLI is not on `PATH`. |
+| `CONFIG MISSING` | GCP: no gcloud configuration named after the account. |
+| `ADC MISSING` | GCP: no stored ADC file. |
+| `PROJECT MISMATCH` | GCP: the configuration's project differs from the account's. |
+| `ERROR` | A local check failed; details show the message. |
+
+## Local state
+
+- Config: `~/.config/gctx/config.json`. Account fields `provider` and `settings` and the top-level `active_by_slot` are new and optional; files written by earlier versions load unchanged and accounts without `provider` are GCP.
+- Status cache: `status.json` in the user cache directory (`~/.cache/gctx` on Linux, `~/Library/Caches/gctx` on macOS, `%LocalAppData%\gctx` on Windows). It holds the last check per account: health, identity, expiry and check time. It never holds tokens, keys or secrets, and exists so the TUI's first paint is not blank.
+
+| Variable | Effect |
+|---|---|
+| `GCTX_NO_TUI` | Non-empty: bare `gctx` prints help instead of opening the TUI. |
+| `GCTX_ASCII` | `1` replaces Unicode glyphs with ASCII. |
+| `GCTX_DEBUG` | `1` writes a redacted `tui-debug.log` (same as `gctx tui --debug`). |
+| `NO_COLOR` | Disables colour; badges are shown as `[GCP]`. |
+
+## Planned (not available yet)
+
+None of the following exists in this version:
+
+- AI tool accounts: Claude Code and Codex.
+- AI gateway accounts: OpenRouter, SumoPod and OpenAI-compatible endpoints, with API keys read from references (`op://`, `gcpsm://`, `keychain:`, `env:`) instead of being stored.
+- Tencent Cloud. It is not supported.
+- A rename of the binary.
 
 ## Installation
 
@@ -177,7 +246,7 @@ gctx create personal my-personal-project
 gctx create client client-project
 ```
 
-Pick the cloud with `--provider gcp|aws|azure|tencent` (default `gcp`); only providers registered in your build are accepted. Account names are unique across providers.
+Pick the cloud with `--provider gcp|aws|azure` (default `gcp`). Tencent Cloud is not supported. Account names are unique across providers.
 
 > **Note**: As of v0.5.0, `gctx create` always auto-authenticates. The `--auto-save` flag has been removed for simplicity.
 
