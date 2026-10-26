@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/manager"
 	"github.com/k0wl0n/gctx/pkg/present"
@@ -39,6 +41,7 @@ type (
 		name           string
 		configName     string
 		args           []string
+		cli            string // provider CLI name, for messages
 	}
 	shellExec struct {
 		stdin          io.Reader
@@ -112,7 +115,7 @@ func (e *runExec) SetStderr(w io.Writer) { e.stderr = w }
 
 func (e *runExec) Run() error {
 	argsStr := strings.Join(e.args, " ")
-	fmt.Fprintf(e.stdout, "── gctx: running as %s: gcloud %s ──\n", e.name, argsStr)
+	fmt.Fprintf(e.stdout, "── %s: running as %s: %s %s ──\n", config.AppName, e.name, e.cli, argsStr)
 	cmd, err := e.svc.RunCommand(e.name, e.args)
 	exitCode := 0
 	if err != nil {
@@ -133,11 +136,14 @@ func (e *runExec) Run() error {
 	}
 	fmt.Fprintf(e.stdout, "── exit status %d · press Enter to return to gctx ──", exitCode)
 	waitEnter(e.stdin)
-	return &runError{exitCode: exitCode}
+	return &runError{exitCode: exitCode, cli: e.cli}
 }
 
 // runError carries the exit code through the exec callback.
-type runError struct{ exitCode int }
+type runError struct {
+	exitCode int
+	cli      string
+}
 
 func (r *runError) Error() string { return fmt.Sprintf("exit %d", r.exitCode) }
 
@@ -230,10 +236,14 @@ func (m Model) handleRunDone(msg execDoneMsg) (Model, tea.Cmd) {
 		if m.debugLog != nil {
 			m.debugLog.Info("run", "account", msg.account, "exit", re.exitCode)
 		}
-		if re.exitCode == 0 {
-			return m, m.setStatus("gcloud exited with status 0", levelInfo)
+		cli := re.cli
+		if cli == "" {
+			cli = "command"
 		}
-		return m, m.setStatus(fmt.Sprintf("gcloud exited with status %d", re.exitCode), levelError)
+		if re.exitCode == 0 {
+			return m, m.setStatus(cli+" exited with status 0", levelInfo)
+		}
+		return m, m.setStatus(fmt.Sprintf("%s exited with status %d", cli, re.exitCode), levelError)
 	}
 	return m, nil
 }
@@ -287,11 +297,12 @@ func (m Model) beginShell(name string, scope manager.ShellScope) (Model, tea.Cmd
 }
 
 // newRunPrompt returns the run prompt modal for an account.
-func newRunPrompt(name string) modal { return &runPrompt{account: name} }
+func newRunPrompt(name, cli, bin string) modal { return &runPrompt{account: name, cli: cli, bin: bin} }
 
 // runPrompt is the modal shown when the user presses 'r'.
 type runPrompt struct {
 	account    string
+	cli, bin   string // the account provider's CLI name and executable
 	input      string
 	history    []string // borrowed from model; points into m.history slice
 	historyPos int      // -1 = fresh input
@@ -317,7 +328,7 @@ func (p *runPrompt) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
 		if goos == "" {
 			goos = "linux"
 		}
-		args, err := tokenize(trimmed, m.svc.GcloudBin(), goos)
+		args, err := tokenize(trimmed, p.cli, p.bin, goos)
 		if err != nil {
 			p.errMsg = err.Error()
 			return m, nil
@@ -330,7 +341,7 @@ func (p *runPrompt) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
 		m.modal = nil
 		// Launch run exec.
 		account := p.account
-		re := &runExec{svc: m.svc, name: account, args: args}
+		re := &runExec{svc: m.svc, name: account, args: args, cli: p.cli}
 		cmd := m.exec(re, func(err error) tea.Msg {
 			return execDoneMsg{kind: execRun, account: account, err: err}
 		})
@@ -385,7 +396,7 @@ func (p *runPrompt) view(m Model) string {
 	if ok && !account.ADCExists {
 		hint = "⚠ No saved ADC: client libraries will not find credentials\n"
 	}
-	prompt := fmt.Sprintf("Run as: %s\ngcloud > %s", p.account, p.input)
+	prompt := fmt.Sprintf("Run as: %s\n%s > %s", p.account, p.cli, p.input)
 	if p.errMsg != "" {
 		prompt += "\n" + p.errMsg
 	}
@@ -409,4 +420,29 @@ func addHistory(history []string, entry string) []string {
 func waitEnter(r io.Reader) {
 	scanner := bufio.NewScanner(r)
 	scanner.Scan()
+}
+
+// runCLI returns the CLI name and executable of the account's provider; an
+// overview without provider metadata is GCP-only.
+func (m Model) runCLI(name string) (cli, bin string) {
+	if acct, ok := m.overview.Account(name); ok {
+		for _, info := range m.overview.Providers {
+			if info.ID == acct.Provider {
+				return cliCommand(info), info.CLI.Bin
+			}
+		}
+	}
+	return "gcloud", m.svc.GcloudBin()
+}
+
+// cliCommand is the command name the user types for the provider's CLI.
+func cliCommand(info manager.ProviderInfo) string {
+	if info.CLI.Name != "" {
+		return info.CLI.Name
+	}
+	if info.CLI.Bin != "" {
+		base := filepath.Base(strings.ReplaceAll(info.CLI.Bin, `\`, "/"))
+		return strings.TrimSuffix(base, filepath.Ext(base))
+	}
+	return strings.ToLower(info.Label)
 }

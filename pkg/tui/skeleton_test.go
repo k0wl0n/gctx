@@ -81,7 +81,7 @@ func TestGlyphSets(t *testing.T) {
 }
 
 func TestTokenizeStub(t *testing.T) {
-	args, err := tokenize("config get-value project", "gcloud", "linux")
+	args, err := tokenize("config get-value project", "gcloud", "gcloud", "linux")
 	if err != nil || len(args) != 3 {
 		t.Errorf("%v %v", args, err)
 	}

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"unicode"
@@ -13,13 +14,13 @@ const metachar = "|;&><`"
 // windowsBatchExts are extensions whose batch wrappers expand special chars.
 var windowsBatchExts = []string{".cmd", ".bat"}
 
-// windowsDangerChars are argument characters rejected when gcloud is a batch wrapper.
+// windowsDangerChars are argument characters rejected when the CLI is a batch wrapper.
 const windowsDangerChars = "&|<>^%!\"\n"
 
-// tokenize splits run-prompt input into a gcloud argument vector.
-// A leading "gcloud" token is dropped. On error the message is suitable
+// tokenize splits run-prompt input into an argument vector for the cli
+// executable bin. A leading token naming cli is dropped. On error the message is suitable
 // for inline display; the caller should not execute anything.
-func tokenize(input, gcloudBin, goos string) ([]string, error) {
+func tokenize(input, cli, bin, goos string) ([]string, error) {
 	tokens, err := splitTokens(input)
 	if err != nil {
 		return nil, err
@@ -27,18 +28,17 @@ func tokenize(input, gcloudBin, goos string) ([]string, error) {
 	if len(tokens) == 0 {
 		return nil, nil
 	}
-	// Drop a leading "gcloud" token.
-	if tokens[0] == "gcloud" {
+	if tokens[0] == cli {
 		tokens = tokens[1:]
 	}
 	if len(tokens) == 0 {
 		return nil, nil
 	}
-	// On Windows with a .cmd/.bat gcloud wrapper, reject dangerous chars.
-	if goos == "windows" && isBatchBin(gcloudBin) {
+	// On Windows a .cmd/.bat wrapper expands these characters.
+	if goos == "windows" && isBatchBin(bin) {
 		for _, arg := range tokens {
 			if strings.ContainsAny(arg, windowsDangerChars) {
-				return nil, errors.New("argument contains characters that are unsafe with gcloud.cmd; press s for an isolated shell")
+				return nil, fmt.Errorf("argument contains characters that are unsafe with %s%s; press s for an isolated shell", cli, strings.ToLower(filepath.Ext(bin)))
 			}
 		}
 	}

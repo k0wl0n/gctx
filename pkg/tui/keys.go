@@ -47,7 +47,7 @@ var keys = keyMap{
 	Shell:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "subshell with every active slot")),
 	ShellOne: key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "subshell with only this account")),
 	CopyEnv:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy the env eval line")),
-	Run:      key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "run gcloud command")),
+	Run:      key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "run provider CLI command")),
 	Create:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "create account")),
 	Edit:     key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit account")),
 	Delete:   key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "delete account")),

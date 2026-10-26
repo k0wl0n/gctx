@@ -207,7 +207,8 @@ func (m Model) openEdit(name string) (Model, tea.Cmd) {
 
 // openRun opens the run prompt (B3's newRunPrompt).
 func (m Model) openRun(name string) (Model, tea.Cmd) {
-	m.modal = newRunPrompt(name)
+	cli, bin := m.runCLI(name)
+	m.modal = newRunPrompt(name, cli, bin)
 	return m, nil
 }
 

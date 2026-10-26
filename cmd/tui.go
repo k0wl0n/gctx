@@ -18,7 +18,7 @@ var tuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: "Interactive terminal UI",
 	Long: `Open the full-screen terminal UI to browse accounts, switch, log in,
-create, delete, run gcloud commands and open isolated shells.`,
+create, delete, run provider CLI commands and open isolated shells.`,
 	Example: `  # Open the interactive UI
   gctx tui`,
 	Args:          cobra.NoArgs,

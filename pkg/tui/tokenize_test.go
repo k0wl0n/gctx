@@ -177,7 +177,7 @@ func TestTokenize(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := tokenize(tc.input, tc.gcloudBin, tc.goos)
+			got, err := tokenize(tc.input, "gcloud", tc.gcloudBin, tc.goos)
 			if tc.wantErr != "" {
 				if err == nil {
 					t.Fatalf("expected error containing %q, got nil", tc.wantErr)

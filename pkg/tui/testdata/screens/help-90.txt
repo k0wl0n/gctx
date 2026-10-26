@@ -10,7 +10,7 @@ gctx · keys                                                 j/k scroll · esc o
   tab          next provider tab         s       subshell with every active slot
   shift+tab    previous provider tab     S       subshell with only this account
   1-9          jump to tab (1 is All)    y       copy the env eval line
-                                         r       run gcloud command
+                                         r       run provider CLI command
   view                                   c       create account
   p  toggle detail pane                  e       edit account
   z  fold or unfold the provider group   ctrl+d  delete account

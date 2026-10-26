@@ -44,7 +44,7 @@ Width tiers: 150 columns or more (wide, detail pane), 100-149 (standard), 60-99 
 | `s` | subshell with every active slot applied |
 | `S` | subshell with only the selected account |
 | `y` | copy the `eval "$(gctx env <name>)"` line (env-based providers) |
-| `r` | run gcloud command |
+| `r` | run provider CLI command (gcloud, aws or az, by the row's provider) |
 | `c` | create |
 | `e` | edit: rename and change editable settings (identity fields are read-only) |
 | `ctrl+d` | delete |
