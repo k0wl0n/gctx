@@ -276,27 +276,19 @@ func (d *saveDialog) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (d *saveDialog) view(m Model) string {
-	var sb strings.Builder
-	sb.WriteString("Save ADC for " + d.account.Name + "\n\n")
+	st := newStylesFor(m.profile)
+	var body []string
 	if m.overview.DefaultADCExists {
-		sb.WriteString("Default ADC: " + m.overview.DefaultADCPath + "\n")
+		body = append(body, "Default ADC: "+m.overview.DefaultADCPath)
 		if !m.overview.DefaultADCModTime.IsZero() {
-			sb.WriteString("Modified: " + m.overview.DefaultADCModTime.Format("2006-01-02 15:04:05") + "\n")
+			body = append(body, "Modified: "+m.overview.DefaultADCModTime.Format("2006-01-02 15:04:05"))
 		}
 		if d.account.Email != "" {
-			sb.WriteString("Email: " + d.account.Email + "\n")
+			body = append(body, "Email: "+d.account.Email)
 		}
 	} else {
-		sb.WriteString("No default ADC file found.\n")
+		body = append(body, "No default ADC file found.")
 	}
-	sb.WriteString("\n")
-	cancelLabel := "[ Cancel ]"
-	confirmLabel := "[ Save ]"
-	if d.focus == focusCancel {
-		cancelLabel = "[*Cancel*]"
-	} else {
-		confirmLabel = "[*Save*]"
-	}
-	sb.WriteString(cancelLabel + "  " + confirmLabel)
-	return sb.String()
+	body = append(body, "", renderButton("Cancel", d.focus == focusCancel, true, st)+" "+renderButton("Save", d.focus == focusConfirm, true, st))
+	return m.showModal(modalSpec{title: "Save ADC for " + d.account.Name, body: body, footer: "tab switch · enter confirm · esc cancel", focus: -1})
 }

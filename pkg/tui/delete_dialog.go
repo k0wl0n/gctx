@@ -6,6 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/manager"
@@ -167,11 +168,13 @@ func (d *deleteDialog) activate(m Model, stop deleteStop) (Model, tea.Cmd) {
 func (d *deleteDialog) view(m Model) string {
 	g := newGlyphs(asciiRequested())
 	st := newStylesFor(m.profile)
-	width := max(m.width, minWidth)
+	width := modalInnerWidth(max(m.width, minWidth), false)
 	stop := d.current()
 
 	var lines []string
+	focus := -1
 	add := func(text string) { lines = append(lines, ansi.Truncate(text, width, "…")) }
+	title := "Delete " + renderBadge(d.info.Badge, m.profile, g) + " " + d.account.Name
 	wrapped := func(indent int, first, text string, style lipgloss.Style) {
 		pad := strings.Repeat(" ", indent)
 		for n, line := range wrapText(text, width-indent-ansi.StringWidth(first)) {
@@ -184,9 +187,6 @@ func (d *deleteDialog) view(m Model) string {
 	}
 	plain := lipgloss.NewStyle()
 
-	add(st.Error.Render("Delete") + " " + renderBadge(d.info.Badge, m.profile, g) + " " + st.Bold.Render(d.account.Name))
-	add("")
-
 	if d.refused() {
 		wrapped(0, g.Warn+" ", "cannot delete "+d.account.Name+": other accounts link to it", st.Warn)
 		for _, name := range d.plan.Dependants {
@@ -195,8 +195,8 @@ func (d *deleteDialog) view(m Model) string {
 		add("")
 		add("delete or relink them first")
 		add("")
-		add(st.TabActive.Render("[*Close*]") + "  " + st.Dim.Render("esc close"))
-		return strings.Join(lines, "\n")
+		add(renderButton("Close", true, true, st))
+		return m.showModal(modalSpec{title: title, body: lines, footer: "esc close", tone: toneDanger, focus: -1})
 	}
 
 	if d.account.Active {
@@ -212,6 +212,7 @@ func (d *deleteDialog) view(m Model) string {
 		caret := "  "
 		if stop.kind == stopItem && stop.item == i {
 			caret = g.Caret + " "
+			focus = len(lines)
 		}
 		text := row.item.Label
 		if row.item.Detail != "" {
@@ -229,23 +230,27 @@ func (d *deleteDialog) view(m Model) string {
 		add("")
 	}
 	add("type " + st.Bold.Render(d.account.Name) + " to confirm")
+	if stop.kind == stopInput {
+		focus = len(lines)
+	}
 	add("  " + d.input.View(stop.kind == stopInput))
+	inputLine := st.Sep
+	if stop.kind == stopInput {
+		inputLine = lipgloss.NewStyle()
+	}
+	add("  " + inputLine.Render(strings.Repeat(g.HRule, max(width-2, 1))))
 	add("")
 
-	deleteButton := st.Dim.Render("[ Delete ]")
-	switch {
-	case d.canDelete() && stop.kind == stopDelete:
-		deleteButton = st.TabActive.Render("[*Delete*]")
-	case d.canDelete():
-		deleteButton = "[ Delete ]"
+	deleteButton := renderButton("Delete", stop.kind == stopDelete, d.canDelete(), st)
+	if d.canDelete() && stop.kind == stopDelete && st.prof > colorprofile.ASCII {
+		deleteButton = filledStyle(colorError.hex, st).Render("  Delete  ")
 	}
-	cancelButton := "[ Cancel ]"
-	if stop.kind == stopCancel {
-		cancelButton = st.TabActive.Render("[*Cancel*]")
+	if stop.kind == stopDelete || stop.kind == stopCancel {
+		focus = len(lines)
 	}
-	add(deleteButton + "  " + cancelButton)
-	add(st.Dim.Render("esc cancel " + g.Dot + " default focus on Cancel " + g.Dot + " tab moves " + g.Dot + " space toggles"))
-	return strings.Join(lines, "\n")
+	add(deleteButton + " " + renderButton("Cancel", stop.kind == stopCancel, true, st))
+	footer := "esc cancel " + g.Dot + " default focus on Cancel " + g.Dot + " tab moves " + g.Dot + " space toggles"
+	return m.showModal(modalSpec{title: title, body: lines, footer: footer, tone: toneDanger, focus: focus})
 }
 
 // slotName is the short name shown where the account's slot is meant.

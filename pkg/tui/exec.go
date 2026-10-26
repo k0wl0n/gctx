@@ -391,16 +391,18 @@ func (p *runPrompt) update(m Model, msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (p *runPrompt) view(m Model) string {
+	g := newGlyphs(asciiRequested())
+	st := newStylesFor(m.profile)
 	account, ok := m.overview.Account(p.account)
-	var hint string
+	var body []string
 	if ok && !account.ADCExists {
-		hint = "⚠ No saved ADC: client libraries will not find credentials\n"
+		body = append(body, st.Warn.Render(g.Warn+" No saved ADC: client libraries will not find credentials"), "")
 	}
-	prompt := fmt.Sprintf("Run as: %s\n%s > %s", p.account, p.cli, p.input)
+	body = append(body, fmt.Sprintf("%s > %s", p.cli, p.input))
 	if p.errMsg != "" {
-		prompt += "\n" + p.errMsg
+		body = append(body, st.Error.Render(p.errMsg))
 	}
-	return hint + prompt
+	return m.showModal(modalSpec{title: "Run as: " + p.account, hint: p.cli, body: body, footer: "enter run · up/down history · esc cancel", focus: -1})
 }
 
 // addHistory appends entry to history, capping at historyLimit.

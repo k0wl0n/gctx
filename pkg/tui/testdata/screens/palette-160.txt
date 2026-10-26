@@ -1,11 +1,40 @@
-                         ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-                         │ : log                                                                                            4 matches │
-                         ├────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-                         │ actions                                                                                                    │
-                         │ ▌Login cloudsuite                                              gctx login cloudsuite                     l │
-                         │  Login all stale accounts (4)                                  (tui)                                     L │
-                         │  Fold or unfold provider group                                 (tui)                                     z │
+gctx vtest │ GCP ● cloudsuite  AWS ● prod-aws  AZR ○ │ ai CLD ● claude-work  OAI ● codex-work  SMP ● sumopod-dev                     ✓ cfg  auth checked 14s ago
+env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-work CODEX_HOME=~/.config/gctx/ai/codex-work OPENAI_…
+ All 19  GCP 9  AWS 2  Azure 1 │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                                                            sort name  / filter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  KIND   NAME             TARGET                  IDENTITY                    ADC  STATUS           EXPIRES       │  GCP  cloudsuite                    ● active
+CLOUDS ─────────────────────────────────────────────────────────────────────────────────────────────────────── 12 │
+GCP · project ─────────────────────────────────────────────────────────────────── 9 · 7 ready, 1 expired, 1 login │ project        sap-gap-cloud-asap-s
+   GCP   byoip-lab        byoip-lab-eu-west       ops@emarsys.example         ✓    ✗ EXPIRED        2d ago        │ gcloud config  cloudsuite
+▌● GCP   cloudsuite       sap-gap-cloud-asap-s    ops@emarsys.example         ✓    ● READY          52m           │ status         ● READY
+   GCP   demo-ai          ai-builder-cup-demo     dev@aliz.example            ✓    ● READY          7h            │ identity       ops@emarsys.example
+   GCP   gap-dev          gap-platform-dev        ops@emarsys.example         ✓    ● READY          52m           │ expires        52m
+   GCP   hcp-agents       hcp-tf-agents-poc       dev@aliz.example            ✓    ● READY          7h            │ checked        14s ago
+   GCP   infra-hub-prd    emarsys-infra-hub-prd   ops@emarsys.example         ✓    ● READY          52m           │
+   GCP   infra-hub-stg    emarsys-infra-hub-stg   ops@emarsys.example         ✓    ● READY          52m           │ env applied on activate
+   GCP   rca-poc         ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────┐FIG_NAME=cloudsuite
+   GCP   sbx-aliz        │ : log                                                                                            4 matches │
+AWS · profile ───────────│                                                                                                            │
+   AWS   legacy-aws      │ actions                                                                                                    │cloudsuite)"
+ ● AWS   prod-aws        │ ▌Login cloudsuite                                              gctx login cloudsuite                     l │
+AZURE · subscription ────│  Login all stale accounts (4)                                  (tui)                                     L │  s shell  r run
+   AZR   corp-azure      │  Fold or unfold provider group                                 (tui)                                     z │
                          │  Toggle rows needing action                                    (tui)                                     ! │
-                         ├────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-                         │ ↑↓ select  ↵ run  ⇥ complete  esc close                                  right column = the CLI equivalent │
-                         └────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+AI TOOLS ────────────────│                                                                                                            │
+CLAUDE CODE · org ───────│ ↑↓ select  ↵ run  ⇥ complete  esc close                                  right column = the CLI equivalent │
+  [CLD]  claude-personal └────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  [CLD]  claude-vertex    via cloudsuite          Vertex AI · us-east5        –    ● READY          52m           │
+ ●[CLD]  claude-work      org Aliz Tech           dev@aliz.example            –    ● READY          6d            │
+CODEX · workspace ─────────────────────────────────────────────────────────────────────────────────── 1 · 1 ready │
+ ●[OAI]  codex-work       workspace Aliz          dev@aliz.example            –    ● READY          –             │
+                                                                                                                  │
+AI GATEWAYS ─────────────────────────────────────────────────────────────────────────────────────────────────── 3 │
+SUMOPOD · base url ──────────────────────────────────────────────────────────────────── 2 · 1 ready, 1 low budget │
+ ●[SMP]  sumopod-dev      ai.sumopod.com          –                           –    ● READY          $3.15 left    │
+  [SMP]  sumopod-prod     ai.sumopod.com          –                           –    ⚠ BUDGET LOW     $1.60 left    │
+OPENROUTER · base url ─────────────────────────────────────────────────────────────────────────────── 1 · 1 ready │
+  [ORT]  openrouter       openrouter.ai           –                           –    ● READY          $7.40 left    │
+                                                                                                                  │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+✓ GCP 9/9  ✓ AWS 2/2  ⠋ Azure 0/1 (timeout 8s)  ✓ AI tools 4/4  ✓ gateways 3/3                             19 accounts · 1 expired · 3 need login · 1 low budget
+tab provider  j/k move  ↵ activate  / filter  l login  L login all stale  c create  s shell  y copy env  z fold group  p pane  R recheck  ? help  q quit

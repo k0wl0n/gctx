@@ -1,20 +1,40 @@
-Create account
+gctx │ GCP cloudsuite  AWS prod-aws  AZR ○ │ ai CLD claude-work  OAI codex-work  SMP sumopod-dev              ✓ cfg  14s
+env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-work CODEX_H…
+ All 19  GCP 9  AWS 2  Azure 1 │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                    sort name  / filter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  KIND   NAME             TARGET                  IDENTITY                    ADC  STATUS           EXPIRES
+CLOUDS ───────────┌──────────────────────────────────────────────────────────────────────────────────┐─────────────── 12
+GCP · project ────│ Create account                                          step 1 of 2 · then login │1 expired, 1 login
+   GCP   byoip-lab│                                                                                  │ ago
+ ● GCP   cloudsuit│   Kind           ‹ Cloud  AI tool  AI gateway ›  ←/→                             │m
+   GCP   demo-ai  │   Cloud          ‹ GCP  AWS  Azure ›  ←/→                                        │
+   GCP   gap-dev  │                                                                                  │m
+   GCP   hcp-agent│   Name           prod-eu-data                                                    │
+   GCP   infra-hub│                  ─────────────────────────────────────────────────────────────── │m
+   GCP   infra-hub│                  ✓ unique across all accounts                                    │m
+   GCP   rca-poc  │   Auth           ◉ sso  ○ profile                                                │
+   GCP   sbx-aliz │                  sso writes a new profile; profile adopts an existing one        │
+AWS · profile ────│   Profile name   prod-eu-data                                                    │· 1 ready, 1 login
+   AWS   legacy-aw│                  ─────────────────────────────────────────────────────────────── │
+▌● AWS   prod-aws │   SSO start URL  https://corp.awsapps.com/start                                  │ 12m
+AZURE · subscripti│                  ─────────────────────────────────────────────────────────────── │────── 1 · 1 ready
+   AZR   corp-azur│ › SSO region     eu-west-1                                                       │
+                  │                  ─────────────────────────────────────────────────────────────── │
+AI TOOLS ─────────│   Region                                                                         │──────────────── 4
+CLAUDE CODE · org │                  ─────────────────────────────────────────────────────────────── │· 2 ready, 1 login
+  [CLD]  claude-pe│   SSO account ID optional                                                        │
+  [CLD]  claude-ve│                  ─────────────────────────────────────────────────────────────── │m
+ ●[CLD]  claude-wo│   SSO role name  optional                                                        │
+CODEX · workspace │                  ─────────────────────────────────────────────────────────────── │────── 1 · 1 ready
+ ●[OAI]  codex-wor│ ──────────────────────────────────────────────────────────────────────────────── │
+                  │ writes config.json (name, profile, regions) · ~/.aws/config [profile prod-eu-    │
+AI GATEWAYS ──────│        data]                                                                     │──────────────── 3
+SUMOPOD · base url│ never  access keys, SSO tokens or secrets                                        │eady, 1 low budget
+ ●[SMP]  sumopod-d│                                                                                  │.15 left
+  [SMP]  sumopod-p│ [ Create and login ] [ Create only ]   Cancel    tab next  ⇧tab back  esc cancel │.60 left
+OPENROUTER · base └──────────────────────────────────────────────────────────────────────────────────┘────── 1 · 1 ready
+  [ORT]  openrouter       openrouter.ai           –                           –    ● READY          $7.40 left
 
-    Kind             Cloud   AI tool   AI gateway
-    Provider         GCP   AWS   Azure   ←/→
-    Name            prod-eu-data
-                    ✓ unique across all accounts
-    Auth            ◉ sso  ○ profile
-                    sso writes a new profile; profile adopts an existing one
-    Profile name    prod-eu-data
-    SSO start URL   https://corp.awsapps.com/start
-  › SSO region      eu-west-1
-    Region
-    SSO account ID    · optional
-    SSO role name     · optional
-
-  writes config.json (name, profile, regions) · ~/.aws/config [profile prod-eu-data]
-  never  access keys, SSO tokens or secrets
-
-  [ Create and login ]  [ Create only ]    Cancel
-  tab next · shift+tab back · ←/→ change · esc cancel
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)                          19 accounts · 1 expired · 3 need login · 1 low budget
+tab provider  j/k move  ↵ activate  / filter  d details  l login  L login all stale  c create  s shell  ? help  q quit

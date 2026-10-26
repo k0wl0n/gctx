@@ -352,9 +352,7 @@ type paletteLine struct {
 func (p *palette) view(m Model) string {
 	g := newGlyphs(asciiRequested())
 	st := newStylesFor(m.profile)
-	width := min(m.width, 110)
-	margin := strings.Repeat(" ", (m.width-width)/2)
-	inner := width - 4 // border and one space each side
+	inner := modalInnerWidth(max(m.width, minWidth), true)
 
 	const keyWidth = 5
 	cliWidth := min(36, inner*2/5)
@@ -381,45 +379,22 @@ func (p *palette) view(m Model) string {
 		body = append(body, paletteLine{text: st.Dim.Render("no matches"), row: -1})
 	}
 
-	capacity := max(m.height-6, 3) // top, query, two rules, hint, bottom
-	start := 0
-	if len(body) > capacity {
-		cursorLine := slices.IndexFunc(body, func(l paletteLine) bool { return l.row == p.cursor })
-		start = max(min(cursorLine-capacity/2, len(body)-capacity), 0)
-		body = body[start : start+capacity]
-	}
-
-	box := func(text string) string {
-		return margin + g.Box[5] + " " + padTo(text, inner) + " " + g.Box[5]
-	}
-	rule := func(left, right string) string {
-		return margin + left + strings.Repeat(g.Box[4], width-2) + right
-	}
-	tee := [2]string{"├", "┤"}
-	if g.Box[0] == "+" {
-		tee = [2]string{"+", "+"}
-	}
-
+	focus := slices.IndexFunc(body, func(l paletteLine) bool { return l.row == p.cursor })
 	count := fmt.Sprintf("%d matches", len(p.shown))
 	if len(p.shown) == 1 {
 		count = "1 match"
 	}
-	queryText := ": " + p.input.View(true)
-	query := ansi.Truncate(queryText, max(inner-len(count)-1, 4), "…")
-	query += strings.Repeat(" ", max(inner-ansi.StringWidth(query)-len(count), 1)) + st.Dim.Render(count)
+	var lines []string
+	for _, line := range body {
+		lines = append(lines, line.text)
+	}
 
 	hint := strings.Join([]string{g.UpDown + " select", g.Enter + " run", g.Tab + " complete", "esc close"}, "  ")
 	const hintRight = "right column = the CLI equivalent"
 	if ansi.StringWidth(hint)+2+len(hintRight) <= inner {
 		hint += strings.Repeat(" ", inner-ansi.StringWidth(hint)-len(hintRight)) + hintRight
 	}
-
-	lines := []string{rule(g.Box[0], g.Box[1]), box(query), rule(tee[0], tee[1])}
-	for _, line := range body {
-		lines = append(lines, box(line.text))
-	}
-	lines = append(lines, rule(tee[0], tee[1]), box(st.Dim.Render(hint)), rule(g.Box[2], g.Box[3]))
-	return strings.Join(lines, "\n")
+	return m.showModal(modalSpec{title: ": " + p.input.View(true), hint: count, body: lines, footer: hint, focus: focus, wide: true})
 }
 
 func (p *palette) rowText(ranked rankedEntry, selected bool, titleWidth, cliWidth, keyWidth int, g glyphs, st styles) string {

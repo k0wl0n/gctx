@@ -99,11 +99,51 @@ func typeText(t *testing.T, m Model, text string) Model {
 	return m
 }
 
-// tabUntil presses tab until the screen shows marker.
+// focusedButton names the focused form button as "[*label*]", the marker the
+// no-colour profile draws; colour profiles fill the button instead.
+func focusedButton(m Model) string {
+	form, ok := m.modal.(*accountForm)
+	if !ok {
+		return ""
+	}
+	info, _ := form.info()
+	switch form.focused().kind {
+	case itemLogin:
+		return "[*Create and login*]"
+	case itemSubmit:
+		switch {
+		case form.editing != nil:
+			return "[*Save*]"
+		case info.CanLogin:
+			return "[*Create only*]"
+		}
+		return "[*Create*]"
+	case itemCancel:
+		return "[*Cancel*]"
+	}
+	return ""
+}
+
+// flatForm joins the modal's lines without borders, so text the box wraps
+// at a hyphen or space reads as one line again.
+func flatForm(out string) string {
+	var b strings.Builder
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(strings.Trim(strings.TrimSpace(line), "│"))
+		if b.Len() > 0 && !strings.HasSuffix(b.String(), "-") {
+			b.WriteByte(' ')
+		}
+		b.WriteString(line)
+	}
+	return b.String()
+}
+
+// tabUntil presses tab until the screen shows marker or the marker names
+// the focused button.
 func tabUntil(t *testing.T, m Model, marker string) Model {
 	t.Helper()
 	for range 40 {
-		if strings.Contains(screen(m), marker) {
+		if strings.Contains(screen(m), marker) || focusedButton(m) == marker {
 			return m
 		}
 		m = press(t, m, "tab")
@@ -213,7 +253,8 @@ func TestFieldValidationInline(t *testing.T) {
 	out := screen(m)
 	field := lineIndex(t, out, "Profile name")
 	lines := strings.Split(out, "\n")
-	if !strings.Contains(lines[field+1], "✗") || !strings.Contains(lines[field+1], "invalid AWS profile name") {
+	under := lines[field+1] + lines[field+2] // the input's underline sits between
+	if !strings.Contains(under, "✗") || !strings.Contains(under, "invalid AWS profile name") {
 		t.Fatalf("error not directly under the field:\n%s", out)
 	}
 
@@ -260,7 +301,7 @@ func TestFooterListsWritesAndNever(t *testing.T) {
 	m = typeText(t, m, "prod-eu-data")
 	out := screen(m)
 	for _, want := range []string{"writes", "config.json", "~/.aws/config [profile prod-eu-data]", "never", "access keys", "SSO tokens"} {
-		if !strings.Contains(out, want) {
+		if !strings.Contains(flatForm(out), want) {
 			t.Errorf("footer lacks %q:\n%s", want, out)
 		}
 	}

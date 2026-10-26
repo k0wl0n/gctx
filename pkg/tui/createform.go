@@ -477,157 +477,241 @@ func (f *accountForm) changedSettings() map[string]string {
 
 // ─── View ────────────────────────────────────────────────────────────────────
 
-type formLine struct {
-	text    string
-	focused bool
-}
-
 func (f *accountForm) view(m Model) string {
 	g := newGlyphs(asciiRequested())
 	st := newStylesFor(m.profile)
 	width := max(m.width, minWidth)
+	inner := modalInnerWidth(width, false)
 	check := f.check()
 	item := f.focused()
 	values := f.values()
+	info, hasProvider := f.info()
 
 	labelWidth := len("Provider")
 	for _, field := range f.fields {
 		labelWidth = max(labelWidth, ansi.StringWidth(field.spec.Label))
 	}
-	labelWidth = min(labelWidth, 18)
-	valueIndent := formIndent + 2 + labelWidth + 2
-	valueWidth := max(width-valueIndent, 10)
+	labelWidth = min(labelWidth, max(inner/4, 8), 18)
+	valueIndent := 2 + labelWidth + 1
+	valueWidth := max(inner-valueIndent, 10)
 
-	var lines []formLine
-	add := func(text string, focused bool) { lines = append(lines, formLine{text, focused}) }
-	row := func(label, value string, focused, dim bool) {
+	var body []string
+	focusLine := -1
+	compact := false
+	label := func(text string, focused, dim bool) string {
 		caret := "  "
 		if focused {
 			caret = g.Caret + " "
 		}
-		label = ansi.Truncate(label, labelWidth, "")
-		pad := strings.Repeat(" ", labelWidth-ansi.StringWidth(label))
-		labelText := label + pad
-		if dim {
-			labelText = st.Dim.Render(labelText)
-		} else if focused {
-			labelText = st.Bold.Render(labelText)
+		text = fitCells(text, labelWidth, "")
+		switch {
+		case dim:
+			text = st.Dim.Render(text)
+		case focused:
+			text = st.Bold.Render(text)
 		}
-		add(strings.Repeat(" ", formIndent)+caret+labelText+"  "+value, focused)
+		return caret + text + " "
+	}
+	row := func(labelText, value string, focused, dim bool) {
+		if focused {
+			focusLine = len(body)
+		}
+		body = append(body, label(labelText, focused, dim)+value)
 	}
 	under := func(text string, style lipgloss.Style) {
 		for _, wrapped := range wrapText(text, valueWidth) {
-			add(strings.Repeat(" ", valueIndent)+style.Render(wrapped), false)
+			body = append(body, strings.Repeat(" ", valueIndent)+style.Render(wrapped))
 		}
 	}
-
-	title := "Create account"
-	if f.editing != nil {
-		title = "Edit account"
-	}
-	add(st.Title.Render(title), false)
-	add("", false)
-
-	info, hasProvider := f.info()
-	if !hasProvider {
-		add(st.Dim.Render("No providers are available."), false)
-		add("", false)
-	}
-	if f.editing != nil {
-		row("Provider", info.Label, false, true)
-	} else if hasProvider {
-		var kindNames []string
-		for _, kind := range f.kinds {
-			kindNames = append(kindNames, kindLabel(kind))
+	// input draws a text field: the value, then an underline the width of
+	// the field so an empty field still shows where to type.
+	input := func(labelText, value string, focused, dim bool, invalid bool) {
+		value = truncateCells(value, valueWidth, g.Ellipsis)
+		if compact {
+			// No room for a rule under each field: fill the field instead.
+			fill := st.Sep.Render(strings.Repeat("_", max(valueWidth-ansi.StringWidth(value), 0)))
+			row(labelText, value+fill, focused, dim)
+			return
 		}
-		row("Kind", choiceRow(kindNames, f.kind, st), item.kind == itemKind, false)
-		var providerNames []string
-		for _, candidate := range f.providers {
-			providerNames = append(providerNames, candidate.Label)
-		}
-		row("Provider", choiceRow(providerNames, f.provider, st)+st.Dim.Render("  ←/→"), item.kind == itemProvider, false)
-	}
-
-	if hasProvider && f.nameLocked() {
-		row("Name", f.editing.Name, false, true)
-		under(info.Label+" accounts cannot be renamed", st.Dim)
-	} else if hasProvider {
-		focusedName := item.kind == itemName
-		row("Name", f.name.View(focusedName), focusedName, false)
+		row(labelText, value, focused, dim)
+		lineStyle := st.Sep
 		switch {
-		case check.name != "":
-			under(g.No+" "+check.name, st.Error)
-		case strings.TrimSpace(f.name.Value()) != "":
-			under(g.Yes+" "+uniqueMessage, st.OK)
+		case invalid:
+			lineStyle = st.Error
+		case focused:
+			lineStyle = lipgloss.NewStyle()
 		}
+		body = append(body, strings.Repeat(" ", valueIndent)+lineStyle.Render(strings.Repeat(g.HRule, valueWidth)))
 	}
 
-	for i, field := range f.fields {
-		if !f.fieldVisible(field, values) {
-			continue
+	// Roomy first, with a rule under each input like the design; compact
+	// when that does not fit the terminal.
+	for _, compact = range []bool{false, true} {
+		body, focusLine = nil, -1
+		if !hasProvider {
+			body = append(body, st.Dim.Render("No providers are available."), "")
 		}
-		focused := item.kind == itemField && item.field == i
-		readOnly := f.readOnly(field)
-		if readOnly && field.current() == "" {
-			continue
+		if f.editing != nil {
+			row("Provider", info.Label, false, true)
+		} else if hasProvider {
+			var kindChips []chip
+			for _, kind := range f.kinds {
+				kindChips = append(kindChips, chip{label: kindLabel(kind)})
+			}
+			row("Kind", chipRow(kindChips, f.kind, g, st), item.kind == itemKind, false)
+			var providerChips []chip
+			for _, candidate := range f.providers {
+				providerChips = append(providerChips, chip{label: candidate.Label, color: candidate.Badge.Color, unavailable: !candidate.CLI.Found})
+			}
+			row(providerRowLabel(f.kinds[f.kind]), chipRow(providerChips, f.provider, g, st), item.kind == itemProvider, false)
+			body = append(body, "")
 		}
-		var value string
-		switch {
-		case field.isOption():
-			value = radioRow(field, g, st, readOnly)
-		case field.spec.Secret && secretref.LooksLikeKey(field.current()):
-			value = f.maskedInput(field, focused)
-		case readOnly:
-			value = st.Dim.Render(field.input.View(false))
-		default:
-			value = field.input.View(focused)
-		}
-		help := field.spec.Help
-		if readOnly {
-			help = ""
-		}
-		inline := help != "" && !field.isOption() &&
-			ansi.StringWidth(value)+3+ansi.StringWidth(help) <= valueWidth
-		if inline {
-			value += st.Dim.Render("  " + g.Dot + " " + help)
-		}
-		row(field.spec.Label, value, focused, readOnly)
-		if msg := check.fields[field.spec.Key]; msg != "" {
-			under(g.No+" "+msg, st.Error)
-		} else if help != "" && !inline {
-			under(help, st.Dim)
-		}
-	}
 
-	if hasProvider {
-		if f.createDisabled() {
-			add("", false)
-			add(strings.Repeat(" ", formIndent)+st.Error.Render(g.No+" "+cliName(info)+" not found: create is disabled"), false)
-			for _, wrapped := range wrapText(installText(info), width-formIndent-2) {
-				add(strings.Repeat(" ", formIndent+2)+st.Dim.Render(wrapped), false)
+		if hasProvider && f.nameLocked() {
+			row("Name", f.editing.Name, false, true)
+			under(info.Label+" accounts cannot be renamed", st.Dim)
+		} else if hasProvider {
+			focusedName := item.kind == itemName
+			input("Name", f.name.View(focusedName), focusedName, false, check.name != "")
+			switch {
+			case check.name != "":
+				under(g.No+" "+check.name, st.Error)
+			case strings.TrimSpace(f.name.Value()) != "":
+				under(g.Yes+" "+uniqueMessage, st.OK)
 			}
 		}
-		if info.Footer != nil && f.editing == nil {
-			writes, never := info.Footer(values)
-			add("", false)
-			for _, footer := range []struct{ label, text string }{{"writes", writes}, {"never ", never}} {
-				for n, wrapped := range wrapText(footer.text, width-formIndent-7) {
-					label := strings.Repeat(" ", 6)
-					if n == 0 {
-						label = footer.label
+
+		for i, field := range f.fields {
+			if !f.fieldVisible(field, values) {
+				continue
+			}
+			focused := item.kind == itemField && item.field == i
+			readOnly := f.readOnly(field)
+			if readOnly && field.current() == "" {
+				continue
+			}
+			help := field.spec.Help
+			if readOnly {
+				help = ""
+			}
+			errorText := check.fields[field.spec.Key]
+			if field.isOption() {
+				row(field.spec.Label, radioRow(field, g, st, readOnly), focused, readOnly)
+				if errorText != "" {
+					under(g.No+" "+errorText, st.Error)
+				} else if help != "" {
+					under(help, st.Dim)
+				}
+				continue
+			}
+			var value string
+			switch {
+			case field.spec.Secret && secretref.LooksLikeKey(field.current()):
+				value = f.maskedInput(field, focused)
+			case readOnly:
+				value = st.Dim.Render(field.input.View(false))
+			default:
+				value = field.input.View(focused)
+			}
+			inline := help != "" && ansi.StringWidth(value)+3+ansi.StringWidth(help) <= valueWidth
+			if inline && field.current() == "" && !focused {
+				value = st.Dim.Render(help)
+			} else if inline {
+				value += st.Dim.Render(" " + g.Dot + " " + help)
+			}
+			if readOnly {
+				row(field.spec.Label, value, false, true)
+			} else {
+				input(field.spec.Label, value, focused, false, errorText != "")
+			}
+			if errorText != "" {
+				under(g.No+" "+errorText, st.Error)
+			} else if help != "" && !inline {
+				under(help, st.Dim)
+			}
+		}
+
+		if hasProvider {
+			if f.createDisabled() {
+				body = append(body, "", st.Error.Render(truncateCells(g.No+" "+cliName(info)+" not found: create is disabled", inner, g.Ellipsis)))
+				for _, wrapped := range wrapText(installText(info), inner-2) {
+					body = append(body, "  "+st.Dim.Render(wrapped))
+				}
+			}
+			if info.Footer != nil && f.editing == nil {
+				writes, never := info.Footer(values)
+				body = append(body, hRule(g, st, inner))
+				for _, footer := range []struct{ label, text string }{{"writes", writes}, {"never ", never}} {
+					for n, wrapped := range wrapText(footer.text, inner-7) {
+						prefix := strings.Repeat(" ", 6)
+						if n == 0 {
+							prefix = footer.label
+						}
+						body = append(body, st.Dim.Render(prefix+" "+wrapped))
 					}
-					add(strings.Repeat(" ", formIndent)+st.Dim.Render(label+" "+wrapped), false)
 				}
 			}
 		}
+		if len(body)+7 <= modalMaxHeight(width, m.height) {
+			break
+		}
+	}
+	if compact {
+		if focusLine >= 0 {
+			focusLine -= focusLine - len(slices.DeleteFunc(slices.Clone(body[:focusLine]), func(line string) bool { return line == "" }))
+		}
+		body = slices.DeleteFunc(body, func(line string) bool { return line == "" })
+	}
+	body = append(body, "")
+	buttons := f.buttons(item, info, g, st)
+	if item.kind >= itemLogin {
+		focusLine = len(body)
+	}
+	hint := "tab next  ⇧tab back  esc cancel"
+	if g.Caret == ">" {
+		hint = "tab next  shift+tab back  esc cancel"
+	}
+	if ansi.StringWidth(buttons)+2+ansi.StringWidth(hint) <= inner {
+		body = append(body, joinSides(buttons, st.Dim.Render(hint), inner, g))
+		hint = ""
+	} else {
+		body = append(body, buttons)
 	}
 
-	add("", false)
-	add(strings.Repeat(" ", formIndent)+f.buttons(item, info, g, st), item.kind >= itemLogin)
-	hint := strings.Join([]string{"tab next", "shift+tab back", "←/→ change", "esc cancel"}, " "+g.Dot+" ")
-	add(strings.Repeat(" ", formIndent)+st.Dim.Render(hint), false)
+	return m.showModal(modalSpec{title: f.title(), hint: f.contextHint(info), body: body, footer: hint, focus: focusLine})
+}
 
-	return renderFormLines(lines, width, m.height)
+func (f *accountForm) title() string {
+	if f.editing != nil {
+		return "Edit account"
+	}
+	return "Create account"
+}
+
+// contextHint is the right-aligned hint on the title row.
+func (f *accountForm) contextHint(info manager.ProviderInfo) string {
+	switch {
+	case f.editing != nil:
+		return info.Label + " " + f.editing.Name
+	case info.CanLogin:
+		return "step 1 of 2 · then login"
+	case info.Label != "":
+		return info.Label + " · no login step"
+	}
+	return ""
+}
+
+// providerRowLabel names the chip row of providers after the kind.
+func providerRowLabel(category provider.Category) string {
+	switch category {
+	case provider.CategoryCloud:
+		return "Cloud"
+	case provider.CategoryAITool:
+		return "Tool"
+	case provider.CategoryAIGateway:
+		return "Gateway"
+	}
+	return "Provider"
 }
 
 func (f *accountForm) maskedInput(field formField, focused bool) string {
@@ -637,15 +721,6 @@ func (f *accountForm) maskedInput(field formField, focused bool) string {
 }
 
 func (f *accountForm) buttons(item formItem, info manager.ProviderInfo, g glyphs, st styles) string {
-	button := func(label string, kind formItemKind, enabled bool) string {
-		switch {
-		case !enabled:
-			return st.Dim.Render("[ " + label + " ]")
-		case item.kind == kind:
-			return st.TabActive.Render("[*" + label + "*]")
-		}
-		return "[ " + label + " ]"
-	}
 	enabled := !f.createDisabled()
 	var parts []string
 	submitLabel := "Create"
@@ -653,15 +728,12 @@ func (f *accountForm) buttons(item formItem, info manager.ProviderInfo, g glyphs
 	case f.editing != nil:
 		submitLabel = "Save"
 	case info.CanLogin:
-		parts = append(parts, button("Create and login", itemLogin, enabled))
+		parts = append(parts, renderButton("Create and login", item.kind == itemLogin, enabled, st))
 		submitLabel = "Create only"
 	}
-	parts = append(parts, button(submitLabel, itemSubmit, enabled))
-	cancel := "  Cancel  "
-	if item.kind == itemCancel {
-		cancel = st.TabActive.Render("[*Cancel*]")
-	}
-	return strings.Join(append(parts, cancel), "  ")
+	parts = append(parts, renderButton(submitLabel, item.kind == itemSubmit, enabled, st))
+	parts = append(parts, renderPlainButton("Cancel", item.kind == itemCancel, st))
+	return strings.Join(parts, " ")
 }
 
 func kindLabel(category provider.Category) string {
@@ -687,19 +759,6 @@ func installText(info manager.ProviderInfo) string {
 	return "install it, then press R in the list to reload"
 }
 
-// choiceRow draws names with the selected one highlighted.
-func choiceRow(names []string, selected int, st styles) string {
-	parts := make([]string, len(names))
-	for i, name := range names {
-		if i == selected {
-			parts[i] = st.TabActive.Render(" " + name + " ")
-		} else {
-			parts[i] = " " + name + " "
-		}
-	}
-	return strings.Join(parts, " ")
-}
-
 func radioRow(field formField, g glyphs, st styles, dim bool) string {
 	parts := make([]string, len(field.spec.Options))
 	for i, option := range field.spec.Options {
@@ -708,8 +767,11 @@ func radioRow(field formField, g glyphs, st styles, dim bool) string {
 			mark = g.RadioOn
 		}
 		parts[i] = mark + " " + option
-		if dim {
+		switch {
+		case dim || option != field.value:
 			parts[i] = st.Dim.Render(parts[i])
+		default:
+			parts[i] = st.Bold.Render(parts[i])
 		}
 	}
 	return strings.Join(parts, "  ")
@@ -717,28 +779,4 @@ func radioRow(field formField, g glyphs, st styles, dim bool) string {
 
 func wrapText(text string, width int) []string {
 	return strings.Split(ansi.Wrap(text, max(width, 10), ""), "\n")
-}
-
-// renderFormLines clips every line to width and scrolls to keep the focused
-// line visible when the form is taller than the terminal.
-func renderFormLines(lines []formLine, width, height int) string {
-	if height > 0 && len(lines) > height {
-		lines = slices.DeleteFunc(slices.Clone(lines), func(line formLine) bool { return line.text == "" })
-	}
-	if height > 0 && len(lines) > height {
-		focus := 0
-		for i, line := range lines {
-			if line.focused {
-				focus = i
-				break
-			}
-		}
-		start := max(min(focus-height/2, len(lines)-height), 0)
-		lines = lines[start : start+height]
-	}
-	out := make([]string, len(lines))
-	for i, line := range lines {
-		out[i] = ansi.Truncate(line.text, width, "…")
-	}
-	return strings.Join(out, "\n")
 }

@@ -24,8 +24,8 @@ gctx · keys                                                                    
   Tencent      tccli not found  ○ pipx install tccli, or pip install tccli
   Claude Code  no CLI needed    ✓ env: CLAUDE_CONFIG_DIR
   Codex        no CLI needed    ✓ env: CODEX_HOME
-  SumoPod      no CLI needed    ✓ env: OPENAI_BASE_URL, OPENAI_API_KEY
-  OpenRouter   no CLI needed    ✓ env-based
+  SumoPod      no CLI needed    ✓ env: OPENAI_BASE_URL, OPENAI_API_KEY · no login
+  OpenRouter   no CLI needed    ✓ env-based · no login
 
 
 

@@ -1,11 +1,24 @@
+gctx ● ● ○ ● ● ●  5 active                                tab  All 19
+──────────────────────────────────────────────────────────────────────
+  NAME                   TARGET                  ADC  STATUS
+   GCP  byoip-lab        byoip-lab-eu-west       ✓    ✗ EXPIRED
+▌● GCP  cloudsuite       sap-gap-cloud-asap-s    ✓    ● READY
+   GCP  demo-ai          ai-builder-cup-demo     ✓    ● READY
 ┌────────────────────────────────────────────────────────────────────┐
 │ : log                                                    4 matches │
-├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
 │ actions                                                            │
 │ ▌Login cloudsuite                gctx login cloudsuite           l │
 │  Login all stale accounts (4)    (tui)                           L │
 │  Fold or unfold provider group   (tui)                           z │
 │  Toggle rows needing action      (tui)                           ! │
-├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
 │ ↑↓ select  ↵ run  ⇥ complete  esc close                            │
 └────────────────────────────────────────────────────────────────────┘
+ ●[CLD] claude-work      org Aliz Tech           –    ● READY
+ ●[OAI] codex-work       workspace Aliz          –    ● READY
+ ●[SMP] sumopod-dev      ai.sumopod.com          –    ● READY
+  [SMP] sumopod-prod     ai.sumopod.com          –    ⚠ BUDGET LOW
+──────────────────────────────────────────────────────────────────────
+✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)  19 accounts · 5 need action
+tab provider  ↵ activate  / filter  ? help  q quit

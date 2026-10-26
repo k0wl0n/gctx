@@ -301,6 +301,23 @@ func multiProviders() []manager.ProviderInfo {
 	for i := range infos {
 		infos[i].EnvBased = infos[i].ID != provider.GCP    // GCP switches globally
 		infos[i].NetworkAuth = infos[i].ID != provider.GCP // GCP checks with a local gcloud call
+		switch infos[i].Category {
+		case provider.CategoryAITool: // mockup 13: an isolated config dir per account
+			infos[i].Form = []provider.FormField{
+				{Key: "auth", Label: "Auth", Options: []string{"subscription", "api key"}},
+				{Key: provider.FormTargetKey, Label: "Org", Help: "picked after login"},
+			}
+		case provider.CategoryAIGateway: // mockup 15: a key reference, never the key
+			infos[i].CanLogin = false
+			infos[i].Form = []provider.FormField{
+				{Key: "key_from", Label: "Key from", Options: []string{"1Password", "env var", "keychain"}},
+				{Key: "key_ref", Label: "Key ref", Secret: true, Help: "op://vault/item/field"},
+				{Key: provider.FormTargetKey, Label: "Base URL", Default: "https://api.example.test/v1"},
+			}
+			infos[i].Footer = func(map[string]string) (string, string) {
+				return "config.json (name, base url, key reference)", "the key itself"
+			}
+		}
 	}
 	return infos
 }

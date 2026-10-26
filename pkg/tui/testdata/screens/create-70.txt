@@ -1,22 +1,24 @@
-Create account
-
-    Kind             Cloud   AI tool   AI gateway
-    Provider         GCP   AWS   Azure   ←/→
-    Name            prod-eu-data
-                    ✓ unique across all accounts
-    Auth            ◉ sso  ○ profile
-                    sso writes a new profile; profile adopts an
-                    existing one
-    Profile name    prod-eu-data
-    SSO start URL   https://corp.awsapps.com/start
-  › SSO region      eu-west-1
-    Region
-    SSO account ID    · optional
-    SSO role name     · optional
-
-  writes config.json (name, profile, regions) · ~/.aws/config [profile
-         prod-eu-data]
-  never  access keys, SSO tokens or secrets
-
-  [ Create and login ]  [ Create only ]    Cancel
-  tab next · shift+tab back · ←/→ change · esc cancel
+┌────────────────────────────────────────────────────────────────────┐
+│ Create account                            step 1 of 2 · then login │
+│   Kind           ‹ Cloud  AI tool  AI gateway ›  ←/→               │
+│   Cloud          ‹ GCP  AWS  Azure ›  ←/→                          │
+│   Name           prod-eu-data_____________________________________ │
+│                  ✓ unique across all accounts                      │
+│   Auth           ◉ sso  ○ profile                                  │
+│                  sso writes a new profile; profile adopts an       │
+│                  existing one                                      │
+│   Profile name   prod-eu-data_____________________________________ │
+│   SSO start URL  https://corp.awsapps.com/start___________________ │
+│ › SSO region     eu-west-1 _______________________________________ │
+│   Region         _________________________________________________ │
+│   SSO account ID optional_________________________________________ │
+│   SSO role name  optional_________________________________________ │
+│ ────────────────────────────────────────────────────────────────── │
+│ writes config.json (name, profile, regions) · ~/.aws/config        │
+│        [profile prod-eu-data]                                      │
+│ never  access keys, SSO tokens or secrets                          │
+│                                                                    │
+│ [ Create and login ] [ Create only ]   Cancel                      │
+│                                                                    │
+│ tab next  ⇧tab back  esc cancel                                    │
+└────────────────────────────────────────────────────────────────────┘

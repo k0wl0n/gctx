@@ -1,20 +1,40 @@
-Create account
-
-    Kind             Cloud   AI tool   AI gateway
-    Provider         GCP   AWS   Azure   ←/→
-    Name            prod-eu-data
-                    ✓ unique across all accounts
-    Auth            ◉ sso  ○ profile
-                    sso writes a new profile; profile adopts an existing one
-    Profile name    prod-eu-data
-    SSO start URL   https://corp.awsapps.com/start
-  › SSO region      eu-west-1
-    Region
-    SSO account ID    · optional
-    SSO role name     · optional
-
-  writes config.json (name, profile, regions) · ~/.aws/config [profile prod-eu-data]
-  never  access keys, SSO tokens or secrets
-
-  [ Create and login ]  [ Create only ]    Cancel
-  tab next · shift+tab back · ←/→ change · esc cancel
+gctx vtest │ GCP ● cloudsuite  AWS ● prod-aws  AZR ○ │ ai CLD ● claude-work  OAI ● codex-work  SMP ● sumopod-dev                     ✓ cfg  auth checked 14s ago
+env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-work CODEX_HOME=~/.config/gctx/ai/codex-work OPENAI_…
+ All 19  GCP 9  AWS 2  Azure 1 │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                                                            sort name  / filter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  KIND   NAME             TARGET                  IDENTITY                    ADC  STATUS           EXPIRES       │  AWS  prod-aws                      ● active
+CLOUDS ───────────────────────────────┌──────────────────────────────────────────────────────────────────────────────────┐
+GCP · project ────────────────────────│ Create account                                          step 1 of 2 · then login │e        prod-sso
+   GCP   byoip-lab        byoip-lab-eu│                                                                                  │         eu-west-1
+ ● GCP   cloudsuite       sap-gap-clou│   Kind           ‹ Cloud  AI tool  AI gateway ›  ←/→                             │         sso
+   GCP   demo-ai          ai-builder-c│   Cloud          ‹ GCP  AWS  Azure ›  ←/→                                        │         ● READY
+   GCP   gap-dev          gap-platform│                                                                                  │ty       arn:aws:sts::1…latformDev/dev
+   GCP   hcp-agents       hcp-tf-agent│   Name           prod-eu-data                                                    │s        3h 12m
+   GCP   infra-hub-prd    emarsys-infr│                  ─────────────────────────────────────────────────────────────── │d        14s ago
+   GCP   infra-hub-stg    emarsys-infr│                  ✓ unique across all accounts                                    │
+   GCP   rca-poc          k8s-ai-rca-p│   Auth           ◉ sso  ○ profile                                                │plied on activate
+   GCP   sbx-aliz         sandbox-dev-│                  sso writes a new profile; profile adopts an existing one        │OFILE=prod-sso
+AWS · profile ────────────────────────│   Profile name   prod-eu-data                                                    │
+   AWS   legacy-aws       legacy      │                  ─────────────────────────────────────────────────────────────── │in this shell
+▌● AWS   prod-aws         prod-sso    │   SSO start URL  https://corp.awsapps.com/start                                  │ "$(gctx env prod-aws)"
+AZURE · subscription ─────────────────│                  ─────────────────────────────────────────────────────────────── │
+   AZR   corp-azure       8c1f0a3e-0…0│ › SSO region     eu-west-1                                                       │vate  l login  s shell  r run
+                                      │                  ─────────────────────────────────────────────────────────────── │ delete
+AI TOOLS ─────────────────────────────│   Region                                                                         │
+CLAUDE CODE · org ────────────────────│                  ─────────────────────────────────────────────────────────────── │
+  [CLD]  claude-personal  personal    │   SSO account ID optional                                                        │
+  [CLD]  claude-vertex    via cloudsui│                  ─────────────────────────────────────────────────────────────── │
+ ●[CLD]  claude-work      org Aliz Tec│   SSO role name  optional                                                        │
+CODEX · workspace ────────────────────│                  ─────────────────────────────────────────────────────────────── │
+ ●[OAI]  codex-work       workspace Al│ ──────────────────────────────────────────────────────────────────────────────── │
+                                      │ writes config.json (name, profile, regions) · ~/.aws/config [profile prod-eu-    │
+AI GATEWAYS ──────────────────────────│        data]                                                                     │
+SUMOPOD · base url ───────────────────│ never  access keys, SSO tokens or secrets                                        │
+ ●[SMP]  sumopod-dev      ai.sumopod.c│                                                                                  │
+  [SMP]  sumopod-prod     ai.sumopod.c│ [ Create and login ] [ Create only ]   Cancel    tab next  ⇧tab back  esc cancel │
+OPENROUTER · base url ────────────────└──────────────────────────────────────────────────────────────────────────────────┘
+  [ORT]  openrouter       openrouter.ai           –                           –    ● READY          $7.40 left    │
+                                                                                                                  │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+✓ GCP 9/9  ✓ AWS 2/2  ⠋ Azure 0/1 (timeout 8s)  ✓ AI tools 4/4  ✓ gateways 3/3                             19 accounts · 1 expired · 3 need login · 1 low budget
+tab provider  j/k move  ↵ activate  / filter  l login  L login all stale  c create  s shell  y copy env  z fold group  p pane  R recheck  ? help  q quit

@@ -1,11 +1,40 @@
-     ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-     │ : log                                                                                            4 matches │
-     ├────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-     │ actions                                                                                                    │
-     │ ▌Login cloudsuite                                              gctx login cloudsuite                     l │
-     │  Login all stale accounts (4)                                  (tui)                                     L │
-     │  Fold or unfold provider group                                 (tui)                                     z │
+gctx │ GCP cloudsuite  AWS prod-aws  AZR ○ │ ai CLD claude-work  OAI codex-work  SMP sumopod-dev              ✓ cfg  14s
+env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-work CODEX_H…
+ All 19  GCP 9  AWS 2  Azure 1 │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                    sort name  / filter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  KIND   NAME             TARGET                  IDENTITY                    ADC  STATUS           EXPIRES
+CLOUDS ────────────────────────────────────────────────────────────────────────────────────────────────────────────── 12
+GCP · project ────────────────────────────────────────────────────────────────────────── 9 · 7 ready, 1 expired, 1 login
+   GCP   byoip-lab        byoip-lab-eu-west       ops@emarsys.example         ✓    ✗ EXPIRED        2d ago
+▌● GCP   cloudsuite       sap-gap-cloud-asap-s    ops@emarsys.example         ✓    ● READY          52m
+   GCP   demo-ai          ai-builder-cup-demo     dev@aliz.example            ✓    ● READY          7h
+   GCP   gap-dev          gap-platform-dev        ops@emarsys.example         ✓    ● READY          52m
+   GCP   hcp-agents       hcp-tf-agents-poc       dev@aliz.example            ✓    ● READY          7h
+   GCP   infra-hub-prd    emarsys-infra-hub-prd   ops@emarsys.example         ✓    ● READY          52m
+   GCP   infra-hub-stg    emarsys-infra-hub-stg   ops@emarsys.example         ✓    ● READY          52m
+   GC┌────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+   GC│ : log                                                                                            4 matches │
+AWS ·│                                                                                                            │login
+   AW│ actions                                                                                                    │
+ ● AW│ ▌Login cloudsuite                                              gctx login cloudsuite                     l │
+AZURE│  Login all stale accounts (4)                                  (tui)                                     L │ready
+   AZ│  Fold or unfold provider group                                 (tui)                                     z │
      │  Toggle rows needing action                                    (tui)                                     ! │
-     ├────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-     │ ↑↓ select  ↵ run  ⇥ complete  esc close                                  right column = the CLI equivalent │
-     └────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+AI TO│                                                                                                            │─── 4
+CLAUD│ ↑↓ select  ↵ run  ⇥ complete  esc close                                  right column = the CLI equivalent │login
+  [CL└────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  [CLD]  claude-vertex    via cloudsuite          Vertex AI · us-east5        –    ● READY          52m
+ ●[CLD]  claude-work      org Aliz Tech           dev@aliz.example            –    ● READY          6d
+CODEX · workspace ────────────────────────────────────────────────────────────────────────────────────────── 1 · 1 ready
+ ●[OAI]  codex-work       workspace Aliz          dev@aliz.example            –    ● READY          –
+
+AI GATEWAYS ────────────────────────────────────────────────────────────────────────────────────────────────────────── 3
+SUMOPOD · base url ─────────────────────────────────────────────────────────────────────────── 2 · 1 ready, 1 low budget
+ ●[SMP]  sumopod-dev      ai.sumopod.com          –                           –    ● READY          $3.15 left
+  [SMP]  sumopod-prod     ai.sumopod.com          –                           –    ⚠ BUDGET LOW     $1.60 left
+OPENROUTER · base url ────────────────────────────────────────────────────────────────────────────────────── 1 · 1 ready
+  [ORT]  openrouter       openrouter.ai           –                           –    ● READY          $7.40 left
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)                          19 accounts · 1 expired · 3 need login · 1 low budget
+tab provider  j/k move  ↵ activate  / filter  d details  l login  L login all stale  c create  s shell  ? help  q quit

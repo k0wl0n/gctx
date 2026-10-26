@@ -1,16 +1,40 @@
-Delete  AZR  corp-azure
-
-⚠ this is the active Azure account; AZR becomes none
-
-remove
-  [x] gctx entry in config.json · always
-  [x] isolated az dir ~/.config/gctx/azure/corp-azure · 2.1 MB, cached tokens
-  [ ] run az logout first · revokes the refresh token server-side
-
-kept: the Azure subscription and its resources. gctx never touches cloud resources.
-
-type corp-azure to confirm
-
-
-[ Delete ]  [*Cancel*]
-esc cancel · default focus on Cancel · tab moves · space toggles
+gctx vtest │ GCP ● cloudsuite  AWS ● prod-aws  AZR ● corp-azure │ ai CLD ● claude-work  OAI ● codex-work  SMP ● sumopod-dev          ✓ cfg  auth checked 14s ago
+env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso AZURE_CONFIG_DIR=~/.config/gctx/azure/corp-azure CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-wor…
+ All 19  GCP 9  AWS 2  Azure 1 │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                                                            sort name  / filter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  KIND   NAME             TARGET                  IDENTITY                    ADC  STATUS           EXPIRES       │  AZR  corp-azure                    ● active
+CLOUDS ─────────────────────────────────────────────────────────────────────────────────────────────────────── 12 │
+GCP · project ─────────────────────────────────────────────────────────────────── 9 · 7 ready, 1 expired, 1 login │ subscription   8c1f0a3e-0000-4000-8000-0000…
+   GCP   byoip-lab        byoip-lab-eu-west       ops@emarsys.example         ✓    ✗ EXPIRED        2d ago        │ status         ● READY
+ ● GCP   cloudsuite       sap-gap-cloud-asap-s    ops@emarsys.example         ✓    ● READY          52m           │ identity       dev@corp.example
+   GCP   demo-ai          ai-builder-c┌──────────────────────────────────────────────────────────────────────────────────┐
+   GCP   gap-dev          gap-platform│ Delete  AZR  corp-azure                                                          │plied on activate
+   GCP   hcp-agents       hcp-tf-agent│                                                                                  │CONFIG_DIR=~/.config/gctx/azure/corp-…
+   GCP   infra-hub-prd    emarsys-infr│ ⚠ this is the active Azure account; AZR becomes none                             │
+   GCP   infra-hub-stg    emarsys-infr│                                                                                  │in this shell
+   GCP   rca-poc          k8s-ai-rca-p│ remove                                                                           │ "$(gctx env corp-azure)"
+   GCP   sbx-aliz         sandbox-dev-│   [x] gctx entry in config.json · always                                         │
+AWS · profile ────────────────────────│   [x] isolated az dir ~/.config/gctx/azure/corp-azure · 2.1 MB, cached tokens    │vate  l login  s shell  r run
+   AWS   legacy-aws       legacy      │   [ ] run az logout first · revokes the refresh token server-side                │ delete
+ ● AWS   prod-aws         prod-sso    │                                                                                  │
+AZURE · subscription ─────────────────│ kept: the Azure subscription and its resources. gctx never touches cloud         │
+▌● AZR   corp-azure       8c1f0a3e-0…0│       resources.                                                                 │
+                                      │                                                                                  │
+AI TOOLS ─────────────────────────────│ type corp-azure to confirm                                                       │
+CLAUDE CODE · org ────────────────────│                                                                                  │
+  [CLD]  claude-personal  personal    │   ────────────────────────────────────────────────────────────────────────────── │
+  [CLD]  claude-vertex    via cloudsui│                                                                                  │
+ ●[CLD]  claude-work      org Aliz Tec│ [ Delete ]   Cancel                                                              │
+CODEX · workspace ────────────────────│                                                                                  │
+ ●[OAI]  codex-work       workspace Al│ esc cancel · default focus on Cancel · tab moves · space toggles                 │
+                                      └──────────────────────────────────────────────────────────────────────────────────┘
+AI GATEWAYS ─────────────────────────────────────────────────────────────────────────────────────────────────── 3 │
+SUMOPOD · base url ──────────────────────────────────────────────────────────────────── 2 · 1 ready, 1 low budget │
+ ●[SMP]  sumopod-dev      ai.sumopod.com          –                           –    ● READY          $3.15 left    │
+  [SMP]  sumopod-prod     ai.sumopod.com          –                           –    ⚠ BUDGET LOW     $1.60 left    │
+OPENROUTER · base url ─────────────────────────────────────────────────────────────────────────────── 1 · 1 ready │
+  [ORT]  openrouter       openrouter.ai           –                           –    ● READY          $7.40 left    │
+                                                                                                                  │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+✓ GCP 9/9  ✓ AWS 2/2  ⠋ Azure 0/1 (timeout 8s)  ✓ AI tools 4/4  ✓ gateways 3/3                             19 accounts · 1 expired · 3 need login · 1 low budget
+tab provider  j/k move  ↵ activate  / filter  l login  L login all stale  c create  s shell  y copy env  z fold group  p pane  R recheck  ? help  q quit
