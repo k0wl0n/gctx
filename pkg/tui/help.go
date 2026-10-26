@@ -155,33 +155,66 @@ func newHelpBlock(group keyGroup, st styles) helpBlock {
 	return block
 }
 
-// helpKeyColumns lays the groups out side by side, in equal thirds, from
-// helpSplitWidth; narrower screens stack them.
+// helpKeyColumns lays the groups out side by side from helpSplitWidth, each
+// column as wide as its content. When three columns do not fit, the last two
+// groups share one column; narrower screens stack them.
 func helpKeyColumns(groups []keyGroup, width int, g glyphs, st styles) []string {
 	blocks := make([]helpBlock, len(groups))
 	for i, group := range groups {
 		blocks[i] = newHelpBlock(group, st)
 	}
-	if width < helpSplitWidth {
-		var out []string
-		for i, block := range blocks {
-			if i > 0 {
-				out = append(out, "")
-			}
-			for _, line := range block.lines {
-				out = append(out, truncateCells(line, width, g.Ellipsis))
+	if width >= helpSplitWidth {
+		if columns := fitColumns(blocks, width); columns != nil {
+			return joinColumns(columns, columnWidths(columns), g)
+		}
+		if len(blocks) > 2 {
+			merged := append(slices.Clone(blocks[1].lines), "")
+			merged = append(merged, blocks[2].lines...)
+			columns := [][]string{blocks[0].lines, merged}
+			if widths := columnWidths(columns); sumWidths(widths) <= width {
+				return joinColumns(columns, widths, g)
 			}
 		}
-		return out
 	}
+	var out []string
+	for i, block := range blocks {
+		if i > 0 {
+			out = append(out, "")
+		}
+		for _, line := range block.lines {
+			out = append(out, truncateCells(line, width, g.Ellipsis))
+		}
+	}
+	return out
+}
+
+func fitColumns(blocks []helpBlock, width int) [][]string {
 	columns := make([][]string, len(blocks))
-	widths := make([]int, len(blocks))
-	slot := (width - helpColumnGap*(len(blocks)-1)) / len(blocks)
 	for i, block := range blocks {
 		columns[i] = block.lines
-		widths[i] = max(block.width, slot)
 	}
-	return joinColumns(columns, widths, g)
+	if sumWidths(columnWidths(columns)) > width {
+		return nil
+	}
+	return columns
+}
+
+func columnWidths(columns [][]string) []int {
+	widths := make([]int, len(columns))
+	for i, column := range columns {
+		for _, line := range column {
+			widths[i] = max(widths[i], ansi.StringWidth(line))
+		}
+	}
+	return widths
+}
+
+func sumWidths(widths []int) int {
+	total := helpColumnGap * (len(widths) - 1)
+	for _, w := range widths {
+		total += w
+	}
+	return total
 }
 
 func joinColumns(columns [][]string, widths []int, g glyphs) []string {

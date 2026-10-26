@@ -68,6 +68,11 @@ func screenScenarios() []screenScenario {
 			m.logPath = "~/.cache/gctx/tui-debug.log"
 			return press(t, m, "?")
 		}, []string{"navigation", "esc or ? to close"}},
+		{"details", func(t *testing.T, size goldenSize) Model {
+			m := mainModel(t, newMultiService(), size)
+			m.selected = "prod-aws"
+			return press(t, m, "d")
+		}, []string{"prod-aws"}},
 		{"create", func(t *testing.T, size goldenSize) Model {
 			m := mainModel(t, withRealForms(t, newMultiService()), size)
 			m.selected = "prod-aws"

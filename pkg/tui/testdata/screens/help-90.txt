@@ -12,9 +12,6 @@ Keys                                                        j/k scroll · esc or
   1-9          jump to tab (1 is All)
   /            filter
   esc          clear applied filter
-  !            only rows needing action
-  o            cycle sort: name, status, expiry
-  z            fold or unfold the provider group
   :            command palette
 
   account
@@ -25,6 +22,9 @@ Keys                                                        j/k scroll · esc or
   c       create account
   e       edit account
   ctrl+d  delete account
-  a       save current ADC to selected account
+  a       save current ADC here
+  y       copy the env eval line
+
+  session
 ──────────────────────────────────────────────────────────────────────────────────────────
 config ~/.config/gctx/config.json · log ~/.cache/gctx/tui-debug.log

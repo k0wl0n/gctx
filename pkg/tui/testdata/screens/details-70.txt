@@ -1,0 +1,24 @@
+accounts ›  AWS  prod-aws › details                           ● active
+──────────────────────────────────────────────────────────────────────
+
+── account ───────────────────────────────────────────────────────────
+  profile            prod-sso
+  email              –
+  status             ● READY
+
+── findings ──────────────────────────────────────────────────────────
+  ✓ no issues found
+
+── provider details ──────────────────────────────────────────────────
+  profile            prod-sso
+  region             eu-west-1
+  auth               sso
+
+── env applied on activate ───────────────────────────────────────────
+  AWS_PROFILE=prod-sso
+
+
+
+
+──────────────────────────────────────────────────────────────────────
+ esc  close   d  toggle

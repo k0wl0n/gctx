@@ -146,7 +146,7 @@ func TestHintAndHelpListCopyAndSubshellKeys(t *testing.T) {
 	}
 	m.screen = screenHelp
 	help := screen(m)
-	for _, want := range []string{"copy the env eval line", "subshell with only this account", "subshell with every active slot"} {
+	for _, want := range []string{"copy the env eval line", "subshell, this account only", "subshell, every active slot"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help lacks %q", want)
 		}

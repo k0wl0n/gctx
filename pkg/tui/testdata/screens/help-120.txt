@@ -1,20 +1,17 @@
 Keys                                                                                                   esc or ? to close
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  navigation                                       account                                        session
-  j/↓          next row                            enter   switch to selected account             s         subshell wi…
-  k/↑          previous row                        d/i     details                                S         subshell wi…
-  g/home       first row                           l       login                                  r         run provide…
-  G/end        last row                            L       login every stale account              R         reload
-  ctrl+f/pgdn  page down                           c       create account                         p         toggle deta…
-  ctrl+b/pgup  page up                             e       edit account                           ?         help
-  tab          next provider tab                   ctrl+d  delete account                         q/ctrl+c  quit
-  shift+tab    previous provider tab               a       save current ADC to selected account
-  1-9          jump to tab (1 is All)              y       copy the env eval line
-  /            filter
+  navigation                            account                              session
+  j/↓          next row                 enter   switch to selected account   s         subshell, every active slot
+  k/↑          previous row             d/i     details                      S         subshell, this account only
+  g/home       first row                l       login                        r         run provider CLI command
+  G/end        last row                 L       login every stale account    R         reload
+  ctrl+f/pgdn  page down                c       create account               p         toggle detail pane
+  ctrl+b/pgup  page up                  e       edit account                 z         fold or unfold provider group
+  tab          next provider tab        ctrl+d  delete account               !         only rows needing action
+  shift+tab    previous provider tab    a       save current ADC here        o         cycle name/status/expiry sort
+  1-9          jump to tab (1 is All)   y       copy the env eval line       ?         help
+  /            filter                                                        q/ctrl+c  quit
   esc          clear applied filter
-  !            only rows needing action
-  o            cycle sort: name, status, expiry
-  z            fold or unfold the provider group
   :            command palette
 
   ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -28,6 +25,9 @@ Keys                                                                            
   Codex        no CLI needed    ✓ env: CODEX_HOME
   SumoPod      no CLI needed    ✓ env: OPENAI_BASE_URL, OPENAI_API_KEY · no login
   OpenRouter   no CLI needed    ✓ env-based · no login
+
+
+
 
 
 

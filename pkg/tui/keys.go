@@ -44,19 +44,19 @@ var keys = keyMap{
 	Login:   key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "login")),
 	LoginStale: key.NewBinding(key.WithKeys("L"),
 		key.WithHelp("L", "login every stale account")),
-	Shell:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "subshell with every active slot")),
-	ShellOne: key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "subshell with only this account")),
+	Shell:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "subshell, every active slot")),
+	ShellOne: key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "subshell, this account only")),
 	CopyEnv:  key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy the env eval line")),
 	Run:      key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "run provider CLI command")),
 	Create:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "create account")),
 	Edit:     key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit account")),
 	Delete:   key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "delete account")),
-	Save:     key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "save current ADC to selected account")),
+	Save:     key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "save current ADC here")),
 
 	TogglePane:  key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "toggle detail pane")),
-	Fold:        key.NewBinding(key.WithKeys("z"), key.WithHelp("z", "fold or unfold the provider group")),
+	Fold:        key.NewBinding(key.WithKeys("z"), key.WithHelp("z", "fold or unfold provider group")),
 	NeedsAction: key.NewBinding(key.WithKeys("!"), key.WithHelp("!", "only rows needing action")),
-	Sort:        key.NewBinding(key.WithKeys("o"), key.WithHelp("o", "cycle sort: name, status, expiry")),
+	Sort:        key.NewBinding(key.WithKeys("o"), key.WithHelp("o", "cycle name/status/expiry sort")),
 
 	Reload:  key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "reload")),
 	Help:    key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
@@ -77,9 +77,9 @@ func (k keyMap) groups() []keyGroup {
 // helpColumns regroups the same bindings into the help screen's three columns.
 func (k keyMap) helpColumns() []keyGroup {
 	return []keyGroup{
-		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab, k.Filter, k.Clear, k.NeedsAction, k.Sort, k.Fold, k.Command}},
+		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab, k.Filter, k.Clear, k.Command}},
 		{"Account", []key.Binding{k.Switch, k.Details, k.Login, k.LoginStale, k.Create, k.Edit, k.Delete, k.Save, k.CopyEnv}},
-		{"Session", []key.Binding{k.Shell, k.ShellOne, k.Run, k.Reload, k.TogglePane, k.Help, k.Quit}},
+		{"Session", []key.Binding{k.Shell, k.ShellOne, k.Run, k.Reload, k.TogglePane, k.Fold, k.NeedsAction, k.Sort, k.Help, k.Quit}},
 	}
 }
 
