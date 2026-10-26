@@ -151,3 +151,38 @@ func TestCodexDiscoverAdoptsExistingDir(t *testing.T) {
 		t.Fatalf("adopted dir removed: %v", err)
 	}
 }
+
+func TestCodexDefaultDirAccountLeavesHomeUnset(t *testing.T) {
+	t.Setenv("CODEX_HOME", filepath.Join(t.TempDir(), "leaked"))
+	dir := t.TempDir()
+	root, home, logPath := filepath.Join(dir, "gctx", "ai"), filepath.Join(dir, "home"), filepath.Join(dir, "calls.log")
+	defaultDir := filepath.Join(home, ".codex")
+	if err := os.MkdirAll(defaultDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	p := codex.New(codex.Options{
+		ConfigRoot: root,
+		Home:       home,
+		LookPath:   func(string) (string, error) { return fakeCodexBin, nil },
+		Getenv:     func(string) string { return "" },
+		Runner:     execrunner.New(fakeCodexBin).WithEnv([]string{"FAKE_CODEX_LOG=" + logPath, "FAKE_CODEX_DEFAULT_DIR=" + defaultDir}),
+	})
+	adopted := config.Account{Name: "codex-default", Provider: "codex", Settings: map[string]string{
+		provider.SettingDir:          defaultDir,
+		provider.SettingConfigOrigin: provider.ConfigOriginImported,
+	}}
+	if env, err := p.Env(adopted); err != nil || !slices.Equal(env, []string{"CODEX_HOME"}) {
+		t.Fatalf("env %v err %v: want the variable unset", env, err)
+	}
+	if _, err := p.Login(context.Background(), adopted, provider.LoginIO{}); err != nil {
+		t.Fatal(err)
+	}
+	if res := p.CheckAuth(context.Background(), []config.Account{adopted}).Results["codex-default"]; !res.Credentialed || res.Err != nil {
+		t.Fatalf("check %+v", res)
+	}
+	for _, c := range readCalls(t, logPath) {
+		if c.CodexHome != "" {
+			t.Fatalf("%v ran with CODEX_HOME=%q", c.Args, c.CodexHome)
+		}
+	}
+}

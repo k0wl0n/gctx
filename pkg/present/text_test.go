@@ -110,3 +110,11 @@ func TestLoginDoneDoesNotRepeatSetProjectFailed(t *testing.T) {
 		t.Errorf("stderr %q repeats the set-project warning", stderr.String())
 	}
 }
+
+func TestEnvUnsetsBareNames(t *testing.T) {
+	var out bytes.Buffer
+	present.Env(&out, []string{"A=1", "CLAUDE_CONFIG_DIR"})
+	if want := "export A='1'\nunset CLAUDE_CONFIG_DIR\n"; out.String() != want {
+		t.Errorf("got %q want %q", out.String(), want)
+	}
+}

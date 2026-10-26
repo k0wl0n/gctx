@@ -175,7 +175,7 @@ func (t *Tool) Login(ctx context.Context, acct config.Account, lio provider.Logi
 	}
 	providerutil.Progress(lio, provider.LoginAuthStarted)
 	stdio := provider.Stdio{Stdin: lio.Stdin, Stdout: lio.Stdout, Stderr: lio.Stderr}
-	if err := runner.Interactive(ctx, stdio, []string{t.spec.EnvVar + "=" + dir}, t.spec.LoginArgs...); err != nil {
+	if err := runner.Interactive(ctx, stdio, t.dirEnv(dir), t.spec.LoginArgs...); err != nil {
 		return result, fmt.Errorf("%s %s failed: %w", t.spec.CLIName, strings.Join(t.spec.LoginArgs, " "), err)
 	}
 	providerutil.Progress(lio, provider.LoginAuthDone)
@@ -241,7 +241,22 @@ func (t *Tool) Env(acct config.Account) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []string{t.spec.EnvVar + "=" + dir}, nil
+	return t.dirEnv(dir), nil
+}
+
+// dirEnv points the tool at dir. The tool's own default directory is the one
+// place it must not be pointed at: Claude Code keeps its login in the macOS
+// keychain only while the variable is unset, so the variable is removed
+// instead (a bare name, see provider.MergeEnv).
+func (t *Tool) dirEnv(dir string) []string {
+	if t.isDefaultDir(dir) {
+		return []string{t.spec.EnvVar}
+	}
+	return []string{t.spec.EnvVar + "=" + dir}
+}
+
+func (t *Tool) isDefaultDir(dir string) bool {
+	return t.opts.Home != "" && filepath.Clean(dir) == filepath.Join(t.opts.Home, t.spec.DefaultDir)
 }
 
 // CheckEach runs status for every account that has its own login and an
@@ -269,7 +284,7 @@ func (t *Tool) CheckEach(ctx context.Context, accts []config.Account, status fun
 		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 			return provider.AuthResult{}
 		}
-		return status(ctx, runner, []string{t.spec.EnvVar + "=" + dir})
+		return status(ctx, runner, t.dirEnv(dir))
 	})
 }
 

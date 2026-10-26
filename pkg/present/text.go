@@ -217,10 +217,15 @@ func Switch(w, errw io.Writer, result manager.SwitchResult) {
 	}
 }
 
-// Env prints one POSIX `export KEY='value'` line per KEY=value entry.
+// Env prints one POSIX `export KEY='value'` line per KEY=value entry and
+// `unset KEY` for a bare KEY.
 func Env(w io.Writer, entries []string) {
 	for _, entry := range entries {
-		key, value, _ := strings.Cut(entry, "=")
+		key, value, isSet := strings.Cut(entry, "=")
+		if !isSet {
+			fmt.Fprintf(w, "unset %s\n", key)
+			continue
+		}
 		fmt.Fprintf(w, "export %s='%s'\n", key, strings.ReplaceAll(value, "'", `'\''`))
 	}
 }

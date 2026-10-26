@@ -6,6 +6,8 @@
 //
 //	FAKE_CLAUDE_LOGIN_FAIL=1  auth login exits 1
 //	FAKE_CLAUDE_STATUS_FAIL=1 auth status exits 2 with an unexpected error
+//	FAKE_CLAUDE_DEFAULT_DIR   directory used when CLAUDE_CONFIG_DIR is unset,
+//	                          like the real CLI's ~/.claude
 //
 // auth login writes a credentials file holding fakeToken; auth status reports
 // logged in when that file exists. Status never prints the token, so tests
@@ -38,6 +40,9 @@ func main() {
 func run(args []string) int {
 	logInvocation(args)
 	dir := os.Getenv("CLAUDE_CONFIG_DIR")
+	if dir == "" {
+		dir = os.Getenv("FAKE_CLAUDE_DEFAULT_DIR")
+	}
 	switch strings.Join(args, " ") {
 	case "auth login":
 		if os.Getenv("FAKE_CLAUDE_LOGIN_FAIL") != "" {

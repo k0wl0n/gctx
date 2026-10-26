@@ -65,7 +65,7 @@ func (m *Manager) RunCommand(name string, args []string) (*exec.Cmd, error) {
 		return nil, err
 	}
 	cmd := exec.Command(cli.Bin, args...)
-	cmd.Env = append(os.Environ(), env...)
+	cmd.Env = provider.MergeEnv(os.Environ(), env)
 	return cmd, nil
 }
 
@@ -101,7 +101,7 @@ func (m *Manager) ShellCommand(name string, scope ShellScope) (*exec.Cmd, error)
 	shell := ResolveShell(m.opts.GOOS, m.opts.Getenv, m.opts.LookPath)
 	cmd := exec.Command(shell)
 	env = append(env, fmt.Sprintf("GCTX_ACCOUNT=%s", name))
-	cmd.Env = append(cmd.Environ(), env...)
+	cmd.Env = provider.MergeEnv(cmd.Environ(), env)
 	return cmd, nil
 }
 

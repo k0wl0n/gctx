@@ -172,7 +172,7 @@ var secretNameParts = []string{"KEY", "TOKEN", "SECRET", "PASSWORD"}
 func displayEnv(kv string) string {
 	name, value, ok := strings.Cut(kv, "=")
 	if !ok {
-		return kv
+		return kv + " unset (tool's default directory)"
 	}
 	for _, scheme := range keyRefSchemes {
 		if strings.HasPrefix(value, scheme) {

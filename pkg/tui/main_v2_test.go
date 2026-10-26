@@ -636,3 +636,17 @@ func TestSaveKeyIgnoredOnNonGCPRow(t *testing.T) {
 		t.Error("a did not open the save dialog on a GCP row")
 	}
 }
+
+func TestDetailPaneSaysDefaultDirectoryForUnsetEnv(t *testing.T) {
+	svc := newMultiService()
+	svc.envs["claude-work"] = []string{"CLAUDE_CONFIG_DIR"}
+	m := multiModel(t, svc, 160, 40)
+	m.selected = "claude-work"
+	pane := screen(m)
+	if !strings.Contains(pane, "CLAUDE_CONFIG_DIR unset") || !strings.Contains(pane, "default directory") {
+		t.Fatalf("pane does not explain the unset variable:\n%s", pane)
+	}
+	if strings.Contains(pane, "CLAUDE_CONFIG_DIR=") {
+		t.Fatalf("pane shows the variable as set:\n%s", pane)
+	}
+}

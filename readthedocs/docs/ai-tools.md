@@ -23,6 +23,8 @@ AI tools are env-based: `gctx switch` records the account for the tool's slot (`
 
 On first run the TUI offers your existing `~/.claude` and `~/.codex` (or `$CLAUDE_CONFIG_DIR` / `$CODEX_HOME`) as accounts named `claude-default` and `codex-default` (with a numeric suffix if the name is taken). The account uses that directory in place: nothing is copied or moved, discovery only checks that the directory exists, and deleting the account never removes the directory. A directory already used by an account is not offered again.
 
+An account on the tool's own default directory (`~/.claude`, `~/.codex`) leaves the variable unset: Claude Code keeps its login in the macOS keychain only while `CLAUDE_CONFIG_DIR` is unset, so exporting it, even with the same path, makes the login invisible. For such an account `gctx env` prints `unset CLAUDE_CONFIG_DIR`, and `gctx run`, `gctx shell` and the credential checks remove the variable from the tool's environment even when your shell exports it. Isolated accounts under `<config>/ai/<name>` still export it.
+
 ## Claude Code on a cloud account
 
 A Claude Code account can run on a GCP or AWS account instead of a subscription login. In the create form pick Auth `via cloud account` and name the cloud account, backend and region:

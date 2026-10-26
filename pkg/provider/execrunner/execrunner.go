@@ -37,8 +37,7 @@ func New(bin string) provider.Runner { return runner{bin: bin} }
 var _ provider.StreamingRunner = runner{}
 
 func (r runner) environment(env []string) []string {
-	merged := append(os.Environ(), r.extra...)
-	return append(merged, env...)
+	return provider.MergeEnv(os.Environ(), append(append([]string(nil), r.extra...), env...))
 }
 
 func (r runner) WithEnv(extra []string) provider.Runner {

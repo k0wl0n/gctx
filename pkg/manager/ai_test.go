@@ -253,7 +253,7 @@ func TestDiscoverAdoptsExistingAIToolDirs(t *testing.T) {
 		t.Fatalf("import %+v err %v", imported, err)
 	}
 	env, err := fx.manager.Env("claude-default-2")
-	if err != nil || !slices.Equal(env, []string{"CLAUDE_CONFIG_DIR=" + claudeDir}) {
+	if err != nil || !slices.Equal(env, []string{"CLAUDE_CONFIG_DIR"}) {
 		t.Fatalf("env %v err %v", env, err)
 	}
 	if again, _ := fx.manager.Discover(); len(itemsOf(again, provider.ClaudeCode))+len(itemsOf(again, provider.Codex)) != 0 {
@@ -290,5 +290,40 @@ func TestClaudeViaEditRejectsUnsupportedCloud(t *testing.T) {
 	}
 	if env, err := fx.manager.Env("claude-vertex"); err != nil || !slices.Contains(env, "CLAUDE_CODE_USE_VERTEX=1") {
 		t.Fatalf("link changed after a refused edit: %v %v", env, err)
+	}
+}
+
+func TestDefaultDirAccountRunsWithConfigDirRemoved(t *testing.T) {
+	t.Setenv("CLAUDE_CONFIG_DIR", "/leaked/from/parent/shell")
+	fx := newAIFixture(t, nil, nil)
+	if err := os.MkdirAll(filepath.Join(fx.home, ".claude"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	result, err := fx.manager.Discover()
+	if err != nil {
+		t.Fatal(err)
+	}
+	item, ok := itemsOf(result, provider.ClaudeCode)["claude-default"]
+	if !ok {
+		t.Fatalf("no default setup discovered: %+v", result)
+	}
+	if _, err := fx.manager.ImportAccounts([]manager.DiscoveredAccount{item}); err != nil {
+		t.Fatal(err)
+	}
+
+	env, err := fx.manager.Env("claude-default")
+	if err != nil || !slices.Equal(env, []string{"CLAUDE_CONFIG_DIR"}) {
+		t.Fatalf("env %v err %v: want the variable unset", env, err)
+	}
+	hasConfigDir := func(cmdEnv []string) bool {
+		return slices.ContainsFunc(cmdEnv, func(kv string) bool { return strings.HasPrefix(kv, "CLAUDE_CONFIG_DIR=") })
+	}
+	run, err := fx.manager.RunCommand("claude-default", []string{"--version"})
+	if err != nil || hasConfigDir(run.Env) {
+		t.Fatalf("run env keeps the parent's variable: err %v", err)
+	}
+	shell, err := fx.manager.ShellCommand("claude-default", manager.ShellOnly)
+	if err != nil || hasConfigDir(shell.Env) {
+		t.Fatalf("shell env keeps the parent's variable: err %v", err)
 	}
 }

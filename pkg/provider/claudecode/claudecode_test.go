@@ -301,7 +301,7 @@ func TestClaudeDeleteNeverRemovesAdoptedDir(t *testing.T) {
 	_, setups, _ := h.provider.DiscoverSetups()
 	acct := config.Account{Name: "claude-default", Provider: "claude", Settings: setups[0].Settings}
 	env, err := h.provider.Env(acct)
-	if err != nil || !slices.Equal(env, []string{"CLAUDE_CONFIG_DIR=" + existing}) {
+	if err != nil || !slices.Equal(env, []string{"CLAUDE_CONFIG_DIR"}) {
 		t.Fatalf("adopted env %v err %v", env, err)
 	}
 	for _, item := range h.provider.DeleteItems(acct) {
@@ -366,5 +366,68 @@ func TestClaudeActivateCountsRunningProcesses(t *testing.T) {
 	})
 	if result, err := failing.Activate(context.Background(), config.Account{Name: "work"}); err != nil || result.RunningProcesses != 0 {
 		t.Fatalf("ps failure must count 0: %+v %v", result, err)
+	}
+}
+
+// Claude Code keeps its login in the macOS keychain only while
+// CLAUDE_CONFIG_DIR is unset, so an account on the tool's own default
+// directory must run with the variable removed, even when the shell exports it.
+func TestClaudeDefaultDirAccountLeavesConfigDirUnset(t *testing.T) {
+	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(t.TempDir(), "leaked"))
+	home := filepath.Join(t.TempDir(), "home")
+	defaultDir := filepath.Join(home, ".claude")
+	if err := os.MkdirAll(defaultDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	h := newHarness(t, "FAKE_CLAUDE_DEFAULT_DIR="+defaultDir)
+	h.home = home
+	h.provider = claudecode.New(claudecode.Options{
+		ConfigRoot: h.root,
+		Home:       home,
+		LookPath:   func(string) (string, error) { return fakeClaudeBin, nil },
+		Getenv:     func(string) string { return "" },
+		Runner:     execrunner.New(fakeClaudeBin).WithEnv([]string{"FAKE_CLAUDE_LOG=" + h.logPath, "FAKE_CLAUDE_DEFAULT_DIR=" + defaultDir}),
+	})
+	adopted := config.Account{Name: "claude-default", Provider: string(provider.ClaudeCode), Settings: map[string]string{
+		provider.SettingDir:          defaultDir,
+		provider.SettingConfigOrigin: provider.ConfigOriginImported,
+	}}
+
+	env, err := h.provider.Env(adopted)
+	if err != nil || !slices.Equal(env, []string{"CLAUDE_CONFIG_DIR"}) {
+		t.Fatalf("env %v err %v: want the variable unset", env, err)
+	}
+	h.login(t, adopted)
+	report := h.provider.CheckAuth(context.Background(), []config.Account{adopted})
+	if res := report.Results["claude-default"]; !res.Credentialed || res.Err != nil {
+		t.Fatalf("check %+v", res)
+	}
+	calls := h.calls(t)
+	if len(calls) != 2 {
+		t.Fatalf("calls %+v", calls)
+	}
+	for _, c := range calls {
+		if c.ConfigDir != "" {
+			t.Fatalf("%v ran with CLAUDE_CONFIG_DIR=%q, the keychain login would be missed", c.Args, c.ConfigDir)
+		}
+	}
+}
+
+func TestClaudeIsolatedAccountStillExportsConfigDir(t *testing.T) {
+	t.Setenv("CLAUDE_CONFIG_DIR", "")
+	h := newHarness(t)
+	acct := h.created(t, "work")
+	want := filepath.Join(h.root, "work")
+	if env, err := h.provider.Env(acct); err != nil || !slices.Equal(env, []string{"CLAUDE_CONFIG_DIR=" + want}) {
+		t.Fatalf("env %v err %v", env, err)
+	}
+	// An adopted directory that is not the tool's default keeps the variable.
+	custom := filepath.Join(h.home, "custom-claude")
+	adopted := config.Account{Name: "custom", Provider: string(provider.ClaudeCode), Settings: map[string]string{
+		provider.SettingDir:          custom,
+		provider.SettingConfigOrigin: provider.ConfigOriginImported,
+	}}
+	if env, err := h.provider.Env(adopted); err != nil || !slices.Equal(env, []string{"CLAUDE_CONFIG_DIR=" + custom}) {
+		t.Fatalf("env %v err %v", env, err)
 	}
 }

@@ -6,6 +6,8 @@
 // Behavior knobs (all optional):
 //
 //	FAKE_CODEX_LOGIN_FAIL=1 login exits 1
+//	FAKE_CODEX_DEFAULT_DIR  directory used when CODEX_HOME is unset, like the
+//	                        real CLI's ~/.codex
 //
 // login writes auth.json holding fakeToken; login status reports logged in
 // when that file exists and never prints the token.
@@ -33,6 +35,9 @@ func main() {
 func run(args []string) int {
 	logInvocation(args)
 	home := os.Getenv("CODEX_HOME")
+	if home == "" {
+		home = os.Getenv("FAKE_CODEX_DEFAULT_DIR")
+	}
 	if home != "" {
 		if _, err := os.Stat(home); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: CODEX_HOME points to %q, but that path does not exist\n", home)
