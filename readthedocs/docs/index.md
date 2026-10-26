@@ -307,10 +307,12 @@ AWS has no global switch, so `gctx switch` prints a hint instead of changing sta
 
 ```bash
 eval "$(gctx env prod)"   # exports AWS_PROFILE=prod-profile
-gctx login prod           # aws sso login --profile prod-profile (SSO profiles only)
+gctx login prod           # aws sso login --profile=prod-profile (SSO profiles only)
 ```
 
-Credential checks use `aws sts get-caller-identity --profile <profile>`.
+Credential checks use `aws sts get-caller-identity --profile=<profile>`. Profile names must start with a letter, digit or underscore, so a name can never be read as a flag.
+
+The delete dialog offers `aws sso logout` (off by default). It signs out of every AWS SSO session on this machine, not only this profile: other AWS accounts need `gctx login` again afterwards.
 
 ### Azure
 

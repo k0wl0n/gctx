@@ -34,7 +34,7 @@ var logoutTimeout = 20 * time.Second
 
 var ErrCLINotFound = errors.New("aws CLI not found; install AWS CLI v2")
 
-var profilePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,64}$`)
+var profilePattern = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$`)
 
 // authFailureMarkers identify an sts failure caused by missing or expired
 // credentials; any other failure leaves the account UNVERIFIED.
@@ -223,6 +223,9 @@ func (p *Provider) writeSSOProfile(ctx context.Context, profile string, fields m
 func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.LoginIO) (provider.LoginResult, error) {
 	profile := acct.Target()
 	result := provider.LoginResult{Account: acct.Name}
+	if err := p.ValidateTarget(profile); err != nil {
+		return result, err
+	}
 	keys, exists := p.profiles()[profile]
 	if !exists {
 		return result, fmt.Errorf("AWS profile %q not found in %s", profile, p.configPath())
@@ -235,7 +238,7 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 		return result, err
 	}
 
-	args := []string{"sso", "login", "--profile", profile}
+	args := []string{"sso", "login", profileArg(profile)}
 	if lio.NoBrowser {
 		args = append(args, "--no-browser")
 	}
@@ -306,7 +309,10 @@ func (p *Provider) CheckAuth(ctx context.Context, accts []config.Account) provid
 		}
 	}
 	return providerutil.CheckEach(ctx, accts, func(ctx context.Context, acct config.Account) provider.AuthResult {
-		out, err := runner.Query(ctx, p.childEnv(), "sts", "get-caller-identity", "--profile", acct.Target(), "--output", "json")
+		if p.ValidateTarget(acct.Target()) != nil {
+			return provider.AuthResult{}
+		}
+		out, err := runner.Query(ctx, p.childEnv(), "sts", "get-caller-identity", profileArg(acct.Target()), "--output", "json")
 		if err != nil {
 			return providerutil.FailedCheck(err, authFailureMarkers)
 		}
@@ -331,9 +337,13 @@ func (p *Provider) Delete(ctx context.Context, acct config.Account, opt provider
 	}
 	ctx, cancel := context.WithTimeout(ctx, logoutTimeout)
 	defer cancel()
-	runner, err := p.runner()
+	err := p.ValidateTarget(acct.Target())
+	var runner provider.Runner
 	if err == nil {
-		_, err = runner.Query(ctx, p.childEnv(), "sso", "logout", "--profile", acct.Target())
+		runner, err = p.runner()
+	}
+	if err == nil {
+		_, err = runner.Query(ctx, p.childEnv(), "sso", "logout", profileArg(acct.Target()))
 	}
 	if err != nil {
 		result.Warnings = append(result.Warnings, provider.Warning{
@@ -348,8 +358,8 @@ var _ provider.DeleteDescriber = (*Provider)(nil)
 func (p *Provider) DeleteItems(acct config.Account) []provider.DeleteItem {
 	return []provider.DeleteItem{{
 		Key:    provider.DeleteKeyLogout,
-		Label:  "run aws sso logout --profile " + acct.Target() + " first",
-		Detail: "ends the SSO session",
+		Label:  "run aws sso logout --profile=" + acct.Target() + " first",
+		Detail: "signs out of every AWS SSO session on this machine, not only this profile",
 	}}
 }
 
@@ -370,3 +380,6 @@ func (p *Provider) Details(acct config.Account) []provider.Field {
 	}
 	return fields
 }
+
+// profileArg passes the profile as one argument so a name can never be read as a flag.
+func profileArg(profile string) string { return "--profile=" + profile }

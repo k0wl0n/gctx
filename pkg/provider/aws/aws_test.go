@@ -120,7 +120,7 @@ func TestAWSCheckAuthParsesArn(t *testing.T) {
 	if !report.Results["work"].Credentialed || report.Results["work"].Identity != "arn:aws:sts::1:assumed-role/Dev/me" {
 		t.Fatalf("report %+v", report)
 	}
-	want := []string{"sts", "get-caller-identity", "--profile", "work", "--output", "json"}
+	want := []string{"sts", "get-caller-identity", "--profile=work", "--output", "json"}
 	if calls := h.calls(t); len(calls) != 1 || strings.Join(calls[0], " ") != strings.Join(want, " ") {
 		t.Fatalf("calls %v", calls)
 	}
@@ -188,7 +188,7 @@ func TestAWSLoginUsesProfile(t *testing.T) {
 		t.Fatalf("result %+v err %v", result, err)
 	}
 	calls := h.calls(t)
-	if len(calls) != 1 || strings.Join(calls[0], " ") != "sso login --profile work" {
+	if len(calls) != 1 || strings.Join(calls[0], " ") != "sso login --profile=work" {
 		t.Fatalf("calls %v", calls)
 	}
 	if len(events) != 2 || events[0] != provider.LoginAuthStarted || events[1] != provider.LoginAuthDone {
@@ -433,7 +433,7 @@ func TestDeleteAWSNeverEditsAWSConfig(t *testing.T) {
 		t.Error("Delete edited the AWS config")
 	}
 	calls := h.calls(t)
-	if len(calls) != 1 || strings.Join(calls[0], " ") != "sso logout --profile work" {
+	if len(calls) != 1 || strings.Join(calls[0], " ") != "sso logout --profile=work" {
 		t.Errorf("calls %v", calls)
 	}
 
@@ -450,7 +450,7 @@ func TestAWSDeleteItems(t *testing.T) {
 	h := newHarness(t, ssoConfig)
 	acct := account("work", "work")
 	items := h.provider.DeleteItems(acct)
-	if len(items) != 1 || items[0].Key != "logout" || items[0].Default || !strings.Contains(items[0].Label, "aws sso logout --profile work") {
+	if len(items) != 1 || items[0].Key != "logout" || items[0].Default || !strings.Contains(items[0].Label, "aws sso logout --profile=work") {
 		t.Fatalf("items %+v", items)
 	}
 	if !strings.Contains(h.provider.Kept(acct), "~/.aws/config") {
