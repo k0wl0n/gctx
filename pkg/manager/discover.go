@@ -354,6 +354,10 @@ func (m *Manager) importBlock(cfg *config.Config, item DiscoveredAccount, name s
 	if err := p.ValidateTarget(item.Target); err != nil {
 		return "invalid target: " + err.Error()
 	}
+	candidate := config.Account{Name: name, ProjectID: item.Target, ConfigName: item.ConfigName, Settings: item.Settings}
+	if err := m.claimOwner(p, candidate, cfg, ""); err != nil {
+		return err.Error()
+	}
 	return ""
 }
 

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -421,12 +422,12 @@ func (p *Provider) Delete(ctx context.Context, acct config.Account, opt provider
 	if _, err := os.Lstat(dir); os.IsNotExist(err) {
 		return result, nil
 	}
-	if opt.Logout {
+	if opt.Logout && !opt.Keep[dirClaim(dir)] {
 		if warning := p.logout(ctx, acct.Name, dir); warning != nil {
 			result.Warnings = append(result.Warnings, *warning)
 		}
 	}
-	if !opt.RemoveDir {
+	if !opt.RemoveDir || !p.ownDir(dir, opt) {
 		return result, nil
 	}
 	if err := os.RemoveAll(dir); err != nil {
@@ -513,4 +514,61 @@ func formatSize(bytes int64) string {
 		value, suffix = value/unit, next
 	}
 	return fmt.Sprintf("%.1f %s", value, suffix)
+}
+
+var (
+	_ provider.Claimer = (*Provider)(nil)
+	_ provider.Renamer = (*Provider)(nil)
+)
+
+func dirClaim(dir string) string { return "Azure config dir " + filepath.Clean(dir) }
+
+// Claims lists the account's isolated directory.
+func (p *Provider) Claims(acct config.Account) []string {
+	dir, err := p.accountDir(acct)
+	if err != nil {
+		return nil
+	}
+	return []string{dirClaim(dir)}
+}
+
+// Rename moves a directory named after the account to the new name; a
+// directory with another name stays where it is.
+func (p *Provider) Rename(_ context.Context, acct config.Account, newName string) (config.Account, error) {
+	from, err := p.accountDir(acct)
+	if err != nil {
+		return acct, err
+	}
+	if resolve(from) != resolve(filepath.Join(p.opts.ConfigRoot, acct.Name)) {
+		acct.Name = newName
+		return acct, nil
+	}
+	if err := validateName(newName); err != nil {
+		return acct, err
+	}
+	to := filepath.Join(p.opts.ConfigRoot, newName)
+	if !p.insideRoot(to) {
+		return acct, fmt.Errorf("azure config dir %q is outside %s", to, p.opts.ConfigRoot)
+	}
+	if _, err := os.Lstat(to); err == nil {
+		return acct, fmt.Errorf("azure config dir %s already exists", to)
+	}
+	if _, err := os.Lstat(from); err == nil {
+		if err := os.Rename(from, to); err != nil {
+			return acct, fmt.Errorf("failed to move azure config dir: %w", err)
+		}
+	}
+	acct.Settings = maps.Clone(acct.Settings)
+	if acct.Settings == nil {
+		acct.Settings = map[string]string{}
+	}
+	acct.Settings["dir"] = to
+	acct.Name = newName
+	return acct, nil
+}
+
+// ownDir reports whether dir is a direct child of the root that no other
+// account records, the only directory Delete may remove.
+func (p *Provider) ownDir(dir string, opt provider.DeleteOptions) bool {
+	return !opt.Keep[dirClaim(dir)] && filepath.Dir(resolve(dir)) == resolve(p.opts.ConfigRoot)
 }

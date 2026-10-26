@@ -286,6 +286,9 @@ type DeleteOptions struct {
 	Logout       bool
 	RemoveDir    bool
 	GcloudConfig bool
+	// Keep holds claims (Claimer) another account also records; Delete
+	// must not remove them.
+	Keep map[string]bool
 }
 
 type DeleteResult struct {

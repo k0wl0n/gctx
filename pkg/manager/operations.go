@@ -102,6 +102,9 @@ func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateR
 		}
 		account, warnings = preparer.PrepareCreate(account, existing)
 	}
+	if err := m.claimOwner(p, account, cfg, ""); err != nil {
+		return CreateResult{}, err
+	}
 
 	outcome, err := p.Create(ctx, account)
 	result := CreateResult{
@@ -128,12 +131,12 @@ func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateR
 }
 
 // UpdateAccount renames an account and merges changed editable settings.
-// Only the config entry is renamed: provider-side resources (gcloud
-// configuration, ADC file, isolated directory, CLI profile) keep their old
-// names because the account record stores their paths. The slot the account
-// is active in follows the new name.
+// A provider.Renamer moves the resources named after the account (stored
+// ADC, isolated directory); resources the record names (gcloud
+// configuration, CLI profile) keep their names. The slot the account is
+// active in follows the new name.
 func (m *Manager) UpdateAccount(ctx context.Context, name string, req UpdateRequest) error {
-	account, p, err := m.resolve(name)
+	_, p, err := m.resolve(name)
 	if err != nil {
 		return err
 	}
@@ -141,6 +144,9 @@ func (m *Manager) UpdateAccount(ctx context.Context, name string, req UpdateRequ
 	if renaming {
 		if err := ValidateAccountName(req.NewName); err != nil {
 			return err
+		}
+		if !canRename(p) {
+			return fmt.Errorf("%s accounts cannot be renamed", p.Label())
 		}
 	}
 	editable := map[string]bool{}
@@ -154,17 +160,6 @@ func (m *Manager) UpdateAccount(ctx context.Context, name string, req UpdateRequ
 			return fmt.Errorf("setting %q cannot be changed after creation", key)
 		}
 	}
-	settings := maps.Clone(account.Settings)
-	for key, value := range req.Settings {
-		if value == "" {
-			delete(settings, key)
-			continue
-		}
-		if settings == nil {
-			settings = map[string]string{}
-		}
-		settings[key] = value
-	}
 
 	err = m.mutate(func(cfg *config.Config) error {
 		stored, err := cfg.GetAccount(name)
@@ -175,6 +170,17 @@ func (m *Manager) UpdateAccount(ctx context.Context, name string, req UpdateRequ
 			if _, exists := cfg.Accounts[req.NewName]; exists {
 				return existsError{req.NewName}
 			}
+			candidate := *stored
+			candidate.Name = req.NewName
+			if renamer, ok := p.(provider.Renamer); ok {
+				if candidate, err = renamer.Rename(ctx, *stored, req.NewName); err != nil {
+					return err
+				}
+			}
+			if err := m.claimOwner(p, candidate, cfg, name); err != nil {
+				return err
+			}
+			*stored = candidate
 			delete(cfg.Accounts, name)
 			stored.Name = req.NewName
 			cfg.Accounts[req.NewName] = stored
@@ -187,7 +193,7 @@ func (m *Manager) UpdateAccount(ctx context.Context, name string, req UpdateRequ
 				cfg.ActiveAccount = req.NewName
 			}
 		}
-		stored.Settings = settings
+		stored.Settings = applySettings(stored.Settings, req.Settings)
 		return cfg.Save()
 	})
 	if err == nil && renaming {
@@ -303,6 +309,9 @@ func (m *Manager) Delete(ctx context.Context, name string, opt DeleteOptions) (D
 	}
 	result := DeleteResult{Account: name}
 
+	if opt.Keep, err = m.sharedClaims(name); err != nil {
+		return result, err
+	}
 	removed, err := p.Delete(ctx, account, opt)
 	result.Warnings = removed.Warnings
 	result.ConfigDeleted = slices.Contains(removed.Removed, account.ConfigName)
@@ -320,6 +329,22 @@ func (m *Manager) Delete(ctx context.Context, name string, opt DeleteOptions) (D
 		m.forgetCachedStatus(name)
 	}
 	return result, err
+}
+
+// applySettings returns base with changes applied; an empty value removes the key.
+func applySettings(base, changes map[string]string) map[string]string {
+	settings := maps.Clone(base)
+	for key, value := range changes {
+		if value == "" {
+			delete(settings, key)
+			continue
+		}
+		if settings == nil {
+			settings = map[string]string{}
+		}
+		settings[key] = value
+	}
+	return settings
 }
 
 // mergeSettings returns base overlaid with extra, or base itself when extra is empty.
@@ -363,4 +388,70 @@ func (m *Manager) DeletePlan(name string) (DeletePlan, error) {
 	}
 	plan.Dependants, err = m.dependants(name)
 	return plan, err
+}
+
+// claimOwner returns an error naming the account, other than skip, that
+// already claims one of acct's resources.
+func (m *Manager) claimOwner(p provider.Provider, acct config.Account, cfg *config.Config, skip string) error {
+	claimer, ok := p.(provider.Claimer)
+	if !ok {
+		return nil
+	}
+	mine := claimer.Claims(acct)
+	for _, name := range slices.Sorted(maps.Keys(cfg.Accounts)) {
+		if name == skip {
+			continue
+		}
+		for _, claim := range m.claimsOf(*cfg.Accounts[name]) {
+			if slices.Contains(mine, claim) {
+				return fmt.Errorf("%s is already used by account %q", claim, name)
+			}
+		}
+	}
+	return nil
+}
+
+// claimsOf lists an account's claimed resources, or nil when its provider claims none.
+func (m *Manager) claimsOf(acct config.Account) []string {
+	p, err := m.providerFor(acct)
+	if err != nil {
+		return nil
+	}
+	if claimer, ok := p.(provider.Claimer); ok {
+		return claimer.Claims(acct)
+	}
+	return nil
+}
+
+// sharedClaims returns name's claims that another account also records.
+func (m *Manager) sharedClaims(name string) (map[string]bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cfg, err := m.loadConfig()
+	if err != nil {
+		return nil, err
+	}
+	own, ok := cfg.Accounts[name]
+	if !ok {
+		return nil, notFoundError{name}
+	}
+	mine := m.claimsOf(*own)
+	shared := map[string]bool{}
+	for other, account := range cfg.Accounts {
+		if other == name {
+			continue
+		}
+		for _, claim := range m.claimsOf(*account) {
+			if slices.Contains(mine, claim) {
+				shared[claim] = true
+			}
+		}
+	}
+	return shared, nil
+}
+
+// canRename reports whether the provider allows renaming its accounts.
+func canRename(p provider.Provider) bool {
+	support, ok := p.(provider.RenameSupport)
+	return !ok || support.CanRename()
 }

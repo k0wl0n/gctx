@@ -9,7 +9,9 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -497,7 +499,21 @@ func (p *Provider) Env(acct config.Account) ([]string, error) {
 func (p *Provider) Delete(ctx context.Context, acct config.Account, opt provider.DeleteOptions) (provider.DeleteResult, error) {
 	result := provider.DeleteResult{Account: acct.Name}
 
-	outside, err := p.store.Remove(acct.Name, acct.ADCPath)
+	recorded := acct.ADCPath
+	if opt.Keep[adcClaim(recorded)] {
+		recorded = ""
+	}
+	var outside string
+	var err error
+	if opt.Keep[adcClaim(p.store.StoragePath(acct.Name))] {
+		if recorded != "" && p.store.Contains(recorded) {
+			if removeErr := os.Remove(recorded); removeErr != nil && !os.IsNotExist(removeErr) {
+				err = removeErr
+			}
+		}
+	} else {
+		outside, err = p.store.Remove(acct.Name, recorded)
+	}
 	if outside != "" {
 		result.Warnings = append(result.Warnings, provider.Warning{
 			Code: provider.WarnADCPathOutsideStore, Account: acct.Name,
@@ -508,7 +524,7 @@ func (p *Provider) Delete(ctx context.Context, acct config.Account, opt provider
 		result.Warnings = append(result.Warnings, provider.Warning{Code: provider.WarnADCRemoveFailed, Account: acct.Name, Message: err.Error()})
 	}
 
-	if opt.GcloudConfig {
+	if opt.GcloudConfig && !opt.Keep[configClaim(acct.ConfigName)] {
 		p.Locate()
 		if _, err := p.runner().Query(ctx, nil, "config", "configurations", "delete", acct.ConfigName, "--quiet"); err != nil {
 			message := err.Error()
@@ -605,4 +621,44 @@ func timeoutFor(args []string) time.Duration {
 	default:
 		return gcloud.DefaultTimeout
 	}
+}
+
+var (
+	_ provider.Claimer = (*Provider)(nil)
+	_ provider.Renamer = (*Provider)(nil)
+)
+
+func configClaim(configName string) string { return "gcloud configuration " + configName }
+func adcClaim(path string) string          { return "stored ADC file " + filepath.Clean(path) }
+
+// Claims lists the account's gcloud configuration and stored ADC files.
+func (p *Provider) Claims(acct config.Account) []string {
+	configName := acct.ConfigName
+	if configName == "" {
+		configName = ConfigNameFor(acct.Name)
+	}
+	claims := []string{configClaim(configName), adcClaim(p.store.StoragePath(acct.Name))}
+	if p.store.Contains(acct.ADCPath) && !slices.Contains(claims, adcClaim(acct.ADCPath)) {
+		claims = append(claims, adcClaim(acct.ADCPath))
+	}
+	return claims
+}
+
+// Rename moves the stored ADC to the new name; the gcloud configuration keeps
+// its name, which the record stores.
+func (p *Provider) Rename(_ context.Context, acct config.Account, newName string) (config.Account, error) {
+	from, to := p.store.StoragePath(acct.Name), p.store.StoragePath(newName)
+	if _, err := os.Lstat(to); err == nil {
+		return acct, fmt.Errorf("stored ADC file %s already exists", to)
+	}
+	if _, err := os.Lstat(from); err == nil {
+		if err := os.Rename(from, to); err != nil {
+			return acct, fmt.Errorf("failed to move stored ADC: %w", err)
+		}
+		if acct.ADCPath == "" || filepath.Clean(acct.ADCPath) == filepath.Clean(from) {
+			acct.ADCPath = to
+		}
+	}
+	acct.Name = newName
+	return acct, nil
 }

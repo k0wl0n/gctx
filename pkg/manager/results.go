@@ -222,6 +222,7 @@ type ProviderInfo struct {
 	InstallHint  string                                                // how to install the CLI; "" when unknown
 	CanLogin     bool
 	StreamsLogin bool // Login reports steps and output as events (provider.StreamingLogin)
+	NoRename     bool // accounts cannot be renamed (provider.RenameSupport)
 }
 
 // Active returns the status of the gcp slot's active account, if any.

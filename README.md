@@ -209,7 +209,7 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `y` | copy the account's `eval "$(gctx env <name>)"` line |
 | `r` | run the row's provider CLI (gcloud, aws or az) as the selected account |
 | `c` | create an account: pick provider, name and the provider's fields; shows what is written and the CLI install hint when it is missing |
-| `e` | edit the selected account: rename and change editable settings (identity fields are read-only) |
+| `e` | edit the selected account: rename and change editable settings (identity fields are read-only). A rename moves the stored ADC file or isolated az directory with the account; names whose gcloud configuration, stored ADC or az directory belongs to another account are refused |
 | `ctrl+d` | delete: lists what is removed (isolated Azure dir, optional provider logout first, gcloud configuration) and what is kept, asks you to type the account name, defaults to Cancel; refused while other accounts link to it |
 | `a` | save the current ADC to the selected account |
 | `p` | toggle the detail pane (150+ columns) |

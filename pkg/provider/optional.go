@@ -151,3 +151,24 @@ func (o *DeleteOptions) Set(key string, on bool) {
 		o.GcloudConfig = on
 	}
 }
+
+// RenameSupport lets a provider whose resources follow the account name, and
+// that cannot move them, refuse renames. A provider without it can rename.
+type RenameSupport interface {
+	CanRename() bool
+}
+
+// Renamer moves the provider resources named after an account when the
+// account is renamed and returns the updated record. It refuses when a
+// destination already exists.
+type Renamer interface {
+	Rename(ctx context.Context, acct config.Account, newName string) (config.Account, error)
+}
+
+// Claimer lists the resources an account owns, or would own once created, as
+// human-readable strings ("gcloud configuration work-config"). No two
+// accounts may claim one resource, and Delete leaves alone any claim that
+// another account also holds (DeleteOptions.Keep).
+type Claimer interface {
+	Claims(acct config.Account) []string
+}

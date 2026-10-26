@@ -123,6 +123,7 @@ func (m *Manager) providerInfos(clis map[provider.ID]provider.CLIStatus, counts 
 		if streaming, ok := p.(provider.StreamingLogin); ok {
 			info.StreamsLogin = streaming.StreamsLogin()
 		}
+		info.NoRename = !canRename(p)
 		infos = append(infos, info)
 	}
 	return infos

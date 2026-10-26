@@ -46,7 +46,7 @@ Width tiers: 150 columns or more (wide, detail pane), 100-149 (standard), 60-99 
 | `y` | copy the `eval "$(gctx env <name>)"` line (env-based providers) |
 | `r` | run provider CLI command (gcloud, aws or az, by the row's provider) |
 | `c` | create |
-| `e` | edit: rename and change editable settings (identity fields are read-only) |
+| `e` | edit: rename and change editable settings (identity fields are read-only). A rename moves the stored ADC file or isolated az directory; the gcloud configuration keeps its name. Create, import and rename refuse a name whose gcloud configuration, stored ADC or az directory another account already uses, and delete never removes files another account still records |
 | `ctrl+d` | delete |
 | `a` | save current ADC to selected account |
 | `p` | toggle the detail pane |

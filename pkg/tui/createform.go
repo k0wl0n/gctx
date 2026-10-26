@@ -191,6 +191,12 @@ func (f *accountForm) fieldVisible(field formField, values map[string]string) bo
 	return field.spec.Visible == nil || field.spec.Visible(values)
 }
 
+// nameLocked reports an edit of an account whose provider cannot rename.
+func (f *accountForm) nameLocked() bool {
+	info, _ := f.info()
+	return f.editing != nil && info.NoRename
+}
+
 func (f *accountForm) readOnly(field formField) bool {
 	return f.editing != nil && !field.spec.Editable
 }
@@ -206,7 +212,9 @@ func (f *accountForm) items() []formItem {
 	if f.editing == nil {
 		items = append(items, formItem{kind: itemKind}, formItem{kind: itemProvider})
 	}
-	items = append(items, formItem{kind: itemName})
+	if !f.nameLocked() {
+		items = append(items, formItem{kind: itemName})
+	}
 	values := f.values()
 	for i, field := range f.fields {
 		if f.fieldVisible(field, values) && !f.readOnly(field) {
@@ -540,7 +548,10 @@ func (f *accountForm) view(m Model) string {
 		row("Provider", choiceRow(providerNames, f.provider, st)+st.Dim.Render("  ←/→"), item.kind == itemProvider, false)
 	}
 
-	if hasProvider {
+	if hasProvider && f.nameLocked() {
+		row("Name", f.editing.Name, false, true)
+		under(info.Label+" accounts cannot be renamed", st.Dim)
+	} else if hasProvider {
 		focusedName := item.kind == itemName
 		row("Name", f.name.View(focusedName), focusedName, false)
 		switch {
