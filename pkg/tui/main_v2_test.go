@@ -104,7 +104,7 @@ func TestHeaderShowsOneSlotPerProviderWithAccounts(t *testing.T) {
 	}
 }
 
-func TestHeaderHidesEmptySlots(t *testing.T) {
+func TestHeaderHidesEmptySlotsButKeepsTheTab(t *testing.T) {
 	overview := multiOverview()
 	overview.Providers = append(overview.Providers, manager.ProviderInfo{
 		ID: "tencent", Label: "Tencent", Category: provider.CategoryCloud, Slot: "tencent", TargetLabel: "PROFILE",
@@ -115,8 +115,11 @@ func TestHeaderHidesEmptySlots(t *testing.T) {
 	svc.overview = overview
 	m := multiModel(t, svc, 160, 40)
 	out := screen(m)
-	if strings.Contains(lines(out)[0], "TCT") || strings.Contains(out, "Tencent") {
-		t.Errorf("provider without accounts shown:\n%s", out)
+	if strings.Contains(lines(out)[0], "TCT") || strings.Contains(lines(out)[0], "Tencent") {
+		t.Errorf("provider without accounts has a header slot:\n%s", out)
+	}
+	if !strings.Contains(strings.Join(lines(out)[1:3], "\n"), "Tencent 0") {
+		t.Errorf("provider without accounts needs a tab with count 0:\n%s", out)
 	}
 }
 

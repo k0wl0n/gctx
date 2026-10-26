@@ -15,7 +15,7 @@ Bare `gctx` opens the TUI only when stdin and stdout are terminals, `TERM` is no
 The screen shows, top to bottom:
 
 - **Header**: one slot per provider that has accounts (`GCP ● cloudsuite  AWS ● prod-aws  AZR ○`, where `○` means no account of that provider is active), config health and the age of the last credential check. A dim second line shows the env the active accounts would export; key references appear as `‹op://…›`, never as values.
-- **Tab row**: `All`, then one tab per provider with accounts. A provider whose CLI is missing shows `n/a`.
+- **Tab row**: `All`, then one tab per registered provider, with its account count (`AWS 0` when it has none; selecting an empty tab says how to create one). A provider whose CLI is missing shows `n/a`.
 - **List**: on `All`, grouped by category (only clouds exist in this version; AI tools and gateways are planned) and provider, each group with a count summary. On a provider tab the KIND column drops and the provider's own columns (for example REGION for AWS) appear. As the terminal narrows, columns drop in this order: EXPIRES/BUDGET, IDENTITY, ADC, provider columns; TARGET then shortens with an ellipsis in the middle. NAME and STATUS always stay.
 - **Detail pane** (150 columns or more, `p` toggles it): the selected account's details, the env activation applies and its actions. Narrower terminals use `d` for the full-screen details.
 - **Status line**: credential check progress per provider and account totals.

@@ -407,7 +407,12 @@ func TestRescanKeyRelocatesCLI(t *testing.T) {
 	}
 	m := newTestModel(t, mgr, 120, 30)
 	m = drain(t, m, m.Init())
-	m = press(t, m, "tab")
+	for range m.tabCount() {
+		if strings.Contains(screen(m), "aws is not installed") {
+			break
+		}
+		m = press(t, m, "tab")
+	}
 	if out := screen(m); !strings.Contains(out, "aws is not installed") || !strings.Contains(out, "AWS n/a") {
 		t.Fatalf("aws tab before the install:\n%s", out)
 	}
@@ -423,8 +428,8 @@ func TestRescanKeyRelocatesCLI(t *testing.T) {
 	if strings.Contains(out, "aws is not installed") || strings.Contains(out, "AWS n/a") {
 		t.Errorf("R did not re-locate the CLI:\n%s", out)
 	}
-	if m.tab != 0 {
-		t.Errorf("the tab of a provider with no accounts must close once its CLI is found: tab %d", m.tab)
+	if !strings.Contains(out, "No AWS accounts yet. Press c to create one.") || !strings.Contains(out, "AWS 0") {
+		t.Errorf("the tab of a provider with no accounts must stay, empty, once its CLI is found:\n%s", out)
 	}
 }
 

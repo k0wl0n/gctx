@@ -44,15 +44,12 @@ func categoryHeading(c provider.Category) string {
 	return strings.ToUpper(string(c))
 }
 
-// listedProviders are the providers with accounts, plus those whose CLI is
-// missing (their tab explains how to install it), by category then registry
-// order. They make the tabs, header slots and list groups.
+// listedProviders are every registered provider, in category order; each
+// gets a tab even with no accounts.
 func (m Model) listedProviders() []manager.ProviderInfo {
 	var out []manager.ProviderInfo
 	for _, info := range m.overview.Providers {
-		if info.Count > 0 || !info.CLI.Found {
-			out = append(out, info)
-		}
+		out = append(out, info)
 	}
 	slices.SortStableFunc(out, func(a, b manager.ProviderInfo) int {
 		return cmp.Compare(categoryRank(a.Category), categoryRank(b.Category))

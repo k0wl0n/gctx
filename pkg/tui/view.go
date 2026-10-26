@@ -97,7 +97,10 @@ func (m Model) listLines(cols []colSpec, width, height int, g glyphs, st styles)
 		body = append(body, st.Error.Render(truncateCells("Error loading accounts: "+m.loadErr.Error(), width, g.Ellipsis)))
 	case len(m.groups) == 0:
 		text := "No accounts configured. Press c to create one."
+		info, onTab := m.tabProvider()
 		switch {
+		case m.loadErr == nil && onTab && m.filter.query == "" && !m.needsAction:
+			text = fmt.Sprintf("No %s accounts yet. Press c to create one.", info.Label)
 		case m.filter.query != "":
 			text = fmt.Sprintf("No accounts match %q", m.filter.query)
 		case m.needsAction:
