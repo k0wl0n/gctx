@@ -208,7 +208,8 @@ func Switch(w, errw io.Writer, result manager.SwitchResult) {
 		}
 	}
 	fmt.Fprintf(w, "Switched to account: %s (%s)\n", result.Account, result.ProjectID)
-	if result.Replaced != "" {
+	// Global switches (gcp) replace silently, as before slots existed.
+	if result.Replaced != "" && result.ApplyHint != "" {
 		fmt.Fprintf(w, "Replaced %s in slot %s\n", result.Replaced, result.Slot)
 	}
 	if result.ApplyHint != "" {
