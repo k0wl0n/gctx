@@ -20,7 +20,7 @@ gctx create <account-name> <target> [flags]
 
 ```
   -h, --help              help for create
-      --provider string   cloud provider: gcp, aws or azure (default "gcp")
+      --provider string   provider: gcp, aws, azure, claude or codex (default "gcp")
 ```
 
 ### SEE ALSO

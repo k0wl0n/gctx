@@ -180,14 +180,15 @@ func lineIndex(t *testing.T, text, containing string) int {
 }
 
 func TestKindListsOnlyRegisteredCategories(t *testing.T) {
+	// The default provider set has clouds and AI tools but no gateway yet.
 	out := screen(openForm(t, formService(t)))
-	if !strings.Contains(out, "Cloud") {
-		t.Errorf("Cloud kind missing:\n%s", out)
-	}
-	for _, kind := range []string{"AI tool", "AI gateway"} {
-		if strings.Contains(out, kind) {
-			t.Errorf("%s listed without a registered provider:\n%s", kind, out)
+	for _, kind := range []string{"Cloud", "AI tool"} {
+		if !strings.Contains(out, kind) {
+			t.Errorf("%s kind missing:\n%s", kind, out)
 		}
+	}
+	if strings.Contains(out, "AI gateway") {
+		t.Errorf("AI gateway listed without a registered provider:\n%s", out)
 	}
 
 	out = screen(openForm(t, newMultiService()))
@@ -317,6 +318,29 @@ func TestFooterListsWritesAndNever(t *testing.T) {
 	}
 }
 
+// TestCreateFormOffersAITools drives the form for the default AI tools from
+// provider metadata alone: kind, tool, the linked-account fields and footer.
+func TestCreateFormOffersAITools(t *testing.T) {
+	m := press(t, openForm(t, formService(t)), "shift+tab", "right") // Kind -> AI tool
+	out := screen(m)
+	for _, want := range []string{"‹ Claude Code  Codex ›", "Org label", "◉ subscription  ○ via cloud account", "never  tokens, history"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("AI tool form lacks %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "Cloud account") {
+		t.Errorf("linked-account fields shown for a subscription login:\n%s", out)
+	}
+	m = tabUntil(t, m, "› Auth")
+	if out = screen(press(t, m, "right")); !strings.Contains(out, "Cloud account") || !strings.Contains(out, "Region") {
+		t.Errorf("via cloud account must show the link fields:\n%s", out)
+	}
+	m = press(t, openForm(t, formService(t)), "shift+tab", "right", "tab", "right") // Tool -> Codex
+	if out = screen(m); !strings.Contains(out, "Workspace label") || strings.Contains(out, "Auth") {
+		t.Errorf("codex form:\n%s", out)
+	}
+}
+
 // secretProvider is a gateway-like provider with a key-reference field.
 func secretService(t *testing.T) *fakeService {
 	svc := formService(t)
@@ -331,7 +355,7 @@ func secretService(t *testing.T) *fakeService {
 func TestSecretFieldRejectsRawKey(t *testing.T) {
 	svc := secretService(t)
 	m := openForm(t, svc)
-	m = press(t, m, "shift+tab", "right", "tab", "tab") // Kind -> AI gateway, Provider, Name
+	m = press(t, m, "shift+tab", "right", "right", "tab", "tab") // Kind -> AI gateway, Provider, Name
 	m = typeText(t, m, "gw-one")
 	m = tabUntil(t, m, "› Key reference")
 	rawKey := "sk-or-v1-0123456789abcdef"

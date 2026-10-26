@@ -185,3 +185,36 @@ type ConnectionResult struct {
 type ConnectionTester interface {
 	TestConnection(ctx context.Context, acct config.Account) (ConnectionResult, error)
 }
+
+// Settings of an account that runs on another account (D12).
+const (
+	SettingVia     = "via"     // name of the linked cloud account
+	SettingBackend = "backend" // how the tool reaches the model through it
+	SettingRegion  = "region"
+	SettingDir     = "dir" // isolated directory of env-based providers
+)
+
+// Linker is a provider whose accounts may run on another provider's account
+// (settings.via) instead of their own login.
+type Linker interface {
+	// LinkEnv returns the tool's own environment for acct running on linked,
+	// an account of provider linkedID. It fails when that combination is not
+	// supported. The linked account's environment is added by the caller.
+	LinkEnv(acct, linked config.Account, linkedID ID) ([]string, error)
+}
+
+// DiscoveredSetup is an existing CLI setup a provider can adopt as an
+// account. It holds names and non-secret settings only.
+type DiscoveredSetup struct {
+	Name     string
+	Target   string
+	Settings map[string]string
+	Note     string
+}
+
+// SetupDiscoverer finds existing CLI setups for the first-run import. It may
+// only stat paths: it never opens a credential, token or config file.
+type SetupDiscoverer interface {
+	// DiscoverSetups returns where it looked and what it found there.
+	DiscoverSetups() (location string, setups []DiscoveredSetup, err error)
+}

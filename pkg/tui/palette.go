@@ -49,6 +49,7 @@ var paletteExempt = map[string]string{
 	"tab":       "navigation: switches the provider tab",
 	"shift+tab": "navigation: switches the provider tab",
 	"1":         "navigation: jumps to a provider tab",
+	">":         "navigation: moves the cursor to the linked account",
 	"/":         "filter: needs live typing in the list",
 	"esc":       "clears the filter; nothing to run",
 	":":         "opens the palette itself",

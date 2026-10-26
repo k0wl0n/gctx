@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,6 +16,8 @@ import (
 	"github.com/k0wl0n/gctx/pkg/provider"
 	"github.com/k0wl0n/gctx/pkg/provider/aws"
 	"github.com/k0wl0n/gctx/pkg/provider/azure"
+	"github.com/k0wl0n/gctx/pkg/provider/claudecode"
+	"github.com/k0wl0n/gctx/pkg/provider/codex"
 	"github.com/k0wl0n/gctx/pkg/provider/gcp"
 )
 
@@ -65,6 +68,9 @@ type Options struct {
 
 	// Providers replaces the default provider set built from Paths.
 	Providers []provider.Provider
+	// Processes lists running command names for the AI tools' "already
+	// running" count; nil runs ps.
+	Processes func(ctx context.Context) ([]string, error)
 	// CredentialTimeout bounds each provider's credential check; zero means 15s.
 	CredentialTimeout time.Duration
 }
@@ -190,6 +196,23 @@ func defaultProviders(opts Options) []provider.Provider {
 			LookPath:   opts.LookPath,
 			Getenv:     opts.Getenv,
 		}),
+		claudecode.New(aiToolOptions(opts)),
+		codex.New(aiToolOptions(opts)),
+	}
+}
+
+// aiToolOptions roots every AI-tool account under <GctxDir>/ai.
+func aiToolOptions(opts Options) claudecode.Options {
+	root := ""
+	if opts.Paths.GctxDir != "" {
+		root = filepath.Join(opts.Paths.GctxDir, "ai")
+	}
+	return claudecode.Options{
+		ConfigRoot: root,
+		Home:       opts.Home,
+		LookPath:   opts.LookPath,
+		Getenv:     opts.Getenv,
+		Processes:  opts.Processes,
 	}
 }
 

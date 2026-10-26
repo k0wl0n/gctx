@@ -86,7 +86,16 @@ func (m *Manager) Discover() (DiscoveryResult, error) {
 			items, err = m.discoverAzure()
 			noun = "subscriptions in " + m.displayPath(m.azureDefaultDir())
 		default:
-			continue
+			discoverer, ok := p.(provider.SetupDiscoverer)
+			if !ok {
+				continue
+			}
+			var location string
+			items, location, err = m.discoverSetups(p, discoverer)
+			noun = "existing setup"
+			if location != "" {
+				noun += " in " + m.displayPath(location)
+			}
 		}
 		if err != nil {
 			result.Skipped = append(result.Skipped, SkippedSource{Provider: p.ID(), Reason: err.Error()})
@@ -96,6 +105,40 @@ func (m *Manager) Discover() (DiscoveryResult, error) {
 		result.Items = append(result.Items, items...)
 	}
 	return result, nil
+}
+
+// discoverSetups turns a provider's existing setups into import items. A
+// setup an account already claims is left out; a name already taken gets a
+// numeric suffix.
+func (m *Manager) discoverSetups(p provider.Provider, discoverer provider.SetupDiscoverer) ([]DiscoveredAccount, string, error) {
+	location, setups, err := discoverer.DiscoverSetups()
+	if err != nil || len(setups) == 0 {
+		return nil, location, err
+	}
+	m.mu.Lock()
+	cfg, err := m.loadConfig()
+	m.mu.Unlock()
+	if err != nil {
+		return nil, location, err
+	}
+	taken := map[string]bool{}
+	for name := range cfg.Accounts {
+		taken[name] = true
+	}
+	var items []DiscoveredAccount
+	for _, setup := range setups {
+		candidate := config.Account{Name: setup.Name, ProjectID: setup.Target, Provider: string(p.ID()), Settings: setup.Settings}
+		if m.claimOwner(p, candidate, cfg, "") != nil {
+			continue
+		}
+		name := SanitizeAccountName(setup.Name)
+		for suffix := 2; taken[name]; suffix++ {
+			name = fmt.Sprintf("%s-%d", SanitizeAccountName(setup.Name), suffix)
+		}
+		taken[name] = true
+		items = append(items, DiscoveredAccount{Provider: p.ID(), Name: name, Target: setup.Target, Settings: setup.Settings, Note: setup.Note})
+	}
+	return items, location, nil
 }
 
 func (m *Manager) displayPath(path string) string {

@@ -35,6 +35,7 @@ Width tiers: 150 columns or more (wide, detail pane), 100-149 (standard), 60-99 
 | `ctrl+b` / `pgup` | page up |
 | `tab` / `shift+tab` | next / previous provider tab |
 | `1`-`9` | jump to tab (`1` is All) |
+| `>` | jump to the account a linked account runs on |
 | `enter` | switch to selected account |
 | `/` | filter |
 | `esc` | clear applied filter |

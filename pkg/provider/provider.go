@@ -18,6 +18,9 @@ const (
 	AWS     ID = "aws"
 	Azure   ID = "azure"
 	Tencent ID = "tencent"
+
+	ClaudeCode ID = "claude"
+	Codex      ID = "codex"
 )
 
 // Provider is one cloud backend. Local reads files only; CheckAuth may use the network.
@@ -280,6 +283,9 @@ type ActivateResult struct {
 	Account   string
 	ApplyHint string
 	Warnings  []Warning
+	// RunningProcesses counts processes of the provider's CLI already running
+	// (best effort, 0 when unknown); they keep the account they started with.
+	RunningProcesses int
 }
 
 type DeleteOptions struct {

@@ -92,6 +92,8 @@ func (m Model) updateMain(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 			return m.selectTab(n - 1), nil
 		}
 		return m, nil
+	case matches(msg, keys.JumpLinked.Keys()):
+		return m.jumpLinked()
 	case matches(msg, keys.TogglePane.Keys()):
 		m.paneOpen = !m.paneOpen
 		if tierFor(m.width) != tierWide {
@@ -243,6 +245,26 @@ func (m Model) updateOverlay(msg tea.KeyPressMsg) (Model, tea.Cmd) {
 		m.screen = screenMain
 		return m, nil
 	}
+	return m, nil
+}
+
+// jumpLinked selects the account the selected one runs on, switching to the
+// All tab when that account is not on the current one.
+func (m Model) jumpLinked() (Model, tea.Cmd) {
+	acct, ok := m.selectedAccount()
+	if !ok {
+		return m, nil
+	}
+	if acct.Linked == "" {
+		return m, m.setStatus(acct.Name+" is not linked to another account", levelInfo)
+	}
+	if !m.isVisible(acct.Linked) {
+		m = m.selectTab(0)
+	}
+	if !m.isVisible(acct.Linked) {
+		return m, m.setStatus(acct.Linked+" is hidden by the filter", levelInfo)
+	}
+	m.selected = acct.Linked
 	return m, nil
 }
 

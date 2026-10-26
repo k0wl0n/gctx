@@ -10,7 +10,7 @@ import (
 // keyMap is the single source for dispatch, the hint line and the help screen.
 type keyMap struct {
 	Down, Up, First, Last, PageDown, PageUp key.Binding
-	NextTab, PrevTab, JumpTab               key.Binding
+	NextTab, PrevTab, JumpTab, JumpLinked   key.Binding
 	Switch, Filter, Clear, Details          key.Binding
 	Login, LoginStale, Shell, ShellOne      key.Binding
 	CopyEnv, Run                            key.Binding
@@ -36,6 +36,7 @@ var keys = keyMap{
 	PrevTab:  key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "previous provider tab")),
 	JumpTab: key.NewBinding(key.WithKeys("1", "2", "3", "4", "5", "6", "7", "8", "9"),
 		key.WithHelp("1-9", "jump to tab (1 is All)")),
+	JumpLinked: key.NewBinding(key.WithKeys(">"), key.WithHelp(">", "jump to linked account")),
 
 	Switch:  key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "switch to selected account")),
 	Filter:  key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
@@ -67,7 +68,7 @@ var keys = keyMap{
 // groups returns the bindings by help-screen section.
 func (k keyMap) groups() []keyGroup {
 	return []keyGroup{
-		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab}},
+		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab, k.JumpLinked}},
 		{"View", []key.Binding{k.TogglePane, k.Fold, k.NeedsAction, k.Sort}},
 		{"Actions", []key.Binding{k.Switch, k.Filter, k.Clear, k.Details, k.Login, k.LoginStale, k.Shell, k.ShellOne, k.CopyEnv, k.Run, k.Create, k.Edit, k.Delete, k.Save}},
 		{"General", []key.Binding{k.Reload, k.Help, k.Quit, k.Command}},
@@ -77,7 +78,7 @@ func (k keyMap) groups() []keyGroup {
 // helpColumns regroups the same bindings into the help screen's three columns.
 func (k keyMap) helpColumns() []keyGroup {
 	return []keyGroup{
-		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab, k.Filter, k.Clear, k.Command}},
+		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab, k.JumpLinked, k.Filter, k.Clear, k.Command}},
 		{"Account", []key.Binding{k.Switch, k.Details, k.Login, k.LoginStale, k.Create, k.Edit, k.Delete, k.Save, k.CopyEnv}},
 		{"Session", []key.Binding{k.Shell, k.ShellOne, k.Run, k.Reload, k.TogglePane, k.Fold, k.NeedsAction, k.Sort, k.Help, k.Quit}},
 	}

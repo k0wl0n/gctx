@@ -10,6 +10,7 @@ Keys  · more below                                          j/k scroll · esc o
   tab          next provider tab
   shift+tab    previous provider tab
   1-9          jump to tab (1 is All)
+  >            jump to linked account
   /            filter
   esc          clear applied filter
   :            command palette
@@ -25,6 +26,5 @@ Keys  · more below                                          j/k scroll · esc o
   a       save current ADC here
   y       copy the env eval line
 
-  session
 ──────────────────────────────────────────────────────────────────────────────────────────
 config ~/.config/gctx/config.json · log ~/.cache/gctx/tui-debug.log

@@ -170,7 +170,9 @@ func (m *Manager) accountStatus(cfg *config.Config, account *config.Account, cli
 	status.Category = p.Category()
 	status.Details = p.Details(*account)
 
-	if inspector, ok := p.(provider.StatusInspector); ok {
+	if linkedName(p, *account) != "" {
+		m.inheritLinked(cfg, p, account, &status, clis, cache)
+	} else if inspector, ok := p.(provider.StatusInspector); ok {
 		inspected := inspector.Inspect(*account)
 		status.StoredADCPath = inspected.StoredADCPath
 		status.ADCExists = inspected.ADCExists

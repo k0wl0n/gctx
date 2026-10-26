@@ -100,6 +100,9 @@ type SwitchResult struct {
 	// their shell; empty for providers with a global switch.
 	ApplyHint string
 	Warnings  []Warning
+	// RunningProcesses counts processes of the provider's CLI already running
+	// with the previous account (AI tools; 0 elsewhere or when unknown).
+	RunningProcesses int
 }
 
 type SaveResult struct {
@@ -138,6 +141,9 @@ type AccountStatus struct {
 	Active      bool              // the active account of its provider's slot
 	Settings    map[string]string // provider settings from config.json; never secrets
 	Details     []provider.Field  // provider's Details() rows
+	// Linked names the account this one runs on (settings.via of a
+	// provider.Linker); its health is that account's.
+	Linked string
 
 	ADCPath       string // path recorded in config.json
 	StoredADCPath string // file actually holding the stored ADC; "" when none

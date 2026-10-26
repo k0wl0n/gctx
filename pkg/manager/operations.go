@@ -120,6 +120,9 @@ func (m *Manager) CreateAccount(ctx context.Context, req CreateRequest) (CreateR
 	if err := m.claimOwner(p, account, cfg, ""); err != nil {
 		return CreateResult{}, err
 	}
+	if err := m.validateLink(cfg, p, account); err != nil {
+		return CreateResult{}, err
+	}
 
 	outcome, err := p.Create(ctx, account)
 	result := CreateResult{
@@ -209,6 +212,9 @@ func (m *Manager) UpdateAccount(ctx context.Context, name string, req UpdateRequ
 			}
 		}
 		stored.Settings = applySettings(stored.Settings, req.Settings)
+		if err := m.validateLink(cfg, p, *stored); err != nil {
+			return err
+		}
 		return cfg.Save()
 	})
 	if err == nil && renaming {
@@ -224,6 +230,10 @@ func (m *Manager) Login(ctx context.Context, name string, lio LoginIO) (LoginRes
 	account, p, err := m.resolve(name)
 	if err != nil {
 		return result, err
+	}
+	if via := linkedName(p, account); via != "" && via != name {
+		// The account has no login of its own: log in what it runs on.
+		return m.Login(ctx, via, lio)
 	}
 	result, err = p.Login(ctx, account, lio)
 	if err != nil {
@@ -286,6 +296,7 @@ func (m *Manager) Switch(ctx context.Context, name string) (SwitchResult, error)
 
 	activated, err := p.Activate(ctx, account)
 	result.Warnings, result.ApplyHint = activated.Warnings, activated.ApplyHint
+	result.RunningProcesses = activated.RunningProcesses
 	if slices.ContainsFunc(activated.Warnings, func(w Warning) bool { return w.Code == WarnReauthRequired }) {
 		m.stateMu.Lock()
 		m.reauth[name] = true

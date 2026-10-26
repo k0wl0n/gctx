@@ -6,7 +6,7 @@
 <img width="495" height="425" alt="image" src="https://github.com/user-attachments/assets/1a5d2c96-ab55-4a32-ae6d-dbdd1bf1434d" />
 
 
-A Go CLI and terminal UI to keep several cloud accounts side by side and switch between them: GCP, AWS and Azure. GCP behaviour is unchanged (gcloud configuration plus ADC swap).
+A Go CLI and terminal UI to keep several cloud accounts side by side and switch between them: GCP, AWS and Azure, plus Claude Code and Codex logins. GCP behaviour is unchanged (gcloud configuration plus ADC swap).
 
 
 ![01091-1-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/f7f23e3f-e33a-49c1-bad4-3db753e1cfc8)
@@ -29,6 +29,8 @@ Full documentation is available at [gctx.readthedocs.io](https://gctx.readthedoc
 | GCP | a gcloud configuration + stored ADC | global: `gctx switch` activates the gcloud configuration and swaps the ADC file | `gcloud` |
 | AWS | an AWS profile | env: `AWS_PROFILE` | `aws` v2 |
 | Azure | a subscription with its own isolated CLI directory | env: `AZURE_CONFIG_DIR` | `az` |
+| Claude Code | a login in its own config directory, or a GCP/AWS account it runs on (Vertex AI, Bedrock) | env: `CLAUDE_CONFIG_DIR` | `claude` |
+| Codex | a login in its own config directory | env: `CODEX_HOME` | `codex` |
 
 AWS and Azure have no global state to swap. `gctx switch` records the account as active for its slot (one active account per provider) and prints the line to apply it:
 
@@ -37,7 +39,7 @@ eval "$(gctx env prod-aws)"   # exports AWS_PROFILE for this shell
 gctx shell prod-aws           # or start a subshell with the account applied
 ```
 
-Details: [AWS](readthedocs/docs/aws.md), [Azure](readthedocs/docs/azure.md), [providers overview](readthedocs/docs/providers.md).
+Details: [AWS](readthedocs/docs/aws.md), [Azure](readthedocs/docs/azure.md), [AI tools](readthedocs/docs/ai-tools.md), [providers overview](readthedocs/docs/providers.md).
 
 ## Commands
 
@@ -199,6 +201,7 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 | `g` / `home`, `G` / `end` | first / last row |
 | `ctrl+f` / `pgdown`, `ctrl+b` / `pgup` | page down / up |
 | `tab` / `shift+tab`, `1`-`9` | next / previous provider tab, jump to a tab |
+| `>` | jump to the account a linked AI-tool account runs on |
 | `enter` | switch to the selected account |
 | `/` | filter (`esc` clears) |
 | `d` / `i` | details |
@@ -223,7 +226,7 @@ gctx tui --debug     # write a debug log (same as GCTX_DEBUG=1)
 
 Special states:
 
-- **First run.** With no accounts, the TUI offers to import the existing gcloud configurations, `~/.aws/config` profiles and `~/.azure` subscriptions it finds (names, targets and non-secret settings only; discovery reads files and never runs a CLI or reads a token). Choose `Import N`, `Review each` or `Start empty`. Imported accounts show `AUTH REQUIRED` or `ADC MISSING` until you log in.
+- **First run.** With no accounts, the TUI offers to import the existing gcloud configurations, `~/.aws/config` profiles, `~/.azure` subscriptions and existing `~/.claude` / `~/.codex` directories (used in place, never removed) it finds (names, targets and non-secret settings only; discovery reads files and never runs a CLI or reads a token). Choose `Import N`, `Review each` or `Start empty`. Imported accounts show `AUTH REQUIRED` or `ADC MISSING` until you log in.
 - **Missing CLI.** A provider whose CLI is not installed keeps a dim `<Label> n/a` tab. Selecting it explains what the CLI is needed for and shows the install command: `y` copies it, `R` rescans PATH.
 - **Offline.** When every network check of a cycle fails, a banner says `network unreachable`, rows keep their last known status as `UNVERIFIED` with its age, and switching still works. The banner clears as soon as one check succeeds.
 
@@ -246,7 +249,7 @@ gctx create personal my-personal-project
 gctx create client client-project
 ```
 
-Pick the cloud with `--provider gcp|aws|azure` (default `gcp`). Tencent Cloud is not supported. Account names are unique across providers.
+Pick the provider with `--provider gcp|aws|azure|claude|codex` (default `gcp`). Tencent Cloud is not supported. Account names are unique across providers.
 
 > **Note**: As of v0.5.0, `gctx create` always auto-authenticates. The `--auto-save` flag has been removed for simplicity.
 

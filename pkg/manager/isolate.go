@@ -43,7 +43,7 @@ func (m *Manager) Env(name string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.Env(account)
+	return m.accountEnv(p, account)
 }
 
 // RunCommand returns an unstarted `<provider CLI> <args>` command that runs as
@@ -60,7 +60,7 @@ func (m *Manager) RunCommand(name string, args []string) (*exec.Cmd, error) {
 		}
 		return nil, fmt.Errorf("%s CLI not found on PATH", p.Label())
 	}
-	env, err := p.Env(account)
+	env, err := m.accountEnv(p, account)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (m *Manager) ShellCommand(name string, scope ShellScope) (*exec.Cmd, error)
 			return nil, err
 		}
 	}
-	own, err := selectedProvider.Env(selected)
+	own, err := m.accountEnv(selectedProvider, selected)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (m *Manager) activeSlotsEnv(skipSlot string) ([]string, error) {
 		if err != nil {
 			continue
 		}
-		accountEnv, err := p.Env(account)
+		accountEnv, err := m.accountEnv(p, account)
 		if err != nil {
 			return nil, err
 		}

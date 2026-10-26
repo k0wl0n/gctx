@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -19,6 +20,8 @@ type feedbackPanel struct {
 	replaced      string
 	evalLine      string
 	slot          string
+	running       int    // processes of the provider's CLI still on the old account
+	cliName       string // names those processes
 }
 
 // panelFits reports whether the panel can be drawn on this terminal: the
@@ -50,7 +53,12 @@ func (m Model) newFeedback(res manager.SwitchResult) *feedbackPanel {
 	if account, ok := m.overview.Account(res.Account); ok {
 		info := m.providerInfo(account.Provider)
 		panel.providerLabel, panel.badgeColor = info.Label, info.Badge.Color
+		panel.cliName = info.CLI.Name
+		if panel.cliName == "" {
+			panel.cliName = filepath.Base(info.CLI.Bin)
+		}
 	}
+	panel.running = res.RunningProcesses
 	return panel
 }
 
@@ -68,6 +76,10 @@ func (m Model) feedbackLines(width int, g glyphs, st styles) []string {
 	body := []string{
 		joinSides(first, st.Dim.Render(keys.Clear.Keys()[0]+" dismiss"), inner, g),
 		st.Dim.Render(truncateCells(f.providerLabel+" is env-based: this terminal is unchanged until you apply it.", inner, g.Ellipsis)),
+	}
+	if f.running > 0 {
+		// Same height: the warning matters more than the env-based note.
+		body[1] = st.Warn.Render(truncateCells(fmt.Sprintf("%s %d %s processes already running keep the previous account", g.Warn, f.running, f.cliName), inner, g.Ellipsis))
 	}
 	command := "$ " + f.evalLine
 	actions := keyChip(keys.CopyEnv.Keys()[0], st) + " " + st.Dim.Render("copy that line") +

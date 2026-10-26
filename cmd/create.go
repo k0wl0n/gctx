@@ -42,14 +42,14 @@ func init() {
 	createCmd.Flags().StringVar(&createProvider, "provider", string(provider.GCP), providerFlagHelp())
 }
 
-// providerFlagHelp names the registered providers, e.g. "cloud provider: gcp, aws or azure".
+// providerFlagHelp names the registered providers, e.g. "provider: gcp, aws or azure".
 func providerFlagHelp() string {
 	var ids []string
 	for _, id := range manager.DefaultProviderIDs() {
 		ids = append(ids, string(id))
 	}
 	if len(ids) < 2 {
-		return "cloud provider: " + strings.Join(ids, "")
+		return "provider: " + strings.Join(ids, "")
 	}
-	return "cloud provider: " + strings.Join(ids[:len(ids)-1], ", ") + " or " + ids[len(ids)-1]
+	return "provider: " + strings.Join(ids[:len(ids)-1], ", ") + " or " + ids[len(ids)-1]
 }
