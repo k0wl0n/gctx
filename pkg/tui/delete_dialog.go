@@ -248,7 +248,7 @@ func (d *deleteDialog) view(m Model) string {
 	if stop.kind == stopDelete || stop.kind == stopCancel {
 		focus = len(lines)
 	}
-	add(deleteButton + " " + renderButton("Cancel", stop.kind == stopCancel, true, st))
+	add(joinButtons(deleteButton, renderButton("Cancel", stop.kind == stopCancel, true, st)))
 	footer := "esc cancel " + g.Dot + " default focus on Cancel " + g.Dot + " tab moves " + g.Dot + " space toggles"
 	return m.showModal(modalSpec{title: title, body: lines, footer: footer, tone: toneDanger, focus: focus})
 }

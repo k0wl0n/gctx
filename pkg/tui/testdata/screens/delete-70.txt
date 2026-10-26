@@ -17,7 +17,7 @@ gctx ● ● ● ● ● ●  6 active                                tab  All 1
 │                                                                    │
 │   ──────────────────────────────────────────────────────────────── │
 │                                                                    │
-│ [ Delete ]   Cancel                                                │
+│ [ Delete ]    Cancel                                               │
 │                                                                    │
 │ esc cancel · default focus on Cancel · tab moves · space toggles   │
 └────────────────────────────────────────────────────────────────────┘

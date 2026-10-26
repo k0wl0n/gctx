@@ -289,6 +289,6 @@ func (d *saveDialog) view(m Model) string {
 	} else {
 		body = append(body, "No default ADC file found.")
 	}
-	body = append(body, "", renderButton("Cancel", d.focus == focusCancel, true, st)+" "+renderButton("Save", d.focus == focusConfirm, true, st))
+	body = append(body, "", joinButtons(renderButton("Cancel", d.focus == focusCancel, true, st), renderButton("Save", d.focus == focusConfirm, true, st)))
 	return m.showModal(modalSpec{title: "Save ADC for " + d.account.Name, body: body, footer: "tab switch · enter confirm · esc cancel", focus: -1})
 }

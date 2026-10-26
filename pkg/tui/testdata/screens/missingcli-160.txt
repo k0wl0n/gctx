@@ -37,4 +37,4 @@ env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DI
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ✓ GCP 9/9  ✓ AWS 2/2  ⠋ Azure 0/1 (timeout 8s)  ✓ AI tools 4/4  ✓ gateways 3/3                             19 accounts · 1 expired · 3 need login · 1 low budget
-y copy  R rescan  tab next provider
+y copy · R rescan · tab next provider

@@ -24,7 +24,7 @@ AI TOOLS ───────────────────────�
 CLAUDE CODE · org ────────────────────│                                                                                  │
   [CLD]  claude-personal  personal    │   ────────────────────────────────────────────────────────────────────────────── │
   [CLD]  claude-vertex    via cloudsui│                                                                                  │
- ●[CLD]  claude-work      org Aliz Tec│ [ Delete ]   Cancel                                                              │
+ ●[CLD]  claude-work      org Aliz Tec│ [ Delete ]    Cancel                                                             │
 CODEX · workspace ────────────────────│                                                                                  │
  ●[OAI]  codex-work       workspace Al│ esc cancel · default focus on Cancel · tab moves · space toggles                 │
                                       └──────────────────────────────────────────────────────────────────────────────────┘

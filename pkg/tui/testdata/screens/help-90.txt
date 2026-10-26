@@ -1,4 +1,4 @@
-Keys                                                        j/k scroll · esc or ? to close
+Keys  · more below                                          j/k scroll · esc or ? to close
 ──────────────────────────────────────────────────────────────────────────────────────────
   navigation
   j/↓          next row

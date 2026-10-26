@@ -358,8 +358,9 @@ func (m Model) firstRunButtons(g glyphs, st styles) string {
 	f := m.firstRun
 	importButton := renderPrimaryButton(fmt.Sprintf("Import %d", len(f.selected())), f.focus == f.importButton(), true, st)
 	if f.review {
-		return importButton + " " + renderButton("Back", f.focus == f.secondButton(), true, st)
+		return joinButtons(importButton, renderButton("Back", f.focus == f.secondButton(), true, st))
 	}
-	return importButton + " " + renderButton("Review each", f.focus == f.secondButton(), true, st) +
-		" " + renderPlainButton("Start empty", f.focus == f.emptyButton(), st)
+	return joinButtons(importButton,
+		renderButton("Review each", f.focus == f.secondButton(), true, st),
+		renderPlainButton("Start empty", f.focus == f.emptyButton(), st))
 }

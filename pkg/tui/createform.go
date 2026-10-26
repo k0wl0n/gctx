@@ -784,7 +784,7 @@ func (f *accountForm) buttons(item formItem, info manager.ProviderInfo, g glyphs
 		parts = append(parts, renderButton("Test again", item.kind == itemTest, true, st))
 	}
 	parts = append(parts, renderPlainButton("Cancel", item.kind == itemCancel, st))
-	return strings.Join(parts, " ")
+	return joinButtons(parts...)
 }
 
 // testLine is the outcome of the last connection check, "" before any.

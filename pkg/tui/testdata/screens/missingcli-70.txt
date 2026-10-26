@@ -21,4 +21,4 @@ gctx ● ● ○ ● ● ●  5 active                           tab  Tencent n/
 
 ──────────────────────────────────────────────────────────────────────
 ✓ 18/18 checked  ⠋ Azure 0/1 (timeout 8s)  19 accounts · 5 need action
-y copy  R rescan  tab next provider
+y copy · R rescan · tab next provider

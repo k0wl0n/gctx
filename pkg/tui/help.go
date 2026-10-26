@@ -84,6 +84,9 @@ func (m Model) viewHelp() string {
 		closeHint = "j/k scroll · " + closeHint
 	}
 	title := st.Title.Render("Keys")
+	if len(body) > height && offset < m.helpMaxOffset() {
+		title += st.Dim.Render("  " + g.Dot + " more below")
+	}
 	out := []string{
 		joinSides(title, st.Dim.Render(closeHint), m.width, g),
 		hRule(g, st, m.width),

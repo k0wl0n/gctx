@@ -265,3 +265,7 @@ func renderPlainButton(label string, focused bool, st styles) string {
 	}
 	return st.Dim.Render("  " + label + "  ")
 }
+
+// joinButtons puts buttons in a row with a gap wide enough that two outlined
+// buttons never touch: │ a │  │ b │.
+func joinButtons(buttons ...string) string { return strings.Join(buttons, "  ") }

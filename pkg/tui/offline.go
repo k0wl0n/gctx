@@ -144,6 +144,11 @@ func (m Model) copyInstallCommand() (Model, tea.Cmd) {
 
 // missingCLIHints is the hint line of the missing-CLI tab.
 func missingCLIHints(st styles) string {
-	parts := []string{"y " + st.Dim.Render("copy"), "R " + st.Dim.Render("rescan"), "tab " + st.Dim.Render("next provider")}
-	return strings.Join(parts, "  ")
+	g := newGlyphs(asciiRequested())
+	parts := []string{
+		keys.CopyEnv.Help().Key + " " + st.Dim.Render("copy"),
+		keys.Reload.Help().Key + " " + st.Dim.Render("rescan"),
+		keys.NextTab.Help().Key + " " + st.Dim.Render("next provider"),
+	}
+	return strings.Join(parts, st.Dim.Render(" "+g.Dot+" "))
 }

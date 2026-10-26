@@ -9,7 +9,7 @@
 │ › ☐ AZR 2 subscriptions in ~/.azure                                                    │
 │   ○ TCT tccli not installed                                                            │
 │                                                                                        │
-│  Import 9  │ Review each │   Start empty                                               │
+│  Import 9   │ Review each │    Start empty                                             │
 │                                                                                        │
 │                                                                                        │
 │                                                                                        │

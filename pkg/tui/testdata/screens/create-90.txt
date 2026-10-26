@@ -25,6 +25,6 @@
 │ writes config.json (name, profile, regions) · ~/.aws/config [profile prod-eu-data]     │
 │ never  access keys, SSO tokens or secrets                                              │
 │                                                                                        │
-│ │ Create and login │ │ Create only │   Cancel          tab next  ⇧tab back  esc cancel │
+│ │ Create and login │  │ Create only │    Cancel        tab next  ⇧tab back  esc cancel │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 tab provider  ↵ activate  / filter  ? help  q quit

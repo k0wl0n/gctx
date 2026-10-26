@@ -24,7 +24,7 @@ AI TOOLS ─────────│ type corp-azure to confirm              
 CLAUDE CODE · org │                                                                                  │· 2 ready, 1 login
   [CLD]  claude-pe│   ────────────────────────────────────────────────────────────────────────────── │
   [CLD]  claude-ve│                                                                                  │m
- ●[CLD]  claude-wo│ [ Delete ]   Cancel                                                              │
+ ●[CLD]  claude-wo│ [ Delete ]    Cancel                                                             │
 CODEX · workspace │                                                                                  │────── 1 · 1 ready
  ●[OAI]  codex-wor│ esc cancel · default focus on Cancel · tab moves · space toggles                 │
                   └──────────────────────────────────────────────────────────────────────────────────┘
