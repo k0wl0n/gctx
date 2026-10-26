@@ -1,5 +1,3 @@
-// Package secretref handles references to secrets; gctx stores a reference,
-// never the secret itself.
 package secretref
 
 import "strings"
