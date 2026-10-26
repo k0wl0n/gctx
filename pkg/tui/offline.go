@@ -46,7 +46,8 @@ func (m Model) offlineAfterCheck() bool {
 }
 
 func (m Model) offlineBanner(width int, g glyphs, st styles) string {
-	return st.Warn.Render(truncateCells(g.Warn+" network unreachable "+g.Dot+" showing last known status", width, g.Ellipsis))
+	// An amber bar marks the banner as a notice, like the modal borders.
+	return st.Warn.Render(truncateCells(g.Bar+" "+g.Warn+" network unreachable "+g.Dot+" showing last known status", width, g.Ellipsis))
 }
 
 // offlineStatus is the status line while offline and no check is running.

@@ -2,7 +2,7 @@ gctx vtest │ GCP ● cloudsuite  AWS ● prod-aws  AZR ○ │ ai CLD ● clau
 env CLOUDSDK_ACTIVE_CONFIG_NAME=cloudsuite AWS_PROFILE=prod-sso CLAUDE_CONFIG_DIR=~/.config/gctx/ai/claude-work CODEX_HOME=~/.config/gctx/ai/codex-work OPENAI_…
  All 19  GCP 9  AWS 2  Azure 1 │ Claude Code 3  Codex 1 │ SumoPod 2  OpenRouter 1                                                            sort name  / filter
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-⚠ network unreachable · showing last known status
+▌ ⚠ network unreachable · showing last known status
   KIND   NAME             TARGET                  IDENTITY                    ADC  STATUS           EXPIRES       │  AWS  prod-aws                      ● active
 CLOUDS ─────────────────────────────────────────────────────────────────────────────────────────────────────── 12 │
 GCP · project ────────────────────────────────────────────────────────────── 9 · 1 expired, 1 login, 7 unverified │ profile        prod-sso
