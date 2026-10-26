@@ -108,11 +108,15 @@ func (m Model) startStreamLogin(name string) (Model, tea.Cmd) {
 func (s *loginSession) next() tea.Cmd {
 	return func() tea.Msg {
 		s.start.Do(func() { go s.run() })
-		msg, ok := <-s.events
-		if !ok {
+		select {
+		case msg, ok := <-s.events:
+			if !ok {
+				return nil
+			}
+			return msg
+		case <-s.abandoned:
 			return nil
 		}
-		return msg
 	}
 }
 
