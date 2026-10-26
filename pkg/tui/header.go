@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/k0wl0n/gctx/pkg/config"
@@ -218,6 +219,9 @@ func (m Model) tabChip(i int, g glyphs, st styles) string {
 	if i == m.tab {
 		if st.prof <= colorprofile.ASCII {
 			return "[" + text + "]"
+		}
+		if col := badgeColor(tab.color, st.prof); col != nil && !tab.missing {
+			return lipgloss.NewStyle().Background(col).Foreground(colorGround.in(st.prof)).Bold(true).Render(" " + text + " ")
 		}
 		return st.TabActive.Render(" " + text + " ")
 	}

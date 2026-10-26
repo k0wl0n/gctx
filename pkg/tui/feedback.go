@@ -70,9 +70,9 @@ func (m Model) feedbackLines(width int, g glyphs, st styles) []string {
 		st.Dim.Render(truncateCells(f.providerLabel+" is env-based: this terminal is unchanged until you apply it.", inner, g.Ellipsis)),
 	}
 	command := "$ " + f.evalLine
-	actions := keys.CopyEnv.Keys()[0] + " " + st.Dim.Render("copy that line") +
-		"  " + keys.Shell.Keys()[0] + " " + st.Dim.Render("open subshell") +
-		"  " + keys.Run.Keys()[0] + " " + st.Dim.Render("run here")
+	actions := keyChip(keys.CopyEnv.Keys()[0], st) + " " + st.Dim.Render("copy that line") +
+		"  " + keyChip(keys.Shell.Keys()[0], st) + " " + st.Dim.Render("open subshell") +
+		"  " + keyChip(keys.Run.Keys()[0], st) + " " + st.Dim.Render("run here")
 	if ansi.StringWidth(command)+3+ansi.StringWidth(actions) <= inner {
 		body = append(body, command+"   "+actions)
 	} else {

@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
@@ -232,60 +231,6 @@ func (m Model) viewOverlay() string {
 		return m.viewLogin()
 	}
 	return ""
-}
-
-func renderDetails(m Model) string {
-	acct, ok := m.selectedAccount()
-	if !ok {
-		return "No account selected"
-	}
-	g := newGlyphs(asciiRequested())
-	var b strings.Builder
-	b.WriteString(fmt.Sprintf("  Account: %s\n", acct.Name))
-	b.WriteString(fmt.Sprintf("  Project: %s\n", strOrDash(acct.ProjectID)))
-	b.WriteString(fmt.Sprintf("  Email:   %s\n", strOrDash(acct.Email)))
-	b.WriteString(fmt.Sprintf("  Active:  %v\n", acct.Active))
-	b.WriteByte('\n')
-	b.WriteString(fmt.Sprintf("  gcloud config:    %s (exists: %v)\n", acct.ConfigName, acct.GcloudConfigExists))
-	b.WriteString(fmt.Sprintf("  config account:   %s\n", strOrDash(acct.GcloudAccount)))
-	b.WriteString(fmt.Sprintf("  config project:   %s\n", strOrDash(acct.GcloudProject)))
-	b.WriteByte('\n')
-	adcPath := acct.StoredADCPath
-	if adcPath == "" {
-		adcPath = acct.ADCPath
-	}
-	b.WriteString(fmt.Sprintf("  Stored ADC path:  %s\n", strOrDash(adcPath)))
-	b.WriteString(fmt.Sprintf("  ADC exists:       %v\n", acct.ADCExists))
-	if acct.ADCExists && !acct.ADCModTime.IsZero() {
-		b.WriteString(fmt.Sprintf("  ADC modified:     %s\n", acct.ADCModTime.Format(time.RFC3339)))
-	}
-	if !acct.CreatedAt.IsZero() {
-		b.WriteString(fmt.Sprintf("  Created:          %s\n", acct.CreatedAt.Format(time.RFC3339)))
-	}
-	b.WriteByte('\n')
-	if len(acct.Findings) == 0 {
-		b.WriteString("  " + g.Yes + " No issues found\n")
-	} else {
-		b.WriteString("  Findings:\n")
-		for _, f := range acct.Findings {
-			remedy := findingRemedy(f)
-			b.WriteString(fmt.Sprintf("    %s — %s\n", f.Health, remedy))
-		}
-	}
-	if len(acct.Details) > 0 {
-		b.WriteString("\n  Provider details:\n")
-		for _, field := range acct.Details {
-			b.WriteString(fmt.Sprintf("    %-16s %s\n", field.Label+":", strOrDash(field.Value)))
-		}
-	}
-	if env := m.envs[acct.Name]; len(env) > 0 {
-		b.WriteString("\n  Env applied on activate:\n")
-		for _, kv := range env {
-			b.WriteString("    " + displayEnv(kv) + "\n")
-		}
-	}
-	b.WriteString("\n  esc/d/i/q  close\n")
-	return b.String()
 }
 
 func findingRemedy(f manager.Finding) string {
