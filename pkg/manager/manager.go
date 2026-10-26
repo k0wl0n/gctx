@@ -231,3 +231,11 @@ func (m *Manager) providerIDs() []provider.ID {
 func (m *Manager) loadConfig() (*config.Config, error) {
 	return config.LoadFrom(m.paths.ConfigPath())
 }
+
+// DefaultProviderIDs lists the built-in provider ids in registry order,
+// without looking anything up on PATH.
+func DefaultProviderIDs() []provider.ID {
+	notFound := func(string) (string, error) { return "", exec.ErrNotFound }
+	m := &Manager{providers: provider.NewRegistry(defaultProviders(Options{LookPath: notFound, Getenv: func(string) string { return "" }})...)}
+	return m.providerIDs()
+}
