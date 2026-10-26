@@ -35,6 +35,7 @@ type modalSpec struct {
 	tone   modalTone
 	focus  int  // body line kept visible when the body scrolls; -1 for none
 	wide   bool // lists such as the palette may use up to paletteMaxWidth
+	full   bool // fill the whole height, footer on the last row (full-screen panels)
 }
 
 const paletteMaxWidth = 110
@@ -94,7 +95,11 @@ func renderModal(spec modalSpec, width, height int, g glyphs, st styles) []strin
 	}
 
 	body := spec.body
-	room := modalMaxHeight(width, height) - 2 - len(top) - len(bottom)
+	maxHeight := modalMaxHeight(width, height)
+	if spec.full {
+		maxHeight = height
+	}
+	room := maxHeight - 2 - len(top) - len(bottom)
 	if room < len(body) && len(top) > 0 {
 		top = top[:1] // drop the spacer rows before cutting content
 		room++
@@ -110,6 +115,9 @@ func renderModal(spec modalSpec, width, height int, g glyphs, st styles) []strin
 			start = max(min(spec.focus-room/2, len(body)-room), 0)
 		}
 		body = body[start : start+room]
+	}
+	for spec.full && len(body) < room {
+		body = append(append([]string{}, body...), "")
 	}
 
 	out := []string{border.Render(g.Box[0] + strings.Repeat(g.Box[4], boxWidth-2) + g.Box[1])}
@@ -206,8 +214,29 @@ func filledStyle(hex string, st styles) lipgloss.Style {
 	return st.TabActive
 }
 
-// renderButton draws "[ label ]"; the focused button is filled, a disabled
-// one dim. Every state has the same width so the row never shifts.
+// Buttons come in three weights. renderPrimaryButton is always filled,
+// renderButton (secondary) is outlined with border-coloured bars and
+// renderPlainButton (tertiary) is dim text. A focused button of any weight is
+// filled; without colour focus is "[*label*]" and the rest "[ label ]".
+// Every state has the same width so a row never shifts.
+
+// renderPrimaryButton is the filled call to action such as "Import 9".
+func renderPrimaryButton(label string, focused, enabled bool, st styles) string {
+	switch {
+	case !enabled:
+		return st.Dim.Render("[ " + label + " ]")
+	case st.prof <= colorprofile.ASCII && focused:
+		return "[*" + label + "*]"
+	case st.prof <= colorprofile.ASCII:
+		return "[ " + label + " ]"
+	case focused:
+		return st.TabActive.Underline(true).Render(" " + label + " ")
+	}
+	return st.TabActive.Render(" " + label + " ")
+}
+
+// renderButton is the outlined secondary button; a focused one is filled, a
+// disabled one dim.
 func renderButton(label string, focused, enabled bool, st styles) string {
 	switch {
 	case !enabled:
@@ -216,14 +245,23 @@ func renderButton(label string, focused, enabled bool, st styles) string {
 		return "[*" + label + "*]"
 	case focused:
 		return st.TabActive.Render("  " + label + "  ")
+	case st.prof <= colorprofile.ASCII:
+		return "[ " + label + " ]"
 	}
-	return "[ " + label + " ]"
+	bar := st.Sep.Render("│")
+	if g := newGlyphs(asciiRequested()); g.Caret == ">" {
+		bar = st.Sep.Render("|")
+	}
+	return bar + " " + label + " " + bar
 }
 
-// renderPlainButton is a borderless button such as Cancel.
+// renderPlainButton is the tertiary button such as Cancel or Start empty.
 func renderPlainButton(label string, focused bool, st styles) string {
-	if focused {
+	switch {
+	case focused:
 		return renderButton(label, true, true, st)
+	case st.prof <= colorprofile.ASCII:
+		return "  " + label + "  "
 	}
-	return "  " + label + "  "
+	return st.Dim.Render("  " + label + "  ")
 }

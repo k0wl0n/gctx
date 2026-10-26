@@ -45,9 +45,24 @@ func (m Model) offlineAfterCheck() bool {
 	return m.offline && failed+pending > 0
 }
 
-func (m Model) offlineBanner(width int, g glyphs, st styles) string {
-	// An amber bar marks the banner as a notice, like the modal borders.
-	return st.Warn.Render(truncateCells(g.Bar+" "+g.Warn+" network unreachable "+g.Dot+" showing last known status", width, g.Ellipsis))
+// offlineBannerBoxMinHeight is the screen height from which the banner is an
+// amber box (three rows); shorter screens keep the one-line bar so the table
+// is not pushed off.
+const offlineBannerBoxMinHeight = 30
+
+func (m Model) offlineBanner(width int, g glyphs, st styles) []string {
+	text := g.Warn + " network unreachable " + g.Dot + " showing last known status"
+	if m.height < offlineBannerBoxMinHeight {
+		// An amber bar marks the banner as a notice, like the modal borders.
+		return []string{st.Warn.Render(truncateCells(g.Bar+" "+text, width, g.Ellipsis))}
+	}
+	inner := max(width-4, 10)
+	horizontal := strings.Repeat(g.Box[4], width-2)
+	out := []string{st.Warn.Render(g.Box[0] + horizontal + g.Box[1])}
+	for _, line := range wrapText(text, inner) {
+		out = append(out, st.Warn.Render(g.Box[5]+" "+fitCells(line, inner, g.Ellipsis)+" "+g.Box[5]))
+	}
+	return append(out, st.Warn.Render(g.Box[2]+horizontal+g.Box[3]))
 }
 
 // offlineStatus is the status line while offline and no check is running.

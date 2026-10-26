@@ -1,6 +1,8 @@
 gctx ● ● ○ ● ● ●  5 active                                                    tab  All 19
 ──────────────────────────────────────────────────────────────────────────────────────────
-▌ ⚠ network unreachable · showing last known status
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ ⚠ network unreachable · showing last known status                                      │
+└────────────────────────────────────────────────────────────────────────────────────────┘
   NAME                   TARGET                  ADC  STATUS
    GCP  byoip-lab        byoip-lab-eu-west       ✓    ✗ EXPIRED
  ● GCP  cloudsuite       sap-gap-cloud-asap-s    ✓    ? UNVERIFIED 2h
@@ -21,8 +23,6 @@ gctx ● ● ○ ● ● ●  5 active                                          
  ●[SMP] sumopod-dev      ai.sumopod.com          –    ? UNVERIFIED 2h
   [SMP] sumopod-prod     ai.sumopod.com          –    ⚠ BUDGET LOW
   [ORT] openrouter       openrouter.ai           –    ? UNVERIFIED 3d
-
-
 
 
 ──────────────────────────────────────────────────────────────────────────────────────────

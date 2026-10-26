@@ -202,7 +202,7 @@ func TestFirstRunOffersImport(t *testing.T) {
 	for _, want := range []string{
 		config.AppName + " · no accounts yet",
 		"found existing CLI setups you can import.", "nothing is copied except names.",
-		"[x] GCP 6 gcloud configurations", "[x] AWS 3 profiles in ~/.aws/config", "[x] AZR 2 subscriptions in ~/.azure",
+		"☑ GCP 6 gcloud configurations", "☑ AWS 3 profiles in ~/.aws/config", "☑ AZR 2 subscriptions in ~/.azure",
 		"○ TCT tccli not installed", "Import 11", "Review each", "Start empty",
 		"c create", "? keys", "q quit",
 	} {
@@ -210,7 +210,7 @@ func TestFirstRunOffersImport(t *testing.T) {
 			t.Errorf("first run lacks %q:\n%s", want, out)
 		}
 	}
-	if strings.Contains(out, "[x] TCT") || strings.Contains(out, "[ ] TCT") {
+	if strings.Contains(out, "☑ TCT") || strings.Contains(out, "☐ TCT") {
 		t.Errorf("a provider without its CLI must not be selectable:\n%s", out)
 	}
 
@@ -224,7 +224,7 @@ func TestFirstRunOffersImport(t *testing.T) {
 	}
 	svc.importRes = manager.ImportResult{Imported: make([]string, 9)}
 	m = press(t, m, "up", "space")
-	if out = screen(m); !strings.Contains(out, "[ ] AZR") || !strings.Contains(out, "Import 9") {
+	if out = screen(m); !strings.Contains(out, "☐ AZR") || !strings.Contains(out, "Import 9") {
 		t.Fatalf("unchecking AZR:\n%s", out)
 	}
 	m = pressQuick(t, press(t, m, "down"), "enter")
@@ -255,7 +255,12 @@ func TestFirstRunReviewEachImportsTheChecked(t *testing.T) {
 		}
 	}
 	m = press(t, m, "space") // uncheck the first item, cloudsuite
-	m = tabUntil(t, m, "[ Import 10 ]")
+	for m.firstRun.focus != m.firstRun.importButton() {
+		m = press(t, m, "tab")
+	}
+	if !strings.Contains(screen(m), "Import 10") {
+		t.Fatalf("Import must show the 10 checked items:\n%s", screen(m))
+	}
 	svc.importRes = manager.ImportResult{Imported: make([]string, 10)}
 	pressQuick(t, m, "enter")
 	if len(svc.imported) != 1 || len(svc.imported[0]) != 10 {

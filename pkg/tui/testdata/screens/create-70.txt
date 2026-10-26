@@ -18,7 +18,7 @@
 │        [profile prod-eu-data]                                      │
 │ never  access keys, SSO tokens or secrets                          │
 │                                                                    │
-│ [ Create and login ] [ Create only ]   Cancel                      │
+│ │ Create and login │ │ Create only │   Cancel                      │
 │                                                                    │
 │ tab next  ⇧tab back  esc cancel                                    │
 └────────────────────────────────────────────────────────────────────┘

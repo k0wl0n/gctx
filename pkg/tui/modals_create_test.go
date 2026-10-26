@@ -554,10 +554,10 @@ func TestFormLayoutAt120And70(t *testing.T) {
 				t.Errorf("%dx%d: line overflows (%d): %q", size.width, size.height, w, line)
 			}
 		}
-		if !strings.Contains(out, "[ Create and login ]") || !strings.Contains(out, "[ Create only ]") || !strings.Contains(out, "Cancel") {
+		if !strings.Contains(out, "│ Create and login │") || !strings.Contains(out, "│ Create only │") || !strings.Contains(out, "Cancel") {
 			t.Errorf("%dx%d: buttons broken:\n%s", size.width, size.height, out)
 		}
-		if i := lineIndex(t, out, "[ Create and login ]"); !strings.Contains(lines[i], "[ Create only ]") {
+		if i := lineIndex(t, out, "│ Create and login │"); !strings.Contains(lines[i], "│ Create only │") {
 			t.Errorf("%dx%d: buttons wrapped:\n%s", size.width, size.height, out)
 		}
 	}

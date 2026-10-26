@@ -249,60 +249,58 @@ func plural(n int, noun string) string {
 	return noun + "s"
 }
 
-// viewFirstRun draws the import offer, with the hint line on the last row.
+// viewFirstRun draws the import offer as a bordered panel filling the screen,
+// the hint line on its last row.
 func (m Model) viewFirstRun() string {
 	g := newGlyphs(asciiRequested())
 	st := newStylesFor(m.profile)
 	f := m.firstRun
-	var out []string
-	add := func(line string) { out = append(out, "  "+line) }
 
+	title := config.AppName + " · no accounts yet"
+	intro := []string{"found existing CLI setups you can import.", "nothing is copied except names."}
 	if f.review {
-		add(st.Title.Render(config.AppName) + st.Dim.Render(" · review accounts to import"))
-	} else {
-		add(st.Title.Render(config.AppName) + st.Dim.Render(" · no accounts yet"))
+		title = config.AppName + " · review accounts to import"
+		intro = []string{"tick the accounts to create. nothing is copied except names."}
 	}
-	out = append(out, "")
-	if f.review {
-		add(st.Dim.Render("tick the accounts to create. nothing is copied except names."))
-	} else {
-		add(st.Dim.Render("found existing CLI setups you can import."))
-		add(st.Dim.Render("nothing is copied except names."))
+	var body []string
+	for _, line := range intro {
+		body = append(body, st.Dim.Render(line))
 	}
-	out = append(out, "")
-
-	rows := m.firstRunRows(g, st)
-	room := max(m.height-len(out)-5, 3)
-	first := 0
-	if f.review && f.focus < f.checkboxCount() && f.focus >= room {
-		first = f.focus - room + 1
+	body = append(body, "")
+	rowsAt := len(body)
+	body = append(body, m.firstRunRows(g, st)...)
+	focusLine := rowsAt + min(f.focus, f.checkboxCount())
+	if f.focus >= f.checkboxCount() {
+		focusLine = len(body) + 1
 	}
-	if f.review {
-		rows = rows[min(first, len(rows)):min(first+room, len(rows))]
-	}
-	for _, row := range rows {
-		out = append(out, truncateCells(row, m.width, g.Ellipsis))
-	}
-	out = append(out, "")
-	out = append(out, truncateCells("  "+m.firstRunButtons(g, st), m.width, g.Ellipsis))
-
-	status := ""
+	body = append(body, "", m.firstRunButtons(g, st))
 	if m.status.text != "" {
-		status = m.status.text
+		status := m.status.text
 		if m.status.level == levelError {
 			status = st.Error.Render(status)
 		}
+		body = append(body, "", status)
 	}
-	for len(out) < m.height-2 {
-		out = append(out, "")
+
+	box := renderModal(modalSpec{
+		title: title, body: body, footer: m.firstRunHint(g, modalInnerWidth(m.width, false)),
+		focus: focusLine, full: true,
+	}, m.width, m.height, g, st)
+	margin := strings.Repeat(" ", max((m.width-modalBoxWidth(m.width, false))/2, 0))
+	for i := range box {
+		box[i] = margin + box[i]
 	}
-	out = append(out[:min(len(out), m.height-2)], "  "+status)
-	hint := strings.Join([]string{g.UpDown + " move", "space toggle", g.Enter + " choose", "c create", "? keys", "q quit"}, " "+g.Dot+" ")
-	out = append(out, st.Dim.Render("  "+hint))
-	for i := range out {
-		out[i] = truncateCells(out[i], m.width, g.Ellipsis)
+	return strings.Join(box, "\n")
+}
+
+func (m Model) firstRunHint(g glyphs, width int) string {
+	parts := []string{g.UpDown + " move", "space toggle", g.Enter + " choose", "c create", "? keys", "q quit"}
+	hint := strings.Join(parts, " "+g.Dot+" ")
+	if ansi.StringWidth(hint) > width {
+		parts[1], parts[2] = "space", g.Enter
+		hint = strings.Join(parts, " "+g.Dot+" ")
 	}
-	return strings.Join(out, "\n")
+	return hint
 }
 
 func (m Model) firstRunRows(g glyphs, st styles) []string {
@@ -313,11 +311,18 @@ func (m Model) firstRunRows(g glyphs, st styles) []string {
 		}
 		return "  "
 	}
-	box := func(checked bool) string {
-		if checked {
-			return "[x]"
+	// Unicode terminals get ☑/☐, tinted in the provider colour; ASCII keeps [x].
+	box := func(checked bool, color string) string {
+		switch {
+		case g.Caret == ">":
+			if checked {
+				return "[x]"
+			}
+			return "[ ]"
+		case checked:
+			return tint(color, st.prof, "☑")
 		}
-		return "[ ]"
+		return "☐"
 	}
 	var rows []string
 	if f.review {
@@ -326,7 +331,7 @@ func (m Model) firstRunRows(g glyphs, st styles) []string {
 			nameWidth = min(max(nameWidth, ansi.StringWidth(r.item.Name)), 28)
 		}
 		for i, r := range f.reviewed {
-			row := fmt.Sprintf("%s%s %s %s  %s", cursor(i), box(r.checked), tint(r.info.Badge.Color, st.prof, st.Bold.Render(r.info.Badge.Text)),
+			row := fmt.Sprintf("%s%s %s %s  %s", cursor(i), box(r.checked, r.info.Badge.Color), tint(r.info.Badge.Color, st.prof, st.Bold.Render(r.info.Badge.Text)),
 				padCells(truncateCells(r.item.Name, nameWidth, g.Ellipsis), nameWidth), st.Dim.Render(r.item.Target))
 			if r.item.Note != "" {
 				row += st.Dim.Render("  " + r.item.Note)
@@ -336,7 +341,7 @@ func (m Model) firstRunRows(g glyphs, st styles) []string {
 		return rows
 	}
 	for i, s := range f.sources {
-		rows = append(rows, fmt.Sprintf("%s%s %s %d %s", cursor(i), box(s.checked),
+		rows = append(rows, fmt.Sprintf("%s%s %s %d %s", cursor(i), box(s.checked, s.info.Badge.Color),
 			tint(s.info.Badge.Color, st.prof, st.Bold.Render(s.info.Badge.Text)), s.source.Count, s.source.Noun))
 	}
 	for _, info := range f.missing {
@@ -351,15 +356,10 @@ func (m Model) firstRunRows(g glyphs, st styles) []string {
 
 func (m Model) firstRunButtons(g glyphs, st styles) string {
 	f := m.firstRun
-	button := func(index int, label string) string {
-		if f.focus == index {
-			return st.TabActive.Render("[ " + label + " ]")
-		}
-		return "  " + label + "  "
-	}
-	importLabel := fmt.Sprintf("Import %d", len(f.selected()))
+	importButton := renderPrimaryButton(fmt.Sprintf("Import %d", len(f.selected())), f.focus == f.importButton(), true, st)
 	if f.review {
-		return button(f.importButton(), importLabel) + button(f.secondButton(), "Back")
+		return importButton + " " + renderButton("Back", f.focus == f.secondButton(), true, st)
 	}
-	return button(f.importButton(), importLabel) + button(f.secondButton(), "Review each") + button(f.emptyButton(), "Start empty")
+	return importButton + " " + renderButton("Review each", f.focus == f.secondButton(), true, st) +
+		" " + renderPlainButton("Start empty", f.focus == f.emptyButton(), st)
 }

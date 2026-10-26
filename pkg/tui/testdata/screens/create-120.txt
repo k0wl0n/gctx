@@ -31,7 +31,7 @@ CODEX · workspace │                  ─────────────�
 AI GATEWAYS ──────│        data]                                                                     │──────────────── 3
 SUMOPOD · base url│ never  access keys, SSO tokens or secrets                                        │eady, 1 low budget
  ●[SMP]  sumopod-d│                                                                                  │.15 left
-  [SMP]  sumopod-p│ [ Create and login ] [ Create only ]   Cancel    tab next  ⇧tab back  esc cancel │.60 left
+  [SMP]  sumopod-p│ │ Create and login │ │ Create only │   Cancel    tab next  ⇧tab back  esc cancel │.60 left
 OPENROUTER · base └──────────────────────────────────────────────────────────────────────────────────┘────── 1 · 1 ready
   [ORT]  openrouter       openrouter.ai           –                           –    ● READY          $7.40 left
 

@@ -1,30 +1,30 @@
-  gctx · no accounts yet
-
-  found existing CLI setups you can import.
-  nothing is copied except names.
-
-  [x] GCP 6 gcloud configurations
-  [x] AWS 3 profiles in ~/.aws/config
-› [ ] AZR 2 subscriptions in ~/.azure
-  ○ TCT tccli not installed
-
-    Import 9    Review each    Start empty
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  ↑↓ move · space toggle · ↵ choose · c create · ? keys · q quit
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ gctx · no accounts yet                                                                 │
+│                                                                                        │
+│ found existing CLI setups you can import.                                              │
+│ nothing is copied except names.                                                        │
+│                                                                                        │
+│   ☑ GCP 6 gcloud configurations                                                        │
+│   ☑ AWS 3 profiles in ~/.aws/config                                                    │
+│ › ☐ AZR 2 subscriptions in ~/.azure                                                    │
+│   ○ TCT tccli not installed                                                            │
+│                                                                                        │
+│  Import 9  │ Review each │   Start empty                                               │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│                                                                                        │
+│ ↑↓ move · space toggle · ↵ choose · c create · ? keys · q quit                         │
+└────────────────────────────────────────────────────────────────────────────────────────┘

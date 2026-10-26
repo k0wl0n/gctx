@@ -43,7 +43,7 @@ func (m Model) viewMain() string {
 	}
 	top = append(top, hRule(g, st, m.width))
 	if m.offline {
-		top = append(top, m.offlineBanner(m.width, g, st))
+		top = append(top, m.offlineBanner(m.width, g, st)...)
 	}
 	bodyHeight := max(m.height-len(top)-4, 1) // column headers, rule, status, hints
 	var panel []string
