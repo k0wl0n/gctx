@@ -58,7 +58,7 @@ func TestHelpGeneratedFromKeyMap(t *testing.T) {
 	m := multiModel(t, withTencent(newMultiService()), 160, 40)
 	m = press(t, m, "?")
 	out := screen(m)
-	for _, group := range keys.groups() {
+	for _, group := range keys.helpColumns() {
 		if !strings.Contains(out, strings.ToLower(group.Title)) {
 			t.Errorf("help lacks the %q heading", group.Title)
 		}

@@ -194,8 +194,8 @@ func TestLoginShowsDeviceCode(t *testing.T) {
 	out := p.screen()
 	for _, want := range []string{
 		"accounts ›", " AZR ", "corp-azure › login", "✓ isolate config", "az login --use-device-code",
-		testDeviceURL, "F 7 K 2 - Q 9 X M", "o open browser", "y copy code",
-		"az output", "v full log", "esc cancel (stops az, account unchanged)",
+		testDeviceURL, "F 7 K 2 - Q 9 X M", "open browser", "copy code",
+		"az output", "v full log", "cancel (stops az, account unchanged)",
 		"tokens stay in the isolated az dir;", "reads them", "on success: status → READY, back to list",
 	} {
 		if !strings.Contains(out, want) {
@@ -222,7 +222,7 @@ func TestLoginStreamsOutput(t *testing.T) {
 	if !strings.Contains(out, "full log") || !strings.Contains(out, "second line") {
 		t.Errorf("full log view:\n%s", out)
 	}
-	if strings.Contains(out, "o open browser") {
+	if strings.Contains(out, "open browser") {
 		t.Errorf("full log still shows the steps column:\n%s", out)
 	}
 	p.key("v")
@@ -383,7 +383,7 @@ func TestLoginFailureStaysOnScreen(t *testing.T) {
 		t.Fatalf("screen %v, want the login screen to stay", p.m.screen)
 	}
 	out := p.screen()
-	for _, want := range []string{"✗ az login --use-device-code", "AADSTS70016", "az login failed: exit status 1", "esc back to list"} {
+	for _, want := range []string{"✗ az login --use-device-code", "AADSTS70016", "az login failed: exit status 1", "back to list"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("failure screen lacks %q:\n%s", want, out)
 		}
@@ -494,7 +494,7 @@ func TestLoginScreenLayoutAt120And70(t *testing.T) {
 			}
 		}
 		out := p.screen()
-		for _, want := range []string{"corp-azure", "login", testDeviceURL, "F 7 K 2 - Q 9 X M", "esc cancel"} {
+		for _, want := range []string{"corp-azure", "login", testDeviceURL, "F 7 K 2 - Q 9 X M", "cancel (stops"} {
 			if size.w >= 70 && !strings.Contains(out, want) {
 				t.Errorf("%dx%d lacks %q:\n%s", size.w, size.h, want, out)
 			}

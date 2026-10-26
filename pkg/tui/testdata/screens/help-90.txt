@@ -1,30 +1,30 @@
-gctx · keys                                                 j/k scroll · esc or ? to close
+Keys                                                        j/k scroll · esc or ? to close
 ──────────────────────────────────────────────────────────────────────────────────────────
-  navigation                             actions
-  j/↓          next row                  enter   switch to selected account
-  k/↑          previous row              /       filter
-  g/home       first row                 esc     clear applied filter
-  G/end        last row                  d/i     details
-  ctrl+f/pgdn  page down                 l       login
-  ctrl+b/pgup  page up                   L       login every stale account
-  tab          next provider tab         s       subshell with every active slot
-  shift+tab    previous provider tab     S       subshell with only this account
-  1-9          jump to tab (1 is All)    y       copy the env eval line
-                                         r       run provider CLI command
-  view                                   c       create account
-  p  toggle detail pane                  e       edit account
-  z  fold or unfold the provider group   ctrl+d  delete account
-  !  only rows needing action            a       save current ADC to selected account
-  o  cycle sort: name, status, expiry
-                                         general
-                                         R         reload
-                                         ?         help
-                                         q/ctrl+c  quit
-                                         :         command palette
+  navigation
+  j/↓          next row
+  k/↑          previous row
+  g/home       first row
+  G/end        last row
+  ctrl+f/pgdn  page down
+  ctrl+b/pgup  page up
+  tab          next provider tab
+  shift+tab    previous provider tab
+  1-9          jump to tab (1 is All)
+  /            filter
+  esc          clear applied filter
+  !            only rows needing action
+  o            cycle sort: name, status, expiry
+  z            fold or unfold the provider group
+  :            command palette
 
-  providers
-  GCP          gcloud 540.0.0   ✓ global switch · ADC
-  AWS          aws 2.27.4       ✓ env: AWS_PROFILE
-  Azure        az 2.75.0        ✓ env: AZURE_CONFIG_DIR
+  account
+  enter   switch to selected account
+  d/i     details
+  l       login
+  L       login every stale account
+  c       create account
+  e       edit account
+  ctrl+d  delete account
+  a       save current ADC to selected account
 ──────────────────────────────────────────────────────────────────────────────────────────
 config ~/.config/gctx/config.json · log ~/.cache/gctx/tui-debug.log

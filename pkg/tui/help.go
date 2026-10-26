@@ -10,12 +10,14 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/manager"
 	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
-const helpColumnGap = 3
+const (
+	helpColumnGap  = 3
+	helpSplitWidth = 100 // from this width the key groups sit side by side
+)
 
 type cliVersionsMsg struct{ versions map[provider.ID]string }
 
@@ -81,7 +83,7 @@ func (m Model) viewHelp() string {
 	if len(body) > height {
 		closeHint = "j/k scroll · " + closeHint
 	}
-	title := st.Title.Render(config.AppName + " · keys")
+	title := st.Title.Render("Keys")
 	out := []string{
 		joinSides(title, st.Dim.Render(closeHint), m.width, g),
 		hRule(g, st, m.width),
@@ -122,9 +124,9 @@ func tildePath(path string) string {
 func (m Model) helpBody(width int) []string {
 	g := newGlyphs(asciiRequested())
 	st := newStylesFor(m.profile)
-	body := helpKeyColumns(keys.groups(), width-2, g, st)
-	body = append(body, "")
-	body = append(body, m.helpProviders(width-2, g, st)...)
+	body := helpKeyColumns(keys.helpColumns(), width-4, g, st)
+	body = append(body, "", hRule(g, st, width-4), "")
+	body = append(body, m.helpProviders(width-4, g, st)...)
 	for i := range body {
 		body[i] = "  " + body[i]
 	}
@@ -153,70 +155,33 @@ func newHelpBlock(group keyGroup, st styles) helpBlock {
 	return block
 }
 
-// helpKeyColumns lays the groups out in the most columns that fit width,
-// splitting the groups in order so the columns are as even as possible.
+// helpKeyColumns lays the groups out side by side, in equal thirds, from
+// helpSplitWidth; narrower screens stack them.
 func helpKeyColumns(groups []keyGroup, width int, g glyphs, st styles) []string {
 	blocks := make([]helpBlock, len(groups))
 	for i, group := range groups {
 		blocks[i] = newHelpBlock(group, st)
 	}
-	for count := min(3, len(blocks)); count >= 1; count-- {
-		split := evenSplit(blocks, count)
-		columns := make([][]string, len(split))
-		widths := make([]int, len(split))
-		total := helpColumnGap * (len(split) - 1)
-		for i, part := range split {
-			for j, block := range part {
-				if j > 0 {
-					columns[i] = append(columns[i], "")
-				}
-				columns[i] = append(columns[i], block.lines...)
-				widths[i] = max(widths[i], block.width)
+	if width < helpSplitWidth {
+		var out []string
+		for i, block := range blocks {
+			if i > 0 {
+				out = append(out, "")
 			}
-			total += widths[i]
+			for _, line := range block.lines {
+				out = append(out, truncateCells(line, width, g.Ellipsis))
+			}
 		}
-		if total > width && count > 1 {
-			continue
-		}
-		return joinColumns(columns, widths, g)
+		return out
 	}
-	return nil
-}
-
-// evenSplit cuts blocks, in order, into count runs with the smallest tallest run.
-func evenSplit(blocks []helpBlock, count int) [][]helpBlock {
-	height := func(run []helpBlock) int {
-		total := max(len(run)-1, 0)
-		for _, block := range run {
-			total += len(block.lines)
-		}
-		return total
+	columns := make([][]string, len(blocks))
+	widths := make([]int, len(blocks))
+	slot := (width - helpColumnGap*(len(blocks)-1)) / len(blocks)
+	for i, block := range blocks {
+		columns[i] = block.lines
+		widths[i] = max(block.width, slot)
 	}
-	var best [][]helpBlock
-	bestHeight := -1
-	var walk func(start int, parts [][]helpBlock)
-	walk = func(start int, parts [][]helpBlock) {
-		if len(parts) == count-1 {
-			last := blocks[start:]
-			if len(last) == 0 {
-				return
-			}
-			all := append(slices.Clone(parts), last)
-			tallest := 0
-			for _, part := range all {
-				tallest = max(tallest, height(part))
-			}
-			if bestHeight < 0 || tallest < bestHeight {
-				best, bestHeight = all, tallest
-			}
-			return
-		}
-		for end := start + 1; end < len(blocks); end++ {
-			walk(end, append(slices.Clone(parts), blocks[start:end]))
-		}
-	}
-	walk(0, nil)
-	return best
+	return joinColumns(columns, widths, g)
 }
 
 func joinColumns(columns [][]string, widths []int, g glyphs) []string {

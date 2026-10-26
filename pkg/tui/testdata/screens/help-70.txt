@@ -1,4 +1,4 @@
-gctx · keys                             j/k scroll · esc or ? to close
+Keys                                    j/k scroll · esc or ? to close
 ──────────────────────────────────────────────────────────────────────
   navigation
   j/↓          next row
@@ -10,15 +10,15 @@ gctx · keys                             j/k scroll · esc or ? to close
   tab          next provider tab
   shift+tab    previous provider tab
   1-9          jump to tab (1 is All)
+  /            filter
+  esc          clear applied filter
+  !            only rows needing action
+  o            cycle sort: name, status, expiry
+  z            fold or unfold the provider group
+  :            command palette
 
-  view
-  p  toggle detail pane
-  z  fold or unfold the provider group
-  !  only rows needing action
-  o  cycle sort: name, status, expiry
-
-  actions
+  account
   enter   switch to selected account
-  /       filter
+  d/i     details
 ──────────────────────────────────────────────────────────────────────
 config ~/.config/gctx/config.json · log ~/.cache/gctx/tui-debug.log

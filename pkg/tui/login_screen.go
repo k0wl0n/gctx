@@ -9,6 +9,7 @@ import (
 	"unicode"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/k0wl0n/gctx/pkg/config"
 	"github.com/k0wl0n/gctx/pkg/manager"
@@ -342,14 +343,14 @@ func (m Model) loginHints(s *loginSession, cli string, g glyphs, st styles) stri
 	case s.stopping:
 		left = st.Warn.Render("stopping " + cli + g.Ellipsis)
 	case s.finished:
-		left = st.Bold.Render("esc") + " back to list"
+		left = keyChip("esc", st) + " back to list"
 		if q := m.queue; q != nil && len(q.upcoming()) > 0 {
-			left += "  " + st.Bold.Render("n") + " next in queue"
+			left += "  " + keyChip("n", st) + " next in queue"
 		}
 	default:
-		left = st.Bold.Render("esc") + " cancel (stops " + cli + ", account unchanged)"
+		left = keyChip("esc", st) + " cancel (stops " + cli + ", account unchanged)"
 		if q := m.queue; q != nil && len(q.entries) > 1 {
-			left += "  " + st.Bold.Render("n") + " skip to next in queue"
+			left += "  " + keyChip("n", st) + " skip to next in queue"
 		}
 	}
 	right := st.Dim.Render("on success: status " + g.Arrow + " READY, back to list")
@@ -396,8 +397,8 @@ func (m Model) loginProgress(s *loginSession, info manager.ProviderInfo, cli str
 	if len(s.steps) == 0 && !s.finished {
 		lines = append(lines, st.Dim.Render(g.Spinner[s.frame%len(g.Spinner)]+" starting "+cli+g.Ellipsis))
 	}
-	for i, step := range s.steps {
-		lines = append(lines, truncateCells(m.stepLine(i+1, step, s, g, st), width, g.Ellipsis))
+	for _, step := range s.steps {
+		lines = append(lines, truncateCells(m.stepLine(step, s, g, st), width, g.Ellipsis))
 	}
 	if s.url != "" || s.code != "" {
 		lines = append(lines, "")
@@ -415,11 +416,18 @@ func (m Model) loginProgress(s *loginSession, info manager.ProviderInfo, cli str
 	return lines
 }
 
-func (m Model) stepLine(number int, step loginStep, s *loginSession, g glyphs, st styles) string {
-	prefix := st.Dim.Render(fmt.Sprint(number)) + " "
+// keyChip is a key on a small dim background; without colour it is the bold key.
+func keyChip(label string, st styles) string {
+	if st.prof <= colorprofile.ASCII {
+		return st.Bold.Render(label)
+	}
+	return st.Selected.Bold(true).Render(" " + label + " ")
+}
+
+func (m Model) stepLine(step loginStep, s *loginSession, g glyphs, st styles) string {
 	switch step.state {
 	case stepDone:
-		line := prefix + st.OK.Render(g.Yes) + " " + step.label
+		line := st.OK.Render(g.Yes) + " " + st.Bold.Render(step.label)
 		if step.detail != "" {
 			line += " " + st.Dim.Render(step.detail)
 		}
@@ -430,18 +438,18 @@ func (m Model) stepLine(number int, step loginStep, s *loginSession, g glyphs, s
 			wait = "waiting"
 		}
 		elapsed := max(m.now().Sub(step.since), 0)
-		return prefix + st.Warn.Render(g.Spinner[s.frame%len(g.Spinner)]) + " " + st.Bold.Render(step.label) +
+		return st.Warn.Render(g.Spinner[s.frame%len(g.Spinner)]) + " " + st.Bold.Render(step.label) +
 			" " + st.Dim.Render(fmt.Sprintf("%s %d:%02d", wait, int(elapsed.Minutes()), int(elapsed.Seconds())%60))
 	case stepFailed:
-		return prefix + st.Error.Render(g.No) + " " + st.Error.Render(step.label)
+		return st.Error.Render(g.No) + " " + st.Error.Render(step.label)
 	}
-	return prefix + st.Dim.Render(g.Missing+" "+step.label)
+	return st.Dim.Render(g.Missing + " " + step.label)
 }
 
 // loginBox is the bordered box with the sign-in page and the code in large,
 // spaced characters.
 func loginBox(s *loginSession, info manager.ProviderInfo, m Model, width int, g glyphs, st styles) []string {
-	boxWidth := min(width, 56)
+	boxWidth := width
 	if boxWidth < 12 {
 		return nil
 	}
@@ -464,7 +472,7 @@ func loginBox(s *loginSession, info manager.ProviderInfo, m Model, width int, g 
 		}
 		lines = append(lines, row(st.Dim.Render("and enter the code")), row(st.Bold.Render(code)))
 	}
-	keysRow := st.Bold.Render("o") + " open browser   " + st.Bold.Render("y") + " copy code"
+	keysRow := keyChip("o", st) + " open browser   " + keyChip("y", st) + " copy code"
 	lines = append(lines, row(keysRow), border(g.Box[2]+rule+g.Box[3]))
 	return lines
 }

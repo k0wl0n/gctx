@@ -74,6 +74,15 @@ func (k keyMap) groups() []keyGroup {
 	}
 }
 
+// helpColumns regroups the same bindings into the help screen's three columns.
+func (k keyMap) helpColumns() []keyGroup {
+	return []keyGroup{
+		{"Navigation", []key.Binding{k.Down, k.Up, k.First, k.Last, k.PageDown, k.PageUp, k.NextTab, k.PrevTab, k.JumpTab, k.Filter, k.Clear, k.NeedsAction, k.Sort, k.Fold, k.Command}},
+		{"Account", []key.Binding{k.Switch, k.Details, k.Login, k.LoginStale, k.Create, k.Edit, k.Delete, k.Save, k.CopyEnv}},
+		{"Session", []key.Binding{k.Shell, k.ShellOne, k.Run, k.Reload, k.TogglePane, k.Help, k.Quit}},
+	}
+}
+
 // hint is one hint-line entry: the binding's first key and a short label.
 // rank decides what goes first when the line does not fit: the highest rank
 // is dropped first, rank 0 is never dropped.
