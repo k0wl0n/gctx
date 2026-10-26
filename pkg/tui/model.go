@@ -151,7 +151,6 @@ type Model struct {
 	groups   []listGroup         // visible rows by provider, in display order
 	nav      []navRow            // selectable rows: visible accounts plus folded-group placeholders
 	selected string              // selected account name
-	offset   int                 // first visible row
 	envs     map[string][]string // Env per account, loaded asynchronously
 
 	tab         int             // 0 is All, then one tab per listed provider
@@ -290,7 +289,7 @@ func (m *Model) reload() {
 	m.loadErr = err
 	if err != nil {
 		m.overview = manager.Overview{}
-		m.visible, m.groups, m.nav, m.selected, m.offset = nil, nil, nil, "", 0
+		m.visible, m.groups, m.nav, m.selected = nil, nil, nil, ""
 		return
 	}
 	m.overview = overview

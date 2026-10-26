@@ -392,17 +392,6 @@ func (m Model) moveToIndex(idx int) Model {
 	}
 	idx = max(min(idx, len(m.nav)-1), 0)
 	m.selected = m.rowKey(m.nav[idx])
-	// adjust scroll offset
-	bodyLines := m.height - 5
-	if bodyLines < 1 {
-		bodyLines = 1
-	}
-	if idx < m.offset {
-		m.offset = idx
-	}
-	if idx >= m.offset+bodyLines {
-		m.offset = idx - bodyLines + 1
-	}
 	return m
 }
 

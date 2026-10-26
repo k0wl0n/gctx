@@ -12,25 +12,6 @@ import (
 	"github.com/k0wl0n/gctx/pkg/manager"
 )
 
-func truncate(s string, n int) string {
-	if n <= 0 {
-		return ""
-	}
-	runes := []rune(s)
-	if len(runes) <= n {
-		return s
-	}
-	return string(runes[:n-1]) + "…"
-}
-
-func pad(s string, n int) string {
-	r := []rune(s)
-	if len(r) >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-len(r))
-}
-
 func runeLen(s string) int { return utf8.RuneCountInString(s) }
 
 // hRule returns a horizontal rule of width w using the glyph character.

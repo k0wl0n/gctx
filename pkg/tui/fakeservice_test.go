@@ -230,7 +230,7 @@ func gcpInfo(count int) manager.ProviderInfo {
 // sampleOverview builds an overview with the named GCP accounts, all READY.
 func sampleOverview(active string, names ...string) manager.Overview {
 	overview := manager.Overview{
-		ConfigPath:         "/tmp/gctx/config.json",
+		ConfigPath:         "~/.config/gctx/config.json",
 		ActiveAccount:      active,
 		ActiveBySlot:       map[string]string{},
 		GcloudActiveConfig: active + "-config",
@@ -394,7 +394,7 @@ func multiOverview() manager.Overview {
 		infos[i].Count = byID[infos[i].ID].Count
 	}
 	return manager.Overview{
-		ConfigPath:         "/tmp/gctx/config.json",
+		ConfigPath:         "~/.config/gctx/config.json",
 		Accounts:           accounts,
 		ActiveAccount:      "cloudsuite",
 		ActiveBySlot:       active,

@@ -27,4 +27,4 @@ gctx · keys                                                 j/k scroll · esc o
   AWS          aws 2.27.4       ✓ env: AWS_PROFILE
   Azure        az 2.75.0        ✓ env: AZURE_CONFIG_DIR
 ──────────────────────────────────────────────────────────────────────────────────────────
-config /tmp/gctx/config.json · log ~/.cache/gctx/tui-debug.log
+config ~/.config/gctx/config.json · log ~/.cache/gctx/tui-debug.log

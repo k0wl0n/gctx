@@ -5,6 +5,7 @@ import (
 
 	"github.com/k0wl0n/gctx/pkg/manager"
 	"github.com/k0wl0n/gctx/pkg/present"
+	"github.com/k0wl0n/gctx/pkg/provider"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +31,7 @@ var activeCmd = &cobra.Command{
 
 		// A lone gcp slot keeps the single-line format.
 		slots := m.ActiveSlots()
-		_, onlyGCP := slots["gcp"]
+		_, onlyGCP := slots[string(provider.GCP)]
 		if len(slots) > 1 || (len(slots) == 1 && !onlyGCP) {
 			present.ActiveSlots(os.Stdout, slots)
 			return nil

@@ -21,4 +21,4 @@ gctx · keys                             j/k scroll · esc or ? to close
   enter   switch to selected account
   /       filter
 ──────────────────────────────────────────────────────────────────────
-config /tmp/gctx/config.json · log ~/.cache/gctx/tui-debug.log
+config ~/.config/gctx/config.json · log ~/.cache/gctx/tui-debug.log

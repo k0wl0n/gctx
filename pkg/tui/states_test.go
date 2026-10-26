@@ -138,7 +138,7 @@ func TestHelpProvidersBlock(t *testing.T) {
 			t.Errorf("no %s row with %q", want.row, want.capability)
 		}
 	}
-	if !strings.Contains(out, "config /tmp/gctx/config.json") || !strings.Contains(out, "log /var/tmp/gctx-test/tui-debug.log") {
+	if !strings.Contains(out, "config ~/.config/gctx/config.json") || !strings.Contains(out, "log /var/tmp/gctx-test/tui-debug.log") {
 		t.Errorf("footer lacks the config and log paths:\n%s", out)
 	}
 	if strings.Contains(out, "doctor") {
@@ -166,7 +166,7 @@ func firstRunService() *fakeService {
 	}
 	infos = append(infos, tencentInfo())
 	svc := newFakeService(manager.Overview{
-		ConfigPath: "/tmp/gctx/config.json", ActiveBySlot: map[string]string{}, Providers: infos, GcloudAvailable: true,
+		ConfigPath: "~/.config/gctx/config.json", ActiveBySlot: map[string]string{}, Providers: infos, GcloudAvailable: true,
 	})
 	var items []manager.DiscoveredAccount
 	add := func(id provider.ID, target string, names ...string) {

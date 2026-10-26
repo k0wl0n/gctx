@@ -37,4 +37,4 @@ gctx · keys                                                                    
 
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-config /tmp/gctx/config.json · log ~/.cache/gctx/tui-debug.log
+config ~/.config/gctx/config.json · log ~/.cache/gctx/tui-debug.log

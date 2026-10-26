@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/k0wl0n/gctx/pkg/config"
 )
 
 const debugLogMaxSize = 1 << 20 // 1 MiB
@@ -15,7 +17,7 @@ func debugLogPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(cacheDir, "gctx", "tui-debug.log"), nil
+	return filepath.Join(cacheDir, config.AppName, "tui-debug.log"), nil
 }
 
 // newDebugLogger opens or creates the debug log file.

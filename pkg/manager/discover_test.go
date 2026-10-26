@@ -368,6 +368,8 @@ func fakeCLI(t *testing.T, name, script string) string {
 }
 
 func TestCLIVersionsRunsVersionPerFoundCLI(t *testing.T) {
+	// Generous: under load a shell script can take seconds to start.
+	defer manager.SetCLIVersionTimeout(30 * time.Second)()
 	gcloud := fakeCLI(t, "gcloud", `echo "  Google Cloud SDK 540.0.0  "; echo "bq 2.1"`)
 	aws := fakeCLI(t, "aws", `echo "aws-cli/2.27.4 Python/3.13"`)
 	broken := fakeCLI(t, "az", `echo boom >&2; exit 3`)

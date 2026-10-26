@@ -43,7 +43,7 @@ func (p Paths) StatusCachePath() string {
 
 // ResolvePaths derives every root from the environment, OS and home directory.
 func ResolvePaths(getenv func(string) string, goos, home string) Paths {
-	gctxDir := filepath.Join(home, ".config", "gctx")
+	gctxDir := filepath.Join(home, ".config", config.AppName)
 	gcloudDir := gcloudconfig.Dir(getenv, goos, home)
 	return Paths{
 		GctxDir:    gctxDir,
