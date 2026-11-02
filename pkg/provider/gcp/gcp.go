@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"os"
 	"os/exec"
@@ -18,12 +19,16 @@ import (
 
 	"github.com/k0wl0n/gctx/pkg/adc"
 	"github.com/k0wl0n/gctx/pkg/config"
+	"github.com/k0wl0n/gctx/pkg/debuglog"
 	"github.com/k0wl0n/gctx/pkg/gcloud"
 	"github.com/k0wl0n/gctx/pkg/gcloudconfig"
 	"github.com/k0wl0n/gctx/pkg/provider"
 )
 
-const credentialCheckTimeout = 15 * time.Second
+const (
+	credentialCheckTimeout = 15 * time.Second
+	stderrTailBytes        = 2048
+)
 
 // ErrInvalidProjectID reports a malformed GCP project ID.
 var ErrInvalidProjectID = errors.New("invalid project ID")
@@ -273,7 +278,7 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 	}
 
 	progress(lio, provider.LoginAuthStarted, "")
-	if err := scoped.Interactive(ctx, stdio, nil, authArgs...); err != nil {
+	if err := interactiveLogged(ctx, scoped, stdio, authArgs); err != nil {
 		return result, fmt.Errorf("auth login failed: %w", err)
 	}
 	result.GcloudLoggedIn = true
@@ -281,8 +286,15 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 
 	progress(lio, provider.LoginADCStarted, "")
 	before := adc.Snapshot(p.opts.DefaultADC)
-	if err := scoped.Interactive(ctx, stdio, nil, adcArgs...); err != nil {
-		return result, fmt.Errorf("ADC auth failed: %w", err)
+	for {
+		err := interactiveLogged(ctx, scoped, stdio, adcArgs)
+		if err == nil {
+			break
+		}
+		if ctx.Err() != nil || lio.RetryADC == nil || !lio.RetryADC(err) {
+			return result, fmt.Errorf("ADC auth failed: %w", err)
+		}
+		progress(lio, provider.LoginADCStarted, "")
 	}
 	refreshed := before.Changed(adc.Snapshot(p.opts.DefaultADC))
 
@@ -308,6 +320,35 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 	result.ADCSaved, result.ADCPath = true, adcPath
 	result.Email = p.accountEmail(ctx, acct.ConfigName)
 	return result, nil
+}
+
+// interactiveLogged runs an interactive gcloud step. When it fails and
+// GCTX_DEBUG is set, the redacted tail of the step's stderr goes to the debug
+// log; the user's own stderr still receives everything unchanged.
+func interactiveLogged(ctx context.Context, runner provider.Runner, stdio provider.Stdio, args []string) error {
+	if !debuglog.EnabledByEnv() {
+		return runner.Interactive(ctx, stdio, nil, args...)
+	}
+	tail := debuglog.NewTail(stderrTailBytes)
+	if stdio.Stderr != nil {
+		stdio.Stderr = io.MultiWriter(stdio.Stderr, tail)
+	} else {
+		stdio.Stderr = tail
+	}
+	err := runner.Interactive(ctx, stdio, nil, args...)
+	if err != nil {
+		logStepFailure(strings.Join(args, " "), err, tail.String())
+	}
+	return err
+}
+
+func logStepFailure(step string, err error, stderrTail string) {
+	logger, closer, openErr := debuglog.Open(true)
+	if openErr != nil {
+		return
+	}
+	defer closer.Close()
+	logger.Debug("gcloud step failed", "step", step, "error", err.Error(), "stderr_tail", debuglog.Redact(stderrTail))
 }
 
 // accountEmail reads core/account from the account's own configuration.

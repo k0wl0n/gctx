@@ -12,6 +12,8 @@
 //	FAKE_GCLOUD_SLEEP="verb:ms;..."            delay a verb
 //	FAKE_GCLOUD_ADC_UNCHANGED=1                ADC login leaves the file untouched
 //	FAKE_GCLOUD_ACCOUNT=<email>                account used by "auth login"
+//	FAKE_GCLOUD_ADC_MISSING_CODE=<n>           the first n ADC logins fail with gcloud's
+//	                                           "(missing_code)" error and a URL carrying secrets
 //
 // Verbs: configurations-create, configurations-activate, configurations-delete,
 // configurations-list, config-set, config-get-value, auth-login, auth-adc-login,
@@ -364,7 +366,31 @@ func (g *gcloud) authLogin() int {
 	return 0
 }
 
+// missingCodeFailure reports whether this ADC login is one of the first
+// FAKE_GCLOUD_ADC_MISSING_CODE attempts, counting attempts in a file.
+func (g *gcloud) missingCodeFailure() bool {
+	limit, _ := strconv.Atoi(os.Getenv("FAKE_GCLOUD_ADC_MISSING_CODE"))
+	if limit <= 0 {
+		return false
+	}
+	counter := filepath.Join(g.dir, "fake_adc_attempts")
+	data, _ := os.ReadFile(counter)
+	attempts, _ := strconv.Atoi(strings.TrimSpace(string(data)))
+	attempts++
+	os.MkdirAll(g.dir, 0755)
+	os.WriteFile(counter, []byte(strconv.Itoa(attempts)), 0600)
+	return attempts <= limit
+}
+
 func (g *gcloud) adcLogin() int {
+	if g.missingCodeFailure() {
+		fmt.Fprintln(os.Stderr, "Your browser has been opened to visit:")
+		fmt.Fprintln(os.Stderr, "    https://accounts.google.com/o/oauth2/auth?response_type=code&state=SECRETSTATE&code_challenge=SECRETCHALLENGE")
+		fmt.Fprintln(os.Stderr, "Redirected to http://localhost:8085/?state=SECRETSTATE&code=SECRETVALUE&scope=email")
+		fmt.Fprintln(os.Stderr, "ERROR: (gcloud.auth.application-default.login) There was a problem with web authentication.")
+		fmt.Fprintln(os.Stderr, "(missing_code) Missing code parameter in response.")
+		return 1
+	}
 	path := filepath.Join(g.dir, "application_default_credentials.json")
 	if os.Getenv("FAKE_GCLOUD_ADC_UNCHANGED") == "1" {
 		fmt.Fprintf(os.Stderr, "Credentials saved to file: [%s]\n", path)

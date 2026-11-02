@@ -79,7 +79,7 @@ Details: [AWS](aws.md), [Azure](azure.md), [providers overview](providers.md).
 |---|---|
 | `GCTX_NO_TUI` | Non-empty: bare `gctx` prints help instead of opening the TUI. |
 | `GCTX_ASCII` | `1` replaces Unicode glyphs with ASCII. |
-| `GCTX_DEBUG` | `1` writes a redacted `tui-debug.log` (same as `gctx tui --debug`). |
+| `GCTX_DEBUG` | `1` writes a redacted `tui-debug.log` (same as `gctx tui --debug`); `gctx login` also logs the redacted stderr tail of a failed gcloud step there. |
 | `NO_COLOR` | Disables colour; badges are shown as `[GCP]`. |
 
 ## Planned (not available yet)

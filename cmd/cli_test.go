@@ -658,3 +658,64 @@ func TestCLIDeleteBehaviorUnchanged(t *testing.T) {
 		t.Errorf("stderr %q", r.stderr)
 	}
 }
+
+func readDebugLog(t *testing.T) string {
+	t.Helper()
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "gctx", "tui-debug.log"))
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+func TestLoginADCFailureLogsRedactedStderrWhenDebugging(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{NoADC: true})
+	t.Setenv("FAKE_GCLOUD_ADC_MISSING_CODE", "1")
+	t.Setenv("GCTX_DEBUG", "1")
+
+	r := runGctx(t, "login", "work")
+	assertCode(t, r, 1)
+	if !strings.Contains(r.stderr, "code=SECRETVALUE") {
+		t.Errorf("user's stderr must stay unchanged, got %q", r.stderr)
+	}
+	log := readDebugLog(t)
+	if !strings.Contains(log, "(missing_code) Missing code parameter in response") {
+		t.Errorf("debug log lacks the missing_code line: %q", log)
+	}
+	for _, secret := range []string{"SECRETVALUE", "SECRETSTATE", "SECRETCHALLENGE"} {
+		if strings.Contains(log, secret) {
+			t.Errorf("debug log leaks %s: %q", secret, log)
+		}
+	}
+}
+
+func TestLoginADCFailureWritesNoLogWithoutDebug(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{NoADC: true})
+	t.Setenv("FAKE_GCLOUD_ADC_MISSING_CODE", "1")
+
+	assertCode(t, runGctx(t, "login", "work"), 1)
+	if log := readDebugLog(t); log != "" {
+		t.Errorf("debug log written without GCTX_DEBUG: %q", log)
+	}
+}
+
+func TestLoginADCFailureNonInteractiveKeepsCurrentBehaviour(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{NoADC: true})
+	t.Setenv("FAKE_GCLOUD_ADC_MISSING_CODE", "1")
+
+	r := runGctx(t, "login", "work")
+	assertCode(t, r, 1)
+	if strings.Contains(r.stdout+r.stderr, "Retry ADC login only?") {
+		t.Errorf("non-interactive run must not prompt: %q %q", r.stdout, r.stderr)
+	}
+	if !strings.Contains(r.stderr, "Error: ADC auth failed: exit status 1") {
+		t.Errorf("stderr %q", r.stderr)
+	}
+}

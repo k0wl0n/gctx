@@ -256,6 +256,9 @@ type LoginIO struct {
 	Progress       func(LoginEvent)
 	// NoBrowser skips the automatic browser launch and prints a URL instead.
 	NoBrowser bool
+	// RetryADC, when set, is asked after the ADC step fails whether to re-run
+	// only that step; the earlier login is not repeated.
+	RetryADC func(err error) bool
 }
 
 // LoginResult is returned even when login fails part-way, so callers can tell

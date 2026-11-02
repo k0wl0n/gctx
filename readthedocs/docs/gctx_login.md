@@ -7,6 +7,10 @@ Re-authenticate an existing account
 Run the authentication flow (gcloud auth login + application-default login)
 for an existing account and update the saved credentials.
 
+If the application-default login fails (for example gcloud's
+"(missing_code) Missing code parameter in response"), an interactive terminal
+offers to retry only that step. Close old Google sign-in tabs before retrying.
+
 ```
 gctx login <account-name> [flags]
 ```

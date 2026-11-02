@@ -140,4 +140,6 @@ The header ADC indicator is `✓ active` (default ADC identical to the active ac
 
 The file is created with mode `0600` and truncated at startup when larger than 1 MiB. It never contains credentials or command arguments.
 
+**`(missing_code) Missing code parameter in response` during login.** gcloud's browser callback on `localhost:8085` returned no code, so the ADC step failed; the cause is not confirmed, and a stale Google sign-in tab is the likely trigger. Close old Google tabs and retry. On an interactive terminal `gctx login` offers `Retry ADC login only? [Y/n]`, which re-runs just the ADC step and keeps the first login. With `GCTX_DEBUG=1`, a failed login step also writes the last 2 KB of gcloud's stderr to the debug log, with `code`, `state`, `code_challenge` and token values replaced by `XXX`.
+
 **Terminal left in a bad state.** If the terminal shows stray characters or hides typed input after a crash, run `reset` (or `stty sane`), or close and reopen the terminal tab.
