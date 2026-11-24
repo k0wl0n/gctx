@@ -126,7 +126,7 @@ func TestPTY_GCTX_DEBUG_Accepted(t *testing.T) {
 	out := readOutput(t, ptm, 4096, 300*time.Millisecond)
 	_ = cmd.Wait()
 
-	if !strings.Contains(out, "gcloud") && !strings.Contains(out, "tui") && !strings.Contains(out, "Usage") {
+	if !strings.Contains(out, "terminal UI") && !strings.Contains(out, "tui") && !strings.Contains(out, "Usage") {
 		t.Errorf("expected tui-related help output; got: %q", out)
 	}
 }
