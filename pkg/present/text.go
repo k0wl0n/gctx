@@ -161,9 +161,50 @@ func LoginProgress(w io.Writer) func(manager.LoginEvent) {
 	}
 }
 
+// RetryPrompt returns a LoginIO.RetryStep that explains a failed browser
+// callback and asks whether to retry only that step; an empty answer means
+// yes. It reads one byte at a time so input meant for later prompts or the
+// CLI itself is never buffered away.
+func RetryPrompt(in io.Reader, out io.Writer) func(step string, err error) bool {
+	return func(step string, _ error) bool {
+		fmt.Fprintf(out, "\n%s failed: the browser sign-in did not return a code to gcloud.\n", step)
+		fmt.Fprintln(out, "Close old Google sign-in tabs (especially any localhost:8085 tab) and do not open the sign-in URL twice.")
+		fmt.Fprintf(out, "Retry %s only? [Y/n] ", step)
+		switch strings.ToLower(strings.TrimSpace(readLine(in))) {
+		case "", "y", "yes":
+			return true
+		}
+		return false
+	}
+}
+
+func readLine(in io.Reader) string {
+	var line []byte
+	buf := make([]byte, 1)
+	for {
+		n, err := in.Read(buf)
+		if n == 1 {
+			if buf[0] == '\n' {
+				return string(line)
+			}
+			line = append(line, buf[0])
+		}
+		if err != nil {
+			return string(line)
+		}
+	}
+}
+
 // LoginDone prints the closing text of the login flow. err is the error the
 // flow returned, which the caller still returns itself.
 func LoginDone(w, errw io.Writer, result manager.LoginResult, err error) {
+	if errors.Is(err, provider.ErrBrowserCallback) {
+		fmt.Fprintf(w, "\n⚠️  The browser sign-in did not return a code to gcloud.\n")
+		fmt.Fprintf(w, "  - Close old Google sign-in tabs, including any localhost:8085 tab\n")
+		fmt.Fprintf(w, "  - Keep only one sign-in tab per step; do not open the URL twice\n")
+		fmt.Fprintf(w, "  - Retry with: gctx login %s (set GCTX_DEBUG=1 to capture diagnostics)\n", result.Account)
+		return
+	}
 	if err != nil {
 		var stepErr *gcloud.StepError
 		if errors.As(err, &stepErr) && stepErr.Step == manager.StepADCLogin {

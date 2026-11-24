@@ -712,10 +712,49 @@ func TestLoginADCFailureNonInteractiveKeepsCurrentBehaviour(t *testing.T) {
 
 	r := runGctx(t, "login", "work")
 	assertCode(t, r, 1)
-	if strings.Contains(r.stdout+r.stderr, "Retry ADC login only?") {
+	if strings.Contains(r.stdout+r.stderr, "only? [Y/n]") {
 		t.Errorf("non-interactive run must not prompt: %q %q", r.stdout, r.stderr)
 	}
 	if !strings.Contains(r.stderr, "Error: ADC auth failed: exit status 1") {
 		t.Errorf("stderr %q", r.stderr)
+	}
+}
+
+func TestLoginCallbackFailureDebugLogHasDiagnostics(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{NoADC: true})
+	t.Setenv("FAKE_GCLOUD_AUTH_MISSING_CODE", "1")
+	t.Setenv("GCTX_DEBUG", "1")
+
+	r := runGctx(t, "login", "work")
+	assertCode(t, r, 1)
+	if !strings.Contains(r.stderr, "debug log: ") || !strings.Contains(r.stderr, "tui-debug.log") {
+		t.Errorf("debug log path not printed: %q", r.stderr)
+	}
+	if !strings.Contains(r.stdout, "localhost:8085") {
+		t.Errorf("callback guidance missing: %q", r.stdout)
+	}
+	log := readDebugLog(t)
+	for _, field := range []string{"step=\"auth login\"", "classification=callback", "duration=", "exit_code=1", "port_busy=", "port_wait=", "start=", "end=", "gcloud_version="} {
+		if !strings.Contains(log, field) {
+			t.Errorf("debug log lacks %s: %q", field, log)
+		}
+	}
+	for _, secret := range []string{"SECRETVALUE", "SECRETSTATE", "SECRETCHALLENGE"} {
+		if strings.Contains(log, secret) {
+			t.Errorf("debug log leaks %s", secret)
+		}
+	}
+}
+
+func TestLoginCallbackFailureWithoutDebugPrintsNoLogPath(t *testing.T) {
+	env := testutil.NewEnv(t)
+	env.SeedAccount("work", "p1", testutil.SeedOptions{NoADC: true})
+	t.Setenv("FAKE_GCLOUD_AUTH_MISSING_CODE", "1")
+
+	r := runGctx(t, "login", "work")
+	assertCode(t, r, 1)
+	if strings.Contains(r.stderr, "debug log:") || readDebugLog(t) != "" {
+		t.Errorf("debug output without GCTX_DEBUG: %q", r.stderr)
 	}
 }

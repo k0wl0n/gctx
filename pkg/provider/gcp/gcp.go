@@ -27,7 +27,7 @@ import (
 
 const (
 	credentialCheckTimeout = 15 * time.Second
-	stderrTailBytes        = 2048
+	stderrTailBytes        = 8 << 10
 )
 
 // ErrInvalidProjectID reports a malformed GCP project ID.
@@ -69,7 +69,8 @@ type Options struct {
 	Client     *gcloud.Client // nil: located on PATH by Locate
 	LookPath   func(string) (string, error)
 	Getenv     func(string) string
-	Runner     provider.Runner // nil: runs the current Client
+	Runner     provider.Runner    // nil: runs the current Client
+	Callback   *CallbackPreflight // nil: DefaultCallbackPreflight
 }
 
 // Provider is the GCP backend. It never reads or writes config.json.
@@ -270,15 +271,13 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 		return result, fmt.Errorf("failed to activate gcloud config: %w", err)
 	}
 
-	authArgs := []string{"auth", "login"}
-	adcArgs := []string{"auth", "application-default", "login"}
-	if lio.NoBrowser {
-		authArgs = append(authArgs, "--no-browser")
-		adcArgs = append(adcArgs, "--no-browser")
+	steps := loginSteps{p: p, ctx: ctx, runner: scoped, stdio: stdio, lio: lio}
+	if debuglog.EnabledByEnv() {
+		steps.version, _ = runner.Query(ctx, nil, "version", "--format=value(core)")
 	}
 
 	progress(lio, provider.LoginAuthStarted, "")
-	if err := interactiveLogged(ctx, scoped, stdio, authArgs); err != nil {
+	if err := steps.run(provider.LoginStepAuth, provider.LoginAuthStarted, "auth", "login"); err != nil {
 		return result, fmt.Errorf("auth login failed: %w", err)
 	}
 	result.GcloudLoggedIn = true
@@ -286,15 +285,8 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 
 	progress(lio, provider.LoginADCStarted, "")
 	before := adc.Snapshot(p.opts.DefaultADC)
-	for {
-		err := interactiveLogged(ctx, scoped, stdio, adcArgs)
-		if err == nil {
-			break
-		}
-		if ctx.Err() != nil || lio.RetryADC == nil || !lio.RetryADC(err) {
-			return result, fmt.Errorf("ADC auth failed: %w", err)
-		}
-		progress(lio, provider.LoginADCStarted, "")
+	if err := steps.run(provider.LoginStepADC, provider.LoginADCStarted, "auth", "application-default", "login"); err != nil {
+		return result, fmt.Errorf("ADC auth failed: %w", err)
 	}
 	refreshed := before.Changed(adc.Snapshot(p.opts.DefaultADC))
 
@@ -322,33 +314,109 @@ func (p *Provider) Login(ctx context.Context, acct config.Account, lio provider.
 	return result, nil
 }
 
-// interactiveLogged runs an interactive gcloud step. When it fails and
-// GCTX_DEBUG is set, the redacted tail of the step's stderr goes to the debug
-// log; the user's own stderr still receives everything unchanged.
-func interactiveLogged(ctx context.Context, runner provider.Runner, stdio provider.Stdio, args []string) error {
-	if !debuglog.EnabledByEnv() {
-		return runner.Interactive(ctx, stdio, nil, args...)
+// loginSteps runs the interactive browser steps of one login.
+type loginSteps struct {
+	p       *Provider
+	ctx     context.Context
+	runner  provider.Runner
+	stdio   provider.Stdio
+	lio     provider.LoginIO
+	version string // gcloud version, read only when debugging
+}
+
+// run runs one step until it succeeds, fails for another reason than the
+// browser callback, the retry is declined or ctx is cancelled.
+func (s loginSteps) run(step string, started provider.LoginEventKind, args ...string) error {
+	for {
+		err := s.attempt(step, args)
+		if err == nil || s.ctx.Err() != nil || !errors.Is(err, provider.ErrBrowserCallback) ||
+			s.lio.RetryStep == nil || !s.lio.RetryStep(step, err) {
+			return err
+		}
+		progress(s.lio, started, "")
 	}
+}
+
+// attempt runs the step once. Its stderr goes to the user unchanged; a
+// bounded tail is kept in memory only to classify the failure and, when
+// GCTX_DEBUG is set, for the redacted debug log.
+func (s loginSteps) attempt(step string, args []string) error {
+	stdio := s.stdio
+	callback := s.p.opts.Callback
+	if callback == nil {
+		callback = DefaultCallbackPreflight()
+	}
+	port := callback.Check(s.ctx, stdio.Stderr)
+
 	tail := debuglog.NewTail(stderrTailBytes)
 	if stdio.Stderr != nil {
 		stdio.Stderr = io.MultiWriter(stdio.Stderr, tail)
 	} else {
 		stdio.Stderr = tail
 	}
-	err := runner.Interactive(ctx, stdio, nil, args...)
-	if err != nil {
-		logStepFailure(strings.Join(args, " "), err, tail.String())
+	start := time.Now()
+	err := s.runner.Interactive(s.ctx, stdio, nil, args...)
+	end := time.Now()
+	if err != nil && s.ctx.Err() == nil && isCallbackFailure(tail.String()) {
+		err = callbackError{err}
+	}
+	if debuglog.EnabledByEnv() {
+		s.log(step, port, start, end, err, tail.String())
 	}
 	return err
 }
 
-func logStepFailure(step string, err error, stderrTail string) {
+func isCallbackFailure(stderr string) bool {
+	for _, marker := range []string{"missing_code", "Missing code parameter", "problem with web authentication"} {
+		if strings.Contains(stderr, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+// callbackError keeps the step error's message and adds ErrBrowserCallback.
+type callbackError struct{ err error }
+
+func (e callbackError) Error() string   { return e.err.Error() }
+func (e callbackError) Unwrap() []error { return []error{e.err, provider.ErrBrowserCallback} }
+
+func (s loginSteps) log(step string, port PortReport, start, end time.Time, err error, stderrTail string) {
 	logger, closer, openErr := debuglog.Open(true)
 	if openErr != nil {
 		return
 	}
 	defer closer.Close()
-	logger.Debug("gcloud step failed", "step", step, "error", err.Error(), "stderr_tail", debuglog.Redact(stderrTail))
+	attrs := []any{
+		"step", step, "gcloud_version", s.version,
+		"start", start.Format(time.RFC3339Nano), "end", end.Format(time.RFC3339Nano),
+		"duration", end.Sub(start).String(), "exit_code", exitCode(err),
+		"port_busy", port.Busy, "port_still_busy", port.StillBusy, "port_wait", port.Waited.String(),
+	}
+	if port.Owner.Command != "" {
+		attrs = append(attrs, "port_owner", port.Owner.Command, "port_owner_pid", port.Owner.PID)
+	}
+	if err == nil {
+		logger.Debug("gcloud step done", attrs...)
+		return
+	}
+	classification := "other"
+	if errors.Is(err, provider.ErrBrowserCallback) {
+		classification = "callback"
+	}
+	attrs = append(attrs, "classification", classification, "error", err.Error(), "stderr_tail", debuglog.Redact(stderrTail))
+	logger.Debug("gcloud step failed", attrs...)
+}
+
+func exitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	var exitErr interface{ ExitCode() int }
+	if errors.As(err, &exitErr) {
+		return exitErr.ExitCode()
+	}
+	return -1
 }
 
 // accountEmail reads core/account from the account's own configuration.

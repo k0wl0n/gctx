@@ -63,10 +63,10 @@ func (s *ptyScript) send(text string) { io.WriteString(s.pty, text) }
 // startLoginOnPTY starts `gctx login work` on a PTY. The binary is built by
 // the caller first: building under the test HOME would fill the temp dir with
 // a read-only module cache.
-func startLoginOnPTY(t *testing.T, bin string, env *testutil.Env, failures string) (*exec.Cmd, *ptyScript) {
+func startLoginOnPTY(t *testing.T, bin string, env *testutil.Env, knob, failures string) (*exec.Cmd, *ptyScript) {
 	t.Helper()
 	env.SeedAccount("work", "p1", testutil.SeedOptions{NoADC: true})
-	t.Setenv("FAKE_GCLOUD_ADC_MISSING_CODE", failures)
+	t.Setenv(knob, failures)
 	cmd := exec.Command(bin, "login", "work")
 	cmd.Env = os.Environ()
 	return cmd, newPTYScript(t, cmd)
@@ -93,15 +93,15 @@ func countVerb(verbs []string, verb string) int {
 func TestLoginADCRetryOnlyRerunsADCStep(t *testing.T) {
 	bin := gctxBinary(t)
 	env := testutil.NewEnv(t)
-	cmd, script := startLoginOnPTY(t, bin, env, "1")
+	cmd, script := startLoginOnPTY(t, bin, env, "FAKE_GCLOUD_ADC_MISSING_CODE", "1")
 
-	script.expect("Retry ADC login only? [Y/n]")
+	script.expect("Retry application-default login only? [Y/n]")
 	script.send("y\n")
 	if err := cmd.Wait(); err != nil {
 		t.Fatalf("login after retry: %v\n%s", err, script.output())
 	}
 	out := script.output()
-	if !strings.Contains(out, "Close any old Google sign-in tabs") {
+	if !strings.Contains(out, "Close old Google sign-in tabs") {
 		t.Errorf("explanation missing: %s", out)
 	}
 	verbs := gcloudVerbs(env)
@@ -119,9 +119,9 @@ func TestLoginADCRetryOnlyRerunsADCStep(t *testing.T) {
 func TestLoginADCRetryDeclinedExitsWithError(t *testing.T) {
 	bin := gctxBinary(t)
 	env := testutil.NewEnv(t)
-	cmd, script := startLoginOnPTY(t, bin, env, "1")
+	cmd, script := startLoginOnPTY(t, bin, env, "FAKE_GCLOUD_ADC_MISSING_CODE", "1")
 
-	script.expect("Retry ADC login only? [Y/n]")
+	script.expect("Retry application-default login only? [Y/n]")
 	script.send("n\n")
 	err := cmd.Wait()
 	if err == nil {
@@ -130,5 +130,27 @@ func TestLoginADCRetryDeclinedExitsWithError(t *testing.T) {
 	script.expect("ADC auth failed: exit status 1")
 	if got := countVerb(gcloudVerbs(env), "auth-adc-login"); got != 1 {
 		t.Errorf("adc login ran %d times, want 1", got)
+	}
+}
+
+func TestLoginRetriesFirstStepOnMissingCode(t *testing.T) {
+	bin := gctxBinary(t)
+	env := testutil.NewEnv(t)
+	cmd, script := startLoginOnPTY(t, bin, env, "FAKE_GCLOUD_AUTH_MISSING_CODE", "1")
+
+	script.expect("Retry auth login only? [Y/n]")
+	script.send("\n")
+	if err := cmd.Wait(); err != nil {
+		t.Fatalf("login after retry: %v\n%s", err, script.output())
+	}
+	verbs := gcloudVerbs(env)
+	if got := countVerb(verbs, "auth-login"); got != 2 {
+		t.Errorf("auth login ran %d times, want 2: %v", got, verbs)
+	}
+	if got := countVerb(verbs, "auth-adc-login"); got != 1 {
+		t.Errorf("adc login ran %d times, want 1: %v", got, verbs)
+	}
+	if got := countVerb(verbs, "configurations-activate"); got != 1 {
+		t.Errorf("activation ran %d times, want 1: %v", got, verbs)
 	}
 }

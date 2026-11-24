@@ -34,3 +34,15 @@ func TestTailWriterKeepsLastBytes(t *testing.T) {
 		t.Errorf("tail %q", got)
 	}
 }
+
+func TestRedactFakeGcloudCallbackText(t *testing.T) {
+	input := "Redirected to http://localhost:8085/?state=SECRETSTATE&code=SECRETVALUE&scope=email\n" +
+		"https://accounts.google.com/o/oauth2/auth?code_challenge=SECRETCHALLENGE&client_secret=SECRETCLIENT\n" +
+		"id_token=SECRETID access_token=SECRETACCESS refresh_token=SECRETREFRESH"
+	got := debuglog.Redact(input)
+	for _, secret := range []string{"SECRETSTATE", "SECRETVALUE", "SECRETCHALLENGE", "SECRETCLIENT", "SECRETID", "SECRETACCESS", "SECRETREFRESH"} {
+		if strings.Contains(got, secret) {
+			t.Errorf("%s survived: %s", secret, got)
+		}
+	}
+}

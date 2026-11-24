@@ -1,15 +1,15 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 
+	"github.com/k0wl0n/gctx/pkg/debuglog"
 	"github.com/k0wl0n/gctx/pkg/manager"
 	"github.com/k0wl0n/gctx/pkg/present"
+	"github.com/k0wl0n/gctx/pkg/provider"
 	"github.com/spf13/cobra"
 )
 
@@ -19,9 +19,10 @@ var loginCmd = &cobra.Command{
 	Long: `Run the authentication flow (gcloud auth login + application-default login)
 for an existing account and update the saved credentials.
 
-If the application-default login fails (for example gcloud's
-"(missing_code) Missing code parameter in response"), an interactive terminal
-offers to retry only that step. Close old Google sign-in tabs before retrying.`,
+If a browser step fails because gcloud's callback on localhost:8085 got no
+code ("(missing_code) Missing code parameter in response"), an interactive
+terminal offers to retry only that step. Close old Google sign-in tabs before
+retrying. Set GCTX_DEBUG=1 to write redacted diagnostics to the debug log.`,
 	Example: `  # Re-authenticate 'my-account'
   gctx login my-account`,
 	Args: cobra.ExactArgs(1),
@@ -38,26 +39,14 @@ offers to retry only that step. Close old Google sign-in tabs before retrying.`,
 func runLogin(ctx context.Context, m *manager.Manager, name string) error {
 	lio := present.LoginIO(os.Stdin, os.Stdout, os.Stderr)
 	if stdinTTY, _ := stdioIsTerminal(); stdinTTY {
-		lio.RetryADC = adcRetryPrompt(os.Stdin, os.Stdout)
+		lio.RetryStep = present.RetryPrompt(os.Stdin, os.Stdout)
 	}
 	result, err := m.Login(ctx, name, lio)
 	present.LoginDone(os.Stdout, os.Stderr, result, err)
-	return err
-}
-
-// adcRetryPrompt explains a failed ADC login and asks whether to retry only
-// that step. An empty answer means yes.
-func adcRetryPrompt(in io.Reader, out io.Writer) func(error) bool {
-	reader := bufio.NewReader(in)
-	return func(error) bool {
-		fmt.Fprintln(out, "\nThe browser callback did not return a code, so ADC login failed.")
-		fmt.Fprintln(out, "Close any old Google sign-in tabs, then retry; the first login step is kept.")
-		fmt.Fprint(out, "Retry ADC login only? [Y/n] ")
-		answer, _ := reader.ReadString('\n')
-		switch strings.ToLower(strings.TrimSpace(answer)) {
-		case "", "y", "yes":
-			return true
+	if errors.Is(err, provider.ErrBrowserCallback) && debuglog.EnabledByEnv() {
+		if path, pathErr := debuglog.Path(); pathErr == nil {
+			fmt.Fprintf(os.Stderr, "debug log: %s\n", path)
 		}
-		return false
 	}
+	return err
 }

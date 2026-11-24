@@ -63,15 +63,8 @@ func (e *loginExec) Run() error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	lio.RetryStep = present.RetryPrompt(e.stdin, e.stdout)
 	result, err := e.svc.Login(ctx, e.name, lio)
-	// If the browser-based OAuth flow failed, automatically retry without a
-	// browser so the user can copy-paste the URL instead.
-	if err != nil && isBrowserAuthFailure(err) {
-		fmt.Fprintf(e.stdout, "\nBrowser auth failed — retrying without browser (copy the URL into your browser)…\n\n")
-		lioCopy := lio
-		lioCopy.NoBrowser = true
-		result, err = e.svc.Login(ctx, e.name, lioCopy)
-	}
 	present.LoginDone(e.stdout, e.stderr, result, err)
 	if err != nil {
 		fmt.Fprintf(e.stdout, "\nPress Enter to return to gctx")
@@ -81,18 +74,6 @@ func (e *loginExec) Run() error {
 	}
 	// Store result in error for propagation; nil means success.
 	return &loginError{result: result, err: nil}
-}
-
-// isBrowserAuthFailure reports whether the error is a gcloud browser OAuth
-// failure (the "missing_code" or "web authentication" class of errors).
-func isBrowserAuthFailure(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "missing_code") ||
-		strings.Contains(msg, "web authentication") ||
-		strings.Contains(msg, "Missing code parameter")
 }
 
 // loginError carries the LoginResult through the exec callback.

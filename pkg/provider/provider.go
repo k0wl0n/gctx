@@ -3,6 +3,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strings"
 	"time"
@@ -255,11 +256,24 @@ type LoginIO struct {
 	Stdout, Stderr io.Writer
 	Progress       func(LoginEvent)
 	// NoBrowser skips the automatic browser launch and prints a URL instead.
+	// Only providers whose CLI has a local copy-the-URL mode honour it (aws);
+	// gcloud's --no-browser is a remote bootstrap flow, so gcp ignores it.
 	NoBrowser bool
-	// RetryADC, when set, is asked after the ADC step fails whether to re-run
-	// only that step; the earlier login is not repeated.
-	RetryADC func(err error) bool
+	// RetryStep, when set, is asked after an interactive step fails because
+	// the browser callback returned no code (ErrBrowserCallback) whether to
+	// re-run only that step; completed steps are not repeated.
+	RetryStep func(step string, err error) bool
 }
+
+// Interactive login steps named to RetryStep.
+const (
+	LoginStepAuth = "auth login"
+	LoginStepADC  = "application-default login"
+)
+
+// ErrBrowserCallback marks a login step that failed because the browser
+// sign-in did not deliver an OAuth code to the CLI's local callback.
+var ErrBrowserCallback = errors.New("browser callback returned no code")
 
 // LoginResult is returned even when login fails part-way, so callers can tell
 // which steps completed.

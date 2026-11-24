@@ -14,6 +14,7 @@
 //	FAKE_GCLOUD_ACCOUNT=<email>                account used by "auth login"
 //	FAKE_GCLOUD_ADC_MISSING_CODE=<n>           the first n ADC logins fail with gcloud's
 //	                                           "(missing_code)" error and a URL carrying secrets
+//	FAKE_GCLOUD_AUTH_MISSING_CODE=<n>          the same for the first n "auth login" runs
 //
 // Verbs: configurations-create, configurations-activate, configurations-delete,
 // configurations-list, config-set, config-get-value, auth-login, auth-adc-login,
@@ -341,6 +342,10 @@ func (g *gcloud) credentialed() []string {
 }
 
 func (g *gcloud) authLogin() int {
+	if g.missingCodeFailure("FAKE_GCLOUD_AUTH_MISSING_CODE", "fake_auth_attempts") {
+		printMissingCode("auth.login")
+		return 1
+	}
 	config := g.currentConfig()
 	if !g.exists(config) {
 		fmt.Fprintf(os.Stderr, "ERROR: configuration [%s] does not exist.\n", config)
@@ -366,14 +371,14 @@ func (g *gcloud) authLogin() int {
 	return 0
 }
 
-// missingCodeFailure reports whether this ADC login is one of the first
-// FAKE_GCLOUD_ADC_MISSING_CODE attempts, counting attempts in a file.
-func (g *gcloud) missingCodeFailure() bool {
-	limit, _ := strconv.Atoi(os.Getenv("FAKE_GCLOUD_ADC_MISSING_CODE"))
+// missingCodeFailure reports whether this run is one of the first n attempts
+// that the env knob asks to fail, counting attempts in a file.
+func (g *gcloud) missingCodeFailure(knob, counterName string) bool {
+	limit, _ := strconv.Atoi(os.Getenv(knob))
 	if limit <= 0 {
 		return false
 	}
-	counter := filepath.Join(g.dir, "fake_adc_attempts")
+	counter := filepath.Join(g.dir, counterName)
 	data, _ := os.ReadFile(counter)
 	attempts, _ := strconv.Atoi(strings.TrimSpace(string(data)))
 	attempts++
@@ -382,13 +387,17 @@ func (g *gcloud) missingCodeFailure() bool {
 	return attempts <= limit
 }
 
+func printMissingCode(command string) {
+	fmt.Fprintln(os.Stderr, "Your browser has been opened to visit:")
+	fmt.Fprintln(os.Stderr, "    https://accounts.google.com/o/oauth2/auth?response_type=code&state=SECRETSTATE&code_challenge=SECRETCHALLENGE")
+	fmt.Fprintln(os.Stderr, "Redirected to http://localhost:8085/?state=SECRETSTATE&code=SECRETVALUE&scope=email")
+	fmt.Fprintf(os.Stderr, "ERROR: (gcloud.%s) There was a problem with web authentication.\n", command)
+	fmt.Fprintln(os.Stderr, "(missing_code) Missing code parameter in response.")
+}
+
 func (g *gcloud) adcLogin() int {
-	if g.missingCodeFailure() {
-		fmt.Fprintln(os.Stderr, "Your browser has been opened to visit:")
-		fmt.Fprintln(os.Stderr, "    https://accounts.google.com/o/oauth2/auth?response_type=code&state=SECRETSTATE&code_challenge=SECRETCHALLENGE")
-		fmt.Fprintln(os.Stderr, "Redirected to http://localhost:8085/?state=SECRETSTATE&code=SECRETVALUE&scope=email")
-		fmt.Fprintln(os.Stderr, "ERROR: (gcloud.auth.application-default.login) There was a problem with web authentication.")
-		fmt.Fprintln(os.Stderr, "(missing_code) Missing code parameter in response.")
+	if g.missingCodeFailure("FAKE_GCLOUD_ADC_MISSING_CODE", "fake_adc_attempts") {
+		printMissingCode("auth.application-default.login")
 		return 1
 	}
 	path := filepath.Join(g.dir, "application_default_credentials.json")
