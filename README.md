@@ -358,6 +358,14 @@ Login uses the device-code flow: open the printed URL and enter the code. Creden
     exit # Return to previous context
     ```
 
+### Troubleshooting: `(missing_code) Missing code parameter in response`
+
+gcloud's browser login waits on `localhost:8085` and treats the first request it gets as the OAuth redirect. A stale Google sign-in tab, the URL opened twice, or another process on the port makes the step fail.
+
+- Close old Google sign-in tabs (especially any `localhost:8085` tab) and keep one sign-in tab per step.
+- On an interactive terminal, `gctx login` and the TUI `l` key offer `Retry <step> only? [Y/n]`, which re-runs only the failed step; gctx also warns when port 8085 is held by another process.
+- To capture diagnostics, re-run with `GCTX_DEBUG=1 gctx login <account>`; the redacted log path is printed after the failure.
+
 ## Shell Completion
 
 ### Bash
